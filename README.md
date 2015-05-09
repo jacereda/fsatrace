@@ -35,8 +35,8 @@ The above sequence generates the following list of accesses:
 
 Newline-separated sequence with the following possibilities:
 
-* w:<path-to-file-opened-for-read>
-* r:<path-to-file-opened-for-write>
-* m:<path-to-destination-of-move>:<path-to-source-of-move>
-* d:<path-to-deleted-file>
+* w:`path-to-file-opened-for-read`
+* r:`path-to-file-opened-for-write`
+* m:`path-to-destination-of-move`:`path-to-source-of-move`
+* d:`path-to-deleted-file`
 
