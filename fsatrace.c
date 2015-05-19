@@ -64,7 +64,14 @@ swrite(int fd, const char *p, int sz)
 static void
 init()
 {
-	void           *libc = dlopen("libc.dylib", RTLD_LAZY | RTLD_GLOBAL);
+	const char     *libcname =
+#ifdef __APPLE__
+	"libc.dylib"
+#else
+	"libc.so.6"
+#endif
+	               ;
+	void           *libc = dlopen(libcname, RTLD_LAZY | RTLD_GLOBAL);
 	const char     *target = getenv("FSAT_OUT");
 
 #define HOOKn(n) o##n = dlsym(libc, #n);

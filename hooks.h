@@ -30,3 +30,12 @@ HOOK3(int
       , a1 & (O_RDWR | O_WRONLY | O_APPEND | O_CREAT | O_TRUNC) ? 'w' : 'r'
       , a0
       , 0)
+HOOK3(int 
+      , open64
+      , const char *
+      , int
+      , mode_t 
+      , r >= 0
+      , a1 & (O_RDWR | O_WRONLY | O_APPEND | O_CREAT | O_TRUNC) ? 'w' : 'r'
+      , a0
+      , 0)
