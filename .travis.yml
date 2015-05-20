@@ -1,3 +1,4 @@
 script:
  - make
+ - ls
  - env FSAT_OUT=/dev/stdout LD_PRELOAD=fsatrace.so cp /bin/ls /tmp/foo
