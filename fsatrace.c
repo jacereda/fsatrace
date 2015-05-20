@@ -65,8 +65,10 @@ static void
 init()
 {
 	const char     *libcname =
-#ifdef __APPLE__
+#if defined __APPLE__
 	"libc.dylib"
+#elif defined __NetBSD__
+	"libc.so"
 #else
 	"libc.so.6"
 #endif

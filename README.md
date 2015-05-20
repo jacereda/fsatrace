@@ -9,19 +9,19 @@ This can be useful for things like build systems, since it allows to
 automatically generate dependencies in a language-agnostic way or
 to ensure declared dependencies match the real ones.
 
-## Platforms
-
-Just Darwin for now.
-
 ## Compiling
 
 Type `make` to generate a `fsatrace.so` object.
 
 ## Usage
 
-To inject the shared object set `DYLD_INSERT_LIBRARIES` to the path of the `fsatrace.so` file and set `DYLD_FORCE_FLAT_NAMESPACE` as follows:
+On Darwin, inject the shared object setting `DYLD_INSERT_LIBRARIES` to the path of the `fsatrace.so` file and setting `DYLD_FORCE_FLAT_NAMESPACE` as follows:
 
     sh $ env FSAT_OUT=/dev/stdout DYLD_INSERT_LIBRARIES=fsatrace.so DYLD_FORCE_FLAT_NAMESPACE=1 sh -c 'touch /tmp/foo && cp /tmp/foo /tmp/bar && mv /tmp/bar /tmp/baz && rm /tmp/foo'
+
+On Linux/NetBSD:
+
+    sh $ env FSAT_OUT=/dev/stdout LD_PRELOAD=fsatrace.so sh -c 'touch /tmp/foo && cp /tmp/foo /tmp/bar && mv /tmp/bar /tmp/baz && rm /tmp/foo'
 
 The above sequence generates the following list of accesses:
 
