@@ -1,35 +1,35 @@
 # Filesystem Access Tracer
 
-Shared object that can be injected into other applications to trace
-file accesses.
+This tool injects code into other applications in order to trace file accesses.
 
 ## Why?
 
 This can be useful for things like build systems, since it allows to
-automatically generate dependencies in a language-agnostic way or
-to ensure declared dependencies match the real ones.
+automatically generate dependencies in a toolchain-agnostic way or to ensure
+declared dependencies match the real ones.
 
 ## Compiling
 
-Type `make` to generate a `fsatrace.so` object.
+On Windows, type `build.bat` to compile `fsatrace.exe` and associated DLLs
+`fsatrace32.dll` / `fsatrace64.dll`. The build script assumes VS 2015 is
+installed, if that's not the case just edit it so it can find the correct
+location of `vcvarsall.bat`.
+
+On Unix, type `make` to generate a `fsatrace.so` object.
 
 ## Usage
 
+On Windows, run fsatrace as follows:
+
+    fsatrace accesses.fsa -- cmd /c "echo>foo && copy foo bar && ren bar baz && del foo baz"
+
 On Darwin, inject the shared object setting `DYLD_INSERT_LIBRARIES` to the path of the `fsatrace.so` file and setting `DYLD_FORCE_FLAT_NAMESPACE` as follows:
 
-    sh $ env FSAT_OUT=/dev/stdout DYLD_INSERT_LIBRARIES=fsatrace.so DYLD_FORCE_FLAT_NAMESPACE=1 sh -c 'touch /tmp/foo && cp /tmp/foo /tmp/bar && mv /tmp/bar /tmp/baz && rm /tmp/foo'
+    env FSAT_OUT=accesses.fsa DYLD_INSERT_LIBRARIES=fsatrace.so DYLD_FORCE_FLAT_NAMESPACE=1 sh -c 'touch foo && cp foo bar && mv bar baz && rm foo baz'
 
 On Linux/NetBSD:
 
-    sh $ env FSAT_OUT=/dev/stdout LD_PRELOAD=fsatrace.so sh -c 'touch /tmp/foo && cp /tmp/foo /tmp/bar && mv /tmp/bar /tmp/baz && rm /tmp/foo'
-
-The above sequence generates the following list of accesses:
-
-    w:/dev/tty
-    r:/tmp/foo
-    w:/tmp/bar
-    m:/tmp/baz:/tmp/bar
-    d:/tmp/foo
+    env FSAT_OUT=accesses.fsa LD_PRELOAD=fsatrace.so sh -c 'touch foo && cp foo bar && mv bar baz && rm foo baz'
 
 ## Output format
 

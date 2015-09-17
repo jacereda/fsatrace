@@ -1,12 +1,22 @@
 @setlocal
+@set CO=/W3 /nologo /O2 /c /Fo:
+@set LO=/nologo /Fe:
+@set DO=/nologo /dll
+@setlocal
 call "%VS140COMNTOOLS%..\..\vc\vcvarsall.bat" x64
-cl /W3 /nologo /Fe: fsatrace.exe fsatracewin.c
-cl /W3 /nologo /c /Fo: fsatrace64.obj fsatracedll.c 
-link /nologo /dll /out:fsatrace64.dll fsatrace64.obj kernel32.lib psapi.lib ntdll.lib
+cl %CO% inject.obj inject.c
+cl %CO% fsatracewin.obj fsatracewin.c
+cl %LO% fsatrace.exe fsatracewin.obj inject.obj
+cl %CO% fsatrace64.obj fsatracedll.c
+link %DO% /out:fsatrace64.dll fsatrace64.obj inject.obj ntdll.lib
 @endlocal
 @setlocal
 call "%VS140COMNTOOLS%..\..\vc\vcvarsall.bat" x86
-cl /W3 /nologo /Fe: fsatracehelper.exe fsatracehelper.c
-cl /W3 /nologo /c /Fo: fsatrace32.obj fsatracedll.c
-link /nologo /dll /out:fsatrace32.dll fsatrace32.obj kernel32.lib psapi.lib ntdll.lib
+cl %CO% inject.obj inject.c
+cl %CO% fsatracehelper.obj fsatracehelper.c
+cl %LO% fsatracehelper.exe fsatracehelper.obj
+cl %CO% fsatrace32.obj fsatracedll.c
+link %DO% /out:fsatrace32.dll fsatrace32.obj inject.obj ntdll.lib
 @endlocal
+@endlocal
+

@@ -1,40 +1,43 @@
+#include <stdio.h>
+#include <assert.h>
 #include <windows.h>
- 
-int main(int argc, char ** argv) {
-  char buf[4096];
-  char * ext;
-  STARTUPINFO si;
-  PROCESS_INFORMATION pi;
-  FARPROC addr;
-  LPVOID arg;
-  HANDLE tid;
-  BOOL is32;
-  char * cmd = GetCommandLine()+strlen(argv[0]) + 2;
-  (void)argc;
-  memset(buf, 0, sizeof(buf));
-  GetModuleFileNameA(0, buf, sizeof(buf));
-  ext = strstr(buf, ".exe");
-  if (!ext)
-    ext = buf + strlen(buf);
-  memset(&si, 0, sizeof(si));
-  CreateProcess(0, cmd, 0, 0, 0, CREATE_SUSPENDED, 0, 0, &si, &pi);
-  IsWow64Process(pi.hProcess, &is32);
-  arg = VirtualAllocEx(pi.hProcess, 0, strlen(buf)+1, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
-  if (is32) {
-    addr = (FARPROC)(uintptr_t)system("fsatracehelper");
-    memcpy(ext, "32.dll", 6);
-  } else {
-    addr = GetProcAddress(GetModuleHandle("kernel32.dll"), "LoadLibraryA");
-    memcpy(ext, "64.dll", 6);
-  }
-  WriteProcessMemory(pi.hProcess, arg, buf, strlen(buf)+1, NULL);
-  tid = CreateRemoteThread(pi.hProcess, 0, 0, (LPTHREAD_START_ROUTINE)addr, arg, 0, 0);
-  ResumeThread(tid);
-  WaitForSingleObject(tid, INFINITE);
-  ResumeThread(pi.hThread);
-  WaitForSingleObject(pi.hThread, INFINITE);
-  CloseHandle(pi.hProcess);
-  return 0;
+#include "fsatracewin.h"
+
+int main(int argc, char **argv) {
+    STARTUPINFOW si;
+    PROCESS_INFORMATION pi;
+    FILE *of;
+    DWORD rc;
+    HANDLE mf;
+    char *buf;
+    char *out;
+    LPWSTR cmd;
+    if (argc < 4 || strcmp(argv[2], "--")) {
+        fprintf(stderr, "Usage: %s <output> -- <cmdline>\n", argv[0]);
+        return EXIT_FAILURE;
+    }
+    out = argv[1];
+    mf = CreateFileMappingA(INVALID_HANDLE_VALUE, 0, PAGE_READWRITE,
+                            0, LOGSZ, out);
+    SetEnvironmentVariableA(ENVOUT, out);
+    buf = MapViewOfFile(mf, FILE_MAP_ALL_ACCESS, 0, 0, LOGSZ);
+    memset(&si, 0, sizeof(si));
+    si.cb = sizeof(si);
+    cmd = wcsstr(GetCommandLineW(), L"-- ");
+    CreateProcessW(0, cmd+3, 0, 0, 0, CREATE_SUSPENDED, 0, 0, &si, &pi);
+    inject(pi.hProcess);
+    ResumeThread(pi.hThread);
+    WaitForSingleObject(pi.hThread, INFINITE);
+    GetExitCodeProcess(pi.hProcess, &rc);
+    CloseHandle(pi.hProcess);
+    if (0 == strcmp(out, "-"))
+        of = stdout;
+    else
+        fopen_s(&of, out, "a+");
+    fprintf(of, "%s", buf + sizeof(LONG));
+    if (of != stdout)
+        fclose(of);
+    UnmapViewOfFile(buf);
+    CloseHandle(mf);
+    return rc;
 }
-
-
