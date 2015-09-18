@@ -1,8 +1,3 @@
-HOOK1(int
-      , unlink
-      , const char *
-      , !r
-      , emit('d', a0))
 HOOK2(FILE *
       , fopen
       , const char *

@@ -112,6 +112,22 @@ rename(const char *p1, const char *p2)
 	return r;
 }
 
+int
+unlink(const char *p)
+{
+	int		r;
+	char		b         [PATH_MAX];
+	char           *rp = realpath(p, b);
+	static int      (*ounlink) (const char *)= 0;
+	if (!ounlink)
+		ounlink = dlsym(RTLD_NEXT, "unlink");
+	assert(ounlink);
+	r = ounlink(p);
+	if (!r)
+		iemit('d', rp, 0);
+	return r;
+}
+
 #define HOOKn(rt, n, args, cargs, c, e)			\
   rt n args {						\
     rt r;						\
