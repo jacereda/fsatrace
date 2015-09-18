@@ -25,7 +25,7 @@
 static int	s_fd;
 static char    *s_buf;
 
-static int (*orename)(const char *, const char *);
+static int      (*orename) (const char *, const char *);
 
 #define HOOKn(rt, n, args) static rt (*o##n) args;
 #define HOOK1(rt, n, t0, c, e) HOOKn (rt, n, (t0))
@@ -76,8 +76,8 @@ init()
 #endif
 	               ;
 	void           *libc = dlopen(libcname, RTLD_LAZY | RTLD_GLOBAL);
-	int r;
-	const char * shname = getenv(ENVOUT);
+	int		r;
+	const char     *shname = getenv(ENVOUT);
 	s_fd = shm_open(shname, O_CREAT | O_RDWR, 0666);
 	r = ftruncate(s_fd, LOGSZ);
 	assert(!r);
@@ -113,7 +113,7 @@ iemit(int c, const char *p1, const char *p2)
 
 	sz += snprintf(buf, sizeof(buf) - 1 - sz, "%c|%s", c, p1);
 	if (p2)
-	  sz += snprintf(buf + sz, sizeof(buf) - 1 - sz, "|%s", p2);
+		sz += snprintf(buf + sz, sizeof(buf) - 1 - sz, "|%s", p2);
 	sz += snprintf(buf + sz, sizeof(buf) - 1 - sz, "\n");
 	assert(sz < sizeof(buf) - 1);
 	buf[sz] = 0;
@@ -127,15 +127,17 @@ emit(int c, const char *p1)
 	iemit(c, realpath(p1, ap), 0);
 }
 
-int rename(const char * p1, const char * p2) {
-  int r;
-  char b1[PATH_MAX];
-  char b2[PATH_MAX];
-  char * rp1 = realpath(p1, b1);
-  r = orename(p1, p2);
-  if (!r)
-    iemit('m', realpath(p2, b2), rp1);
-  return r;
+int 
+rename(const char *p1, const char *p2)
+{
+	int		r;
+	char		b1        [PATH_MAX];
+	char		b2        [PATH_MAX];
+	char           *rp1 = realpath(p1, b1);
+	r = orename(p1, p2);
+	if (!r)
+		iemit('m', realpath(p2, b2), rp1);
+	return r;
 }
 
 #define HOOKn(rt, n, args, cargs, c, e)			\

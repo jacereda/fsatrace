@@ -33,6 +33,7 @@ main(int argc, char **argv)
 {
 	void           *buf;
 	int		fd;
+	int		r;
 	char		so        [PATH_MAX];
 	int		rc = EXIT_FAILURE;
 	int		child;
@@ -44,7 +45,8 @@ main(int argc, char **argv)
 	out = argv[1];
 	shm_unlink(out);
 	fd = shm_open(out, O_CREAT | O_EXCL | O_RDWR, 0666);
-	ftruncate(fd, LOGSZ);
+	r = ftruncate(fd, LOGSZ);
+	assert(!r);
 	buf = mmap(0, LOGSZ, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
 	snprintf(so, sizeof(so), "%s.so", argv[0]);
 	setenv("DYLD_INSERT_LIBRARIES", so, 1);
