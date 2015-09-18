@@ -25,18 +25,6 @@
 static int	s_fd;
 static char    *s_buf;
 
-static int      (*orename) (const char *, const char *);
-
-#define HOOKn(rt, n, args) static rt (*o##n) args;
-#define HOOK1(rt, n, t0, c, e) HOOKn (rt, n, (t0))
-#define HOOK2(rt, n, t0, t1, c, e) HOOKn (rt, n, (t0, t1))
-#define HOOK3(rt, n, t0, t1, t2, c, e) HOOKn (rt, n, (t0, t1, t2))
-#include "hooks.h"
-#undef HOOK3
-#undef HOOK2
-#undef HOOK1
-#undef HOOKn
-
 static int
 good(const char *s, int sz)
 {
@@ -69,32 +57,10 @@ static void
 __attribute((constructor(101)))
 init()
 {
-	const char     *libcname =
-#if defined __APPLE__
-	"libc.dylib"
-#elif defined __NetBSD__
-	"libc.so"
-#else
-	"libc.so.6"
-#endif
-	               ;
-	void           *libc = dlopen(libcname, RTLD_LAZY | RTLD_GLOBAL);
 	const char     *shname = getenv(ENVOUT);
 	s_fd = shm_open(shname, O_RDWR, 0666);
 	s_buf = mmap(0, LOGSZ, PROT_READ | PROT_WRITE, MAP_SHARED, s_fd, 0);
 	assert(s_fd >= 0);
-
-	orename = dlsym(libc, "rename");
-
-#define HOOKn(n) o##n = dlsym(libc, #n);
-#define HOOK1(rt, n, t0, c, e) HOOKn(n)
-#define HOOK2(rt, n, t0, t1, c, e) HOOKn(n)
-#define HOOK3(rt, n, t0, t1, t2, c, e) HOOKn(n)
-#include "hooks.h"
-#undef HOOK1
-#undef HOOK2
-#undef HOOK3
-#undef HOOKn
 }
 
 static void
@@ -134,6 +100,10 @@ rename(const char *p1, const char *p2)
 	char		b1        [PATH_MAX];
 	char		b2        [PATH_MAX];
 	char           *rp1 = realpath(p1, b1);
+	static int      (*orename) (const char *, const char *)= 0;
+	if (!orename)
+		orename = dlsym(RTLD_NEXT, "rename");
+	assert(orename);
 	r = orename(p1, p2);
 	if (!r)
 		iemit('m', realpath(p2, b2), rp1);
@@ -141,12 +111,17 @@ rename(const char *p1, const char *p2)
 }
 
 #define HOOKn(rt, n, args, cargs, c, e)			\
-	rt n args {					\
-		rt r = o##n cargs;			\
-			if (c)				\
-				e;			\
-			return r;			\
-	}
+  rt n args {						\
+    rt r;						\
+    static rt (*o##n) args = 0;				\
+    if (!o##n) o##n = dlsym(RTLD_NEXT, #n);		\
+    assert(o##n);					\
+    r = o##n cargs;					\
+      if (c)						\
+	e;						\
+      return r;						\
+  }
+
 #define HOOK1(rt, n, t0, c, e)				\
   HOOKn(rt, n, (t0 a0), (a0), c, e)
 #define HOOK2(rt, n, t0, t1, c, e)			\
