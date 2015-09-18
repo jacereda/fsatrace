@@ -26,6 +26,8 @@ static char    *s_shname;
 static int	s_fd;
 static char    *s_buf;
 
+static int (*orename)(const char *, const char *);
+
 #define HOOKn(rt, n, args) static rt (*o##n) args;
 #define HOOK1(rt, n, t0, c, e) HOOKn (rt, n, (t0))
 #define HOOK2(rt, n, t0, t1, c, e) HOOKn (rt, n, (t0, t1))
@@ -82,6 +84,8 @@ init()
 	s_buf = mmap(0, LOGSZ, PROT_READ | PROT_WRITE, MAP_SHARED, s_fd, 0);
 	assert(s_fd >= 0);
 
+	orename = dlsym(libc, "rename");
+
 #define HOOKn(n) o##n = dlsym(libc, #n);
 #define HOOK1(rt, n, t0, c, e) HOOKn(n)
 #define HOOK2(rt, n, t0, t1, c, e) HOOKn(n)
@@ -106,13 +110,10 @@ iemit(int c, const char *p1, const char *p2)
 {
 	char		buf       [10000];
 	int		sz = 0;
-	char		ap        [PATH_MAX];
-	realpath(p1, ap);
-	sz += snprintf(buf, sizeof(buf) - 1 - sz, "%c|%s", c, ap);
-	if (p2) {
-		realpath(p2, ap);
-		sz += snprintf(buf + sz, sizeof(buf) - 1 - sz, "|%s", ap);
-	}
+
+	sz += snprintf(buf, sizeof(buf) - 1 - sz, "%c|%s", c, p1);
+	if (p2)
+	  sz += snprintf(buf + sz, sizeof(buf) - 1 - sz, "|%s", p2);
 	sz += snprintf(buf + sz, sizeof(buf) - 1 - sz, "\n");
 	assert(sz < sizeof(buf) - 1);
 	buf[sz] = 0;
@@ -122,13 +123,19 @@ iemit(int c, const char *p1, const char *p2)
 static void
 emit(int c, const char *p1)
 {
-	iemit(c, p1, 0);
+	char		ap        [PATH_MAX];
+	iemit(c, realpath(p1, ap), 0);
 }
 
-static void
-emit2(int c, const char *p1, const char *p2)
-{
-	iemit(c, p1, p2);
+int rename(const char * p1, const char * p2) {
+  int r;
+  char b1[PATH_MAX];
+  char b2[PATH_MAX];
+  char * rp1 = realpath(p1, b1);
+  r = orename(p1, p2);
+  if (!r)
+    iemit('m', realpath(p2, b2), rp1);
+  return r;
 }
 
 #define HOOKn(rt, n, args, cargs, c, e)			\

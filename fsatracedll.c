@@ -205,9 +205,11 @@ static NTSTATUS NTAPI hNtSetInformationFile(HANDLE fh,
             emit("w", str(buf, oname, olen));
             break;
         case 10: // FileRenameInformation
-            emit2("m", str(buf, oname, olen),
+            emit2("m", 
                   str(buf2, ri->FileName,
-                      ri->FileNameLength / sizeof(ri->FileName[0])));
+                      ri->FileNameLength / sizeof(ri->FileName[0])),
+		  str(buf, oname, olen)
+		  );
             break;
         case 13: // FileDispositionInformation
             emit("d", str(buf, oname, olen));

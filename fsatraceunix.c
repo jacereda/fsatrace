@@ -16,12 +16,16 @@ extern char   **environ;
 static void
 dump(const char *path, char *p)
 {
-	int		fd = open(strcmp(path, "-") ? path : "/dev/stdout",
-		       O_CREAT | O_WRONLY | O_TRUNC, 0777);
+	int		fd;
+	if (strcmp(path, "-"))
+		fd = open(path, O_CREAT | O_WRONLY | O_TRUNC, 0777);
+	else
+		fd = 1;
 	if (fd < 0)
 		fprintf(stderr, "Unable to open output file '%s'\n", path);
 	write(fd, p + sizeof(size_t), *(size_t *) p);
-	close(fd);
+	if (fd != 1)
+		close(fd);
 }
 
 int

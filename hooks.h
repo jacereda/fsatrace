@@ -9,12 +9,6 @@ HOOK2(FILE *
       , const char *
       , r
       , emit(strchr(a1, 'r')? 'w' : 'r', a0))
-HOOK2(int
-      , rename
-      , const char *
-      , const char *
-      , !r
-      , emit2('m', a1, a0))
 HOOK3(int 
       , open
       , const char *
