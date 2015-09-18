@@ -8,7 +8,6 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <limits.h>
-#include <spawn.h>
 #include "fsatraceunix.h"
 
 extern char   **environ;
@@ -60,8 +59,12 @@ main(int argc, char **argv)
 	setenv("LD_PRELOAD", so, 1);
 #endif
 	setenv(ENVOUT, out, 1);
-	posix_spawnp(&child, argv[3], 0, 0, argv + 3, environ);
-	waitpid(child, &rc, 0);
+	child = fork();
+	if (!child) {
+	  execvp(argv[3], argv + 3);
+	  assert(0);
+	}
+	wait(&rc);
 	dump(out, buf);
 	munmap(buf, LOGSZ);
 	close(fd);
