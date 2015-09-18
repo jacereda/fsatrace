@@ -38,6 +38,7 @@ main(int argc, char **argv)
 	int		fd;
 	int		r;
 	char		so        [PATH_MAX];
+	char		shname    [PATH_MAX];
 	int		rc = EXIT_FAILURE;
 	int		child;
 	const char     *out;
@@ -46,8 +47,12 @@ main(int argc, char **argv)
 		return rc;
 	}
 	out = argv[1];
-	shm_unlink(out);
-	fd = shm_open(out, O_CREAT | O_RDWR, 0666);
+	snprintf(shname, sizeof(shname), "/%s", out);
+	for (size_t i = 0, l = strlen(shname); i < l; i++)
+		if (shname[i] == '/')
+			shname[i] = '_';
+	shm_unlink(shname);
+	fd = shm_open(shname, O_CREAT | O_RDWR, 0666);
 	r = ftruncate(fd, LOGSZ);
 	assert(!r);
 	buf = mmap(0, LOGSZ, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
@@ -58,16 +63,16 @@ main(int argc, char **argv)
 #else
 	setenv("LD_PRELOAD", so, 1);
 #endif
-	setenv(ENVOUT, out, 1);
+	setenv(ENVOUT, shname, 1);
 	child = fork();
 	if (!child) {
-	  execvp(argv[3], argv + 3);
-	  assert(0);
+		execvp(argv[3], argv + 3);
+		assert(0);
 	}
 	wait(&rc);
 	dump(out, buf);
 	munmap(buf, LOGSZ);
 	close(fd);
-	shm_unlink(out);
+	shm_unlink(shname);
 	return rc;
 }

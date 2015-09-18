@@ -54,7 +54,10 @@ swrite(const char *p, int sz)
 	int		g;
 	char           *dst = s_buf + sizeof(size_t);
 	size_t         *psofar = (size_t *) s_buf;
-	size_t		sofar = __sync_fetch_and_add(psofar, sz);
+	size_t		sofar;
+	if (!s_buf)
+		return;
+	sofar = __sync_fetch_and_add(psofar, sz);
 	memcpy(dst + sofar, p, sz);
 	g = good(p, sz);
 	if (!g)
@@ -77,7 +80,7 @@ init()
 	               ;
 	void           *libc = dlopen(libcname, RTLD_LAZY | RTLD_GLOBAL);
 	const char     *shname = getenv(ENVOUT);
-	s_fd = shm_open(shname, O_CREAT | O_RDWR, 0666);
+	s_fd = shm_open(shname, O_RDWR, 0666);
 	s_buf = mmap(0, LOGSZ, PROT_READ | PROT_WRITE, MAP_SHARED, s_fd, 0);
 	assert(s_fd >= 0);
 
