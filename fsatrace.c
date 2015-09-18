@@ -22,7 +22,6 @@
 #undef unlink
 #undef fopen
 
-static char    *s_shname;
 static int	s_fd;
 static char    *s_buf;
 
@@ -77,10 +76,11 @@ init()
 #endif
 	               ;
 	void           *libc = dlopen(libcname, RTLD_LAZY | RTLD_GLOBAL);
-
-	s_shname = getenv(ENVOUT);
-	s_fd = shm_open(s_shname, O_CREAT | O_RDWR, 0666);
-	ftruncate(s_fd, LOGSZ);
+	int r;
+	const char * shname = getenv(ENVOUT);
+	s_fd = shm_open(shname, O_CREAT | O_RDWR, 0666);
+	r = ftruncate(s_fd, LOGSZ);
+	assert(!r);
 	s_buf = mmap(0, LOGSZ, PROT_READ | PROT_WRITE, MAP_SHARED, s_fd, 0);
 	assert(s_fd >= 0);
 

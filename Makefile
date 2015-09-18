@@ -8,7 +8,7 @@ endif
 all: fsatrace fsatrace.so
 
 fsatrace: fsatraceunix.c
-	cc -g -O0 -Wall fsatraceunix.c -o fsatrace $(LIBS)
+	cc -O3 -Wall fsatraceunix.c -o fsatrace $(LIBS)
 
 fsatrace.so: fsatrace.c hooks.h
 	cc -O3 -shared -fPIC -Wall fsatrace.c -o fsatrace.so $(LIBS)
