@@ -5,6 +5,7 @@
 
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <sys/mman.h>
 #include <limits.h>
 #include <errno.h>
 #include <assert.h>
@@ -14,15 +15,16 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <dlfcn.h>
+#include "fsatraceunix.h"
 
 #undef open
 #undef rename
 #undef unlink
 #undef fopen
 
-static int	s_fd = -1;
-static void	init() __attribute((constructor));
-static void	term() __attribute((destructor));
+static char    *s_shname;
+static int	s_fd;
+static char    *s_buf;
 
 #define HOOKn(rt, n, args) static rt (*o##n) args;
 #define HOOK1(rt, n, t0, c, e) HOOKn (rt, n, (t0))
@@ -48,22 +50,19 @@ good(const char *s, int sz)
 static void
 swrite(const char *p, int sz)
 {
-	int		written;
-
-	assert(s_fd >= 0);
-	if (s_fd < 0)
-		return;
-	written = write(s_fd, p, sz);
-	if (written != sz)
-		fprintf(stderr, "Unable to write: '%s' %d/%d %d %d\n",
-			p, sz, written, errno, s_fd);
-	assert(written == sz);
-	if (!good(p, sz))
+	int		g;
+	char           *dst = s_buf + sizeof(size_t);
+	size_t         *psofar = (size_t *) s_buf;
+	size_t		sofar = __sync_fetch_and_add(psofar, sz);
+	memcpy(dst + sofar, p, sz);
+	g = good(p, sz);
+	if (!g)
 		fprintf(stderr, "BAD: %s\n", p);
-	assert(good(p, sz));
+	assert(g);
 }
 
 static void
+__attribute((constructor(101)))
 init()
 {
 	const char     *libcname =
@@ -76,7 +75,12 @@ init()
 #endif
 	               ;
 	void           *libc = dlopen(libcname, RTLD_LAZY | RTLD_GLOBAL);
-	const char     *target = getenv("FSAT_OUT");
+
+	s_shname = getenv(ENVOUT);
+	s_fd = shm_open(s_shname, O_CREAT | O_RDWR, 0666);
+	ftruncate(s_fd, LOGSZ);
+	s_buf = mmap(0, LOGSZ, PROT_READ | PROT_WRITE, MAP_SHARED, s_fd, 0);
+	assert(s_fd >= 0);
 
 #define HOOKn(n) o##n = dlsym(libc, #n);
 #define HOOK1(rt, n, t0, c, e) HOOKn(n)
@@ -87,17 +91,13 @@ init()
 #undef HOOK2
 #undef HOOK3
 #undef HOOKn
-	assert(target);
-	if (target)
-		s_fd = oopen(target, O_CREAT | O_WRONLY | O_APPEND, 0777);
-	if (s_fd < 0)
-		fprintf(stderr, "Unable to open output file '%s'\n", target);
-	assert(s_fd >= 0);
 }
 
 static void
+__attribute((destructor(101)))
 term()
 {
+	munmap(s_buf, LOGSZ);
 	close(s_fd);
 }
 
@@ -119,29 +119,31 @@ iemit(int c, const char *p1, const char *p2)
 	swrite(buf, sz);
 }
 
-static void emit(int c, const char * p1) {
-  iemit(c, p1, 0);
-}
-
-static void emit2(int c, const char * p1, const char * p2)
+static void
+emit(int c, const char *p1)
 {
-  iemit(c, p1, p2);
+	iemit(c, p1, 0);
 }
 
-
-#define HOOKn(rt, n, args, cargs, c, e)		\
-rt n args {						\
-	rt r = o##n cargs;				\
-	if (c) 						\
-		e;			\
-	return r;					\
+static void
+emit2(int c, const char *p1, const char *p2)
+{
+	iemit(c, p1, p2);
 }
-#define HOOK1(rt, n, t0, c, e)			\
-	HOOKn(rt, n, (t0 a0), (a0), c, e)
-#define HOOK2(rt, n, t0, t1, c, e)		\
-	HOOKn(rt, n, (t0 a0, t1 a1), (a0, a1), c, e)
-#define HOOK3(rt, n, t0, t1, t2, c, e)		\
-	HOOKn(rt, n, (t0 a0, t1 a1, t2 a2), (a0, a1, a2), c, e)
+
+#define HOOKn(rt, n, args, cargs, c, e)			\
+	rt n args {					\
+		rt r = o##n cargs;			\
+			if (c)				\
+				e;			\
+			return r;			\
+	}
+#define HOOK1(rt, n, t0, c, e)				\
+  HOOKn(rt, n, (t0 a0), (a0), c, e)
+#define HOOK2(rt, n, t0, t1, c, e)			\
+  HOOKn(rt, n, (t0 a0, t1 a1), (a0, a1), c, e)
+#define HOOK3(rt, n, t0, t1, t2, c, e)			\
+  HOOKn(rt, n, (t0 a0, t1 a1, t2 a2), (a0, a1, a2), c, e)
 #include "hooks.h"
 #undef HOOK1
 #undef HOOK2
