@@ -2,3 +2,6 @@ script:
  - make
  - ls
  - ./fsatrace - -- cp /bin/ls /tmp/foo
+ - ./fsatrace - -- mv /tmp/foo /tmp/bar
+ - ./fsatrace - -- rm /tmp/bar
+ - ./fsatrace - -- cc -c fsatrace.c -o /tmp/fsatrace.o
