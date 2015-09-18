@@ -48,13 +48,17 @@ main(int argc, char **argv)
 	}
 	out = argv[1];
 	shm_unlink(out);
-	fd = shm_open(out, O_CREAT | O_EXCL | O_RDWR, 0666);
+	fd = shm_open(out, O_CREAT | O_RDWR, 0666);
 	r = ftruncate(fd, LOGSZ);
 	assert(!r);
 	buf = mmap(0, LOGSZ, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
 	snprintf(so, sizeof(so), "%s.so", argv[0]);
+#ifdef __APPLE__
 	setenv("DYLD_INSERT_LIBRARIES", so, 1);
 	setenv("DYLD_FORCE_FLAT_NAMESPACE", "1", 1);
+#else
+	setenv("LD_PRELOAD", so, 1);
+#endif
 	setenv(ENVOUT, out, 1);
 	posix_spawnp(&child, argv[3], 0, 0, argv + 3, environ);
 	waitpid(child, &rc, 0);
