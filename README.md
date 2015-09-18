@@ -19,17 +19,10 @@ On Unix, type `make` to generate a `fsatrace.so` object.
 
 ## Usage
 
-On Windows, run fsatrace as follows:
+Make sure the .dll or .so files are in the same path as the executable
+and run:
 
-    fsatrace accesses.fsa -- cmd /c "echo>foo && copy foo bar && ren bar baz && del foo baz"
-
-On Darwin, inject the shared object setting `DYLD_INSERT_LIBRARIES` to the path of the `fsatrace.so` file and setting `DYLD_FORCE_FLAT_NAMESPACE` as follows:
-
-    env FSAT_OUT=accesses.fsa DYLD_INSERT_LIBRARIES=fsatrace.so DYLD_FORCE_FLAT_NAMESPACE=1 sh -c 'touch foo && cp foo bar && mv bar baz && rm foo baz'
-
-On Linux/NetBSD:
-
-    env FSAT_OUT=accesses.fsa LD_PRELOAD=fsatrace.so sh -c 'touch foo && cp foo bar && mv bar baz && rm foo baz'
+	fsatrace <output-file> -- <command>
 
 ## Output format
 
@@ -39,4 +32,3 @@ Newline-separated sequence with the following possibilities:
 * r|`path-to-file-opened-for-write`
 * m|`path-to-destination-of-move`|`path-to-source-of-move`
 * d|`path-to-deleted-file`
-
