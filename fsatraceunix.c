@@ -17,13 +17,17 @@ static void
 dump(const char *path, char *p)
 {
 	int		fd;
+	ssize_t		r;
+	size_t		sz;
 	if (strcmp(path, "-"))
 		fd = open(path, O_CREAT | O_WRONLY | O_TRUNC, 0777);
 	else
 		fd = 1;
 	if (fd < 0)
 		fprintf(stderr, "Unable to open output file '%s'\n", path);
-	write(fd, p + sizeof(size_t), *(size_t *) p);
+	sz = *(size_t *) p;
+	r = write(fd, p + sizeof(size_t), sz);
+	assert(r == sz);
 	if (fd != 1)
 		close(fd);
 }

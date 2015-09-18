@@ -76,11 +76,8 @@ init()
 #endif
 	               ;
 	void           *libc = dlopen(libcname, RTLD_LAZY | RTLD_GLOBAL);
-	int		r;
 	const char     *shname = getenv(ENVOUT);
 	s_fd = shm_open(shname, O_CREAT | O_RDWR, 0666);
-	r = ftruncate(s_fd, LOGSZ);
-	assert(!r);
 	s_buf = mmap(0, LOGSZ, PROT_READ | PROT_WRITE, MAP_SHARED, s_fd, 0);
 	assert(s_fd >= 0);
 
@@ -127,7 +124,7 @@ emit(int c, const char *p1)
 	iemit(c, realpath(p1, ap), 0);
 }
 
-int 
+int
 rename(const char *p1, const char *p2)
 {
 	int		r;
