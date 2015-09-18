@@ -1,7 +1,7 @@
 OS=$(shell uname -s)
 ifeq ($(OS),Linux)
-PRGLIBS=
-SOLIBS=-ldl
+PRGLIBS=-lrt
+SOLIBS=-ldl -lrt
 else
 LIBS=
 SOLIBS=
