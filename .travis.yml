@@ -7,3 +7,5 @@ script:
  - ./fsatrace - -- cc -c fsatrace.c -o /tmp/fsatrace.o
  - ./fsatrace out -- cc -c fsatrace.c -o /tmp/fsatrace.o
  - cat out
+ - echo foo > out
+ - cat out
