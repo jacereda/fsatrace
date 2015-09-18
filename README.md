@@ -35,8 +35,8 @@ On Linux/NetBSD:
 
 Newline-separated sequence with the following possibilities:
 
-* w:`path-to-file-opened-for-read`
-* r:`path-to-file-opened-for-write`
-* m:`path-to-destination-of-move`:`path-to-source-of-move`
-* d:`path-to-deleted-file`
+* w|`path-to-file-opened-for-read`
+* r|`path-to-file-opened-for-write`
+* m|`path-to-destination-of-move`|`path-to-source-of-move`
+* d|`path-to-deleted-file`
 
