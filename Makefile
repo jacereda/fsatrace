@@ -10,10 +10,10 @@ endif
 all: fsatrace fsatrace.so
 
 fsatrace: fsatraceunix.c
-	cc -O3 -Wall fsatraceunix.c -o fsatrace $(PRGLIBS)
+	cc -std=c99 -O3 -Wall fsatraceunix.c -o fsatrace $(PRGLIBS)
 
 fsatrace.so: fsatrace.c hooks.h
-	cc -O3 -shared -fPIC -Wall fsatrace.c -o fsatrace.so $(SOLIBS)
+	cc -std=c99 -O3 -shared -fPIC -Wall fsatrace.c -o fsatrace.so $(SOLIBS)
 
 clean:
 	rm -f fsatrace fsatrace.so
