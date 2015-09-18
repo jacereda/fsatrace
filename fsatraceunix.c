@@ -1,4 +1,6 @@
+#include <sys/types.h>
 #include <sys/mman.h>
+#include <sys/wait.h>
 #include <assert.h>
 #include <stdio.h>
 #include <string.h>
