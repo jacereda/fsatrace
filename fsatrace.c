@@ -1,4 +1,5 @@
 #define open Oopen
+#define open64 Oopen64
 #define rename Orename
 #define unlink Ounlink
 #define fopen Ofopen
@@ -18,6 +19,7 @@
 #include "fsatraceunix.h"
 
 #undef open
+#undef open64
 #undef rename
 #undef unlink
 #undef fopen
