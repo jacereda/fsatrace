@@ -3,6 +3,7 @@ os:
  - osx
 osx_image: xcode7
 script:
+ - cd unix
  - make
  - ./fsatrace - -- cp /bin/ls /tmp/foo
  - ./fsatrace - -- mv /tmp/foo /tmp/bar
