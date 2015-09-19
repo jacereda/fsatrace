@@ -1,5 +1,6 @@
 #define open Oopen
 #define open64 Oopen64
+#define openat Oopenat
 #define rename Orename
 #define unlink Ounlink
 #define fopen Ofopen
@@ -20,12 +21,14 @@
 
 #undef open
 #undef open64
+#undef openat
 #undef rename
 #undef unlink
 #undef fopen
 
 static int	s_fd;
 static char    *s_buf;
+static const int wmode = O_RDWR | O_WRONLY | O_APPEND | O_CREAT | O_TRUNC;
 
 static int
 good(const char *s, int sz)
@@ -109,7 +112,7 @@ fopen(const char *p, const char *m)
 	return r;
 }
 
-int 
+int
 open(const char *p, int f, mode_t m)
 {
 	int		r;
@@ -119,11 +122,11 @@ open(const char *p, int f, mode_t m)
 	assert(oopen);
 	r = oopen(p, f, m);
 	if (r >= 0)
-		emit(f & (O_RDWR | O_WRONLY | O_APPEND | O_CREAT | O_TRUNC) ? 'w' : 'r', p);
+		emit(f & wmode ? 'w' : 'r', p);
 	return r;
 }
 
-int 
+int
 open64(const char *p, int f, mode_t m)
 {
 	int		r;
@@ -133,9 +136,27 @@ open64(const char *p, int f, mode_t m)
 	assert(oopen64);
 	r = oopen64(p, f, m);
 	if (r >= 0)
-		emit(f & (O_RDWR | O_WRONLY | O_APPEND | O_CREAT | O_TRUNC) ? 'w' : 'r', p);
+		emit(f & wmode ? 'w' : 'r', p);
 	return r;
 }
+
+int
+openat(int fd, const char *p, int f, mode_t m)
+{
+	int		r;
+	if (fd != AT_FDCWD) {
+		static int      (*oopenat) (int, const char *, int, mode_t)= 0;
+		if (!oopenat)
+			oopenat = dlsym(RTLD_NEXT, "openat");
+		assert(oopenat);
+		r = oopenat(fd, p, f, m);
+		if (r >= 0)
+			iemit(f & wmode ? 'W' : 'R', p, 0);
+	} else
+		r = open(p, f, m);
+	return r;
+}
+
 
 int
 rename(const char *p1, const char *p2)
@@ -165,7 +186,7 @@ renameat(int fd1, const char *p1, int fd2, const char *p2)
 		assert(orenameat);
 		r = orenameat(p1, p2);
 		if (!r)
-			iemit('?', p2, p1);
+			iemit('R', p2, p1);
 	} else
 		r = rename(p1, p2);
 	return r;
@@ -198,7 +219,7 @@ unlinkat(int fd, const char *p, int f)
 		assert(ounlinkat);
 		r = ounlinkat(fd, p, f);
 		if (!r)
-			iemit('?', p, 0);
+			iemit('D', p, 0);
 		assert(0);
 	} else if (f & AT_REMOVEDIR)
 		r = rmdir(p);
