@@ -1,6 +1,7 @@
 #define open Oopen
 #define open64 Oopen64
 #define openat Oopenat
+#define openat Oopenat64
 #define rename Orename
 #define unlink Ounlink
 #define fopen Ofopen
@@ -22,6 +23,7 @@
 #undef open
 #undef open64
 #undef openat
+#undef openat64
 #undef rename
 #undef unlink
 #undef fopen
