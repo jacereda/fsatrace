@@ -112,7 +112,7 @@ fopen(const char *p, const char *m)
 	assert(ofopen);
 	r = ofopen(p, m);
 	if (r)
-		emit(strchr(m, 'r') ? 'w' : 'r', p);
+		emit(strchr(m, 'r') ? 'r' : 'w', p);
 	return r;
 }
 
@@ -126,7 +126,7 @@ fopen64(const char *p, const char *m)
 	assert(ofopen64);
 	r = ofopen64(p, m);
 	if (r)
-		emit(strchr(m, 'r') ? 'w' : 'r', p);
+		emit(strchr(m, 'r') ? 'r' : 'w', p);
 	return r;
 }
 
