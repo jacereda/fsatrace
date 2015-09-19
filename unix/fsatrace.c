@@ -152,11 +152,29 @@ openat(int fd, const char *p, int f, mode_t m)
 		r = oopenat(fd, p, f, m);
 		if (r >= 0)
 			iemit(f & wmode ? 'W' : 'R', p, 0);
-	} else
+	}
+	else
 		r = open(p, f, m);
 	return r;
 }
 
+int
+openat64(int fd, const char *p, int f, mode_t m)
+{
+	int		r;
+	if (fd != AT_FDCWD) {
+		static int      (*oopenat64) (int, const char *, int, mode_t)= 0;
+		if (!oopenat64)
+			oopenat64 = dlsym(RTLD_NEXT, "openat64");
+		assert(oopenat64);
+		r = oopenat64(fd, p, f, m);
+		if (r >= 0)
+			iemit(f & wmode ? 'W' : 'R', p, 0);
+	}
+	else
+		r = open64(p, f, m);
+	return r;
+}
 
 int
 rename(const char *p1, const char *p2)
@@ -187,7 +205,8 @@ renameat(int fd1, const char *p1, int fd2, const char *p2)
 		r = orenameat(p1, p2);
 		if (!r)
 			iemit('R', p2, p1);
-	} else
+	} 
+	else
 		r = rename(p1, p2);
 	return r;
 }
@@ -221,7 +240,8 @@ unlinkat(int fd, const char *p, int f)
 		if (!r)
 			iemit('D', p, 0);
 		assert(0);
-	} else if (f & AT_REMOVEDIR)
+	} 
+	else if (f & AT_REMOVEDIR)
 		r = rmdir(p);
 	else
 		r = unlink(p);
