@@ -128,6 +128,27 @@ unlink(const char *p)
 	return r;
 }
 
+int
+unlinkat(int fd, const char *p, int f)
+{
+	int		r;
+	if (fd != AT_FDCWD) {
+		static int      (*ounlinkat) (int fd, const char *p, int f);
+		if (!ounlinkat)
+			ounlinkat = dlsym(RTLD_NEXT, "unlinkat");
+		assert(ounlinkat);
+		r = ounlinkat(fd, p, f);
+		if (!r)
+			iemit('?', p, 0);
+		assert(0);
+	} else if (f & AT_REMOVEDIR)
+		r = rmdir(p);
+	else
+		r = unlink(p);
+	return r;
+}
+
+
 #define HOOKn(rt, n, args, cargs, c, e)			\
   rt n args {						\
     rt r;						\
