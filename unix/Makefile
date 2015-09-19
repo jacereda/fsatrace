@@ -14,7 +14,7 @@ all: fsatrace fsatrace.so
 fsatrace: fsatraceunix.c
 	$(CC) fsatraceunix.c -o fsatrace $(PRGLIBS)
 
-fsatrace.so: fsatrace.c hooks.h
+fsatrace.so: fsatrace.c
 	$(CC) -shared -fPIC fsatrace.c -o fsatrace.so $(SOLIBS)
 
 clean:

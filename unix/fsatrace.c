@@ -95,6 +95,48 @@ emit(int c, const char *p1)
 	iemit(c, realpath(p1, ap), 0);
 }
 
+FILE           *
+fopen(const char *p, const char *m)
+{
+	FILE           *r;
+	static FILE    *(*ofopen) (const char *, const char *)= 0;
+	if (!ofopen)
+		ofopen = dlsym(RTLD_NEXT, "fopen");
+	assert(ofopen);
+	r = ofopen(p, m);
+	if (r)
+		emit(strchr(m, 'r') ? 'w' : 'r', p);
+	return r;
+}
+
+int 
+open(const char *p, int f, mode_t m)
+{
+	int		r;
+	static int      (*oopen) (const char *, int, mode_t)= 0;
+	if (!oopen)
+		oopen = dlsym(RTLD_NEXT, "open");
+	assert(oopen);
+	r = oopen(p, f, m);
+	if (r >= 0)
+		emit(f & (O_RDWR | O_WRONLY | O_APPEND | O_CREAT | O_TRUNC) ? 'w' : 'r', p);
+	return r;
+}
+
+int 
+open64(const char *p, int f, mode_t m)
+{
+	int		r;
+	static int      (*oopen64) (const char *, int, mode_t)= 0;
+	if (!oopen64)
+		oopen64 = dlsym(RTLD_NEXT, "open64");
+	assert(oopen64);
+	r = oopen64(p, f, m);
+	if (r >= 0)
+		emit(f & (O_RDWR | O_WRONLY | O_APPEND | O_CREAT | O_TRUNC) ? 'w' : 'r', p);
+	return r;
+}
+
 int
 rename(const char *p1, const char *p2)
 {
@@ -164,27 +206,3 @@ unlinkat(int fd, const char *p, int f)
 		r = unlink(p);
 	return r;
 }
-
-
-#define HOOKn(rt, n, args, cargs, c, e)			\
-  rt n args {						\
-    rt r;						\
-    static rt (*o##n) args = 0;				\
-    if (!o##n) o##n = dlsym(RTLD_NEXT, #n);		\
-    assert(o##n);					\
-    r = o##n cargs;					\
-      if (c)						\
-	e;						\
-      return r;						\
-  }
-
-#define HOOK1(rt, n, t0, c, e)				\
-  HOOKn(rt, n, (t0 a0), (a0), c, e)
-#define HOOK2(rt, n, t0, t1, c, e)			\
-  HOOKn(rt, n, (t0 a0, t1 a1), (a0, a1), c, e)
-#define HOOK3(rt, n, t0, t1, t2, c, e)			\
-  HOOKn(rt, n, (t0 a0, t1 a1, t2 a2), (a0, a1, a2), c, e)
-#include "hooks.h"
-#undef HOOK1
-#undef HOOK2
-#undef HOOK3
