@@ -11,11 +11,11 @@ CC=cc -D_GNU_SOURCE -D_BSD_SOURCE=1 -std=c99 -Wall -O3
 
 all: fsatrace fsatrace.so
 
-fsatrace: fsatraceunix.c
-	$(CC) fsatraceunix.c -o fsatrace $(PRGLIBS)
+fsatrace: fsatrace.c fsatrace.h
+	$(CC) fsatrace.c -o fsatrace $(PRGLIBS)
 
-fsatrace.so: fsatrace.c
-	$(CC) -shared -fPIC fsatrace.c -o fsatrace.so $(SOLIBS)
+fsatrace.so: fsatraceso.c fsatrace.h
+	$(CC) -shared -fPIC fsatraceso.c -o fsatrace.so $(SOLIBS)
 
 clean:
 	rm -f fsatrace fsatrace.so
