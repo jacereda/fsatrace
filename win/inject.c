@@ -1,6 +1,6 @@
 #include <windows.h>
 #include <stdio.h>
-#include "fsatracewin.h"
+#include "fsatrace.h"
 
 void inject(HANDLE proc) {
     HANDLE tid;

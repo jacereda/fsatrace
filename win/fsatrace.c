@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <assert.h>
 #include <windows.h>
-#include "fsatracewin.h"
+#include "fsatrace.h"
 
 int main(int argc, char **argv) {
     STARTUPINFOW si;

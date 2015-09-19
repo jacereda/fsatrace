@@ -3,7 +3,7 @@
 #include <psapi.h>
 #include <assert.h>
 #include <stdio.h>
-#include "fsatracewin.h"
+#include "fsatrace.h"
 
 
 #undef TRACE

@@ -5,8 +5,8 @@
 @setlocal
 call "%VS140COMNTOOLS%..\..\vc\vcvarsall.bat" x64
 cl %CO% inject.obj inject.c
-cl %CO% fsatracewin.obj fsatracewin.c
-cl %LO% fsatrace.exe fsatracewin.obj inject.obj
+cl %CO% fsatrace.obj fsatrace.c
+cl %LO% fsatrace.exe fsatrace.obj inject.obj
 cl %CO% fsatrace64.obj fsatracedll.c
 link %DO% /out:fsatrace64.dll fsatrace64.obj inject.obj ntdll.lib
 @endlocal
