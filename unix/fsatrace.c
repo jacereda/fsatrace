@@ -113,6 +113,23 @@ rename(const char *p1, const char *p2)
 }
 
 int
+renameat(int fd1, const char *p1, int fd2, const char *p2)
+{
+	int		r;
+	if (fd1 != AT_FDCWD || fd2 != AT_FDCWD) {
+		static int      (*orenameat) (const char *, const char *)= 0;
+		if (!orenameat)
+			orenameat = dlsym(RTLD_NEXT, "renameat");
+		assert(orenameat);
+		r = orenameat(p1, p2);
+		if (!r)
+			iemit('?', p2, p1);
+	} else
+		r = rename(p1, p2);
+	return r;
+}
+
+int
 unlink(const char *p)
 {
 	int		r;
