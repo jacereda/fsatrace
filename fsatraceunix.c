@@ -70,7 +70,8 @@ main(int argc, char **argv)
 		assert(0);
 	}
 	wait(&rc);
-	dump(out, buf);
+	if (!rc)
+		dump(out, buf);
 	munmap(buf, LOGSZ);
 	close(fd);
 	shm_unlink(shname);

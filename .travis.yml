@@ -1,7 +1,10 @@
+os:
+ - linux
+ - osx
 script:
  - make
- - ls
  - ./fsatrace - -- cp /bin/ls /tmp/foo
  - ./fsatrace - -- mv /tmp/foo /tmp/bar
  - ./fsatrace - -- rm /tmp/bar
- - ./fsatrace - -- cc -D_GNU_SOURCE -D_BSD_SOURCE=1 -std=c99 -Wall -O3 fsatraceunix.c -o /tmp/fsatrace 
+ - ./fsatrace - -- sh -c "cp /bin/ls /tmp/foo && mv /tmp/foo /tmp/bar && rm /tmp/bar"
+ - ./fsatrace - -- cc -c -D_GNU_SOURCE -D_BSD_SOURCE=1 -std=c99 -Wall -O3 fsatraceunix.c -o /tmp/fsatrace.o

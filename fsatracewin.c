@@ -30,13 +30,15 @@ int main(int argc, char **argv) {
     WaitForSingleObject(pi.hThread, INFINITE);
     GetExitCodeProcess(pi.hProcess, &rc);
     CloseHandle(pi.hProcess);
-    if (0 == strcmp(out, "-"))
-        of = stdout;
-    else
-        fopen_s(&of, out, "a+");
-    fprintf(of, "%s", buf + sizeof(LONG));
-    if (of != stdout)
-        fclose(of);
+    if (!rc) {
+	if (0 == strcmp(out, "-"))
+	    of = stdout;
+	else
+	    fopen_s(&of, out, "a+");
+	fprintf(of, "%s", buf + sizeof(LONG));
+	if (of != stdout)
+	    fclose(of);
+    }
     UnmapViewOfFile(buf);
     CloseHandle(mf);
     return rc;
