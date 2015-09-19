@@ -5,6 +5,7 @@
 #define rename Orename
 #define unlink Ounlink
 #define fopen Ofopen
+#define fopen64 Ofopen64
 
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -27,6 +28,7 @@
 #undef rename
 #undef unlink
 #undef fopen
+#undef fopen64
 
 static int	s_fd;
 static char    *s_buf;
@@ -109,6 +111,20 @@ fopen(const char *p, const char *m)
 		ofopen = dlsym(RTLD_NEXT, "fopen");
 	assert(ofopen);
 	r = ofopen(p, m);
+	if (r)
+		emit(strchr(m, 'r') ? 'w' : 'r', p);
+	return r;
+}
+
+FILE           *
+fopen64(const char *p, const char *m)
+{
+	FILE           *r;
+	static FILE    *(*ofopen64) (const char *, const char *)= 0;
+	if (!ofopen64)
+		ofopen64 = dlsym(RTLD_NEXT, "fopen64");
+	assert(ofopen64);
+	r = ofopen64(p, m);
 	if (r)
 		emit(strchr(m, 'r') ? 'w' : 'r', p);
 	return r;
