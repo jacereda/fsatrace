@@ -4,4 +4,4 @@ script:
  - ./fsatrace - -- cp /bin/ls /tmp/foo
  - ./fsatrace - -- mv /tmp/foo /tmp/bar
  - ./fsatrace - -- rm /tmp/bar
- - ./fsatrace - -- cc -c fsatrace.c -o /tmp/fsatrace.o
+ - ./fsatrace - -- cc -D_GNU_SOURCE -D_BSD_SOURCE=1 -std=c99 -Wall -O3 fsatraceunix.c -o /tmp/fsatrace 
