@@ -9,4 +9,4 @@ script:
  - ./fsatrace - -- mv /tmp/foo /tmp/bar
  - ./fsatrace - -- rm /tmp/bar
  - ./fsatrace - -- sh -c "cp /bin/ls /tmp/foo && mv /tmp/foo /tmp/bar && rm /tmp/bar"
- - ./fsatrace - -- cc -c -D_GNU_SOURCE -D_BSD_SOURCE=1 -std=c99 -Wall -O3 fsatraceunix.c -o /tmp/fsatrace.o
+ - ./fsatrace - -- cc -c -D_GNU_SOURCE -D_BSD_SOURCE=1 -std=c99 -Wall -O3 fsatrace.c -o /tmp/fsatrace.o
