@@ -31,6 +31,16 @@ dump(const char *path, char *p)
 		close(fd);
 }
 
+unsigned long
+hash(unsigned char *str)
+{
+  unsigned long h = 5381;
+  int c;
+  while ((c = *str++))
+    h = ((h << 5) + h) + c;
+  return h;
+}
+
 int
 main(int argc, char **argv)
 {
@@ -47,7 +57,7 @@ main(int argc, char **argv)
 		return rc;
 	}
 	out = argv[1];
-	snprintf(shname, sizeof(shname), "/%s", out);
+	snprintf(shname, sizeof(shname), "/%ld", hash((unsigned char *)out));
 	for (size_t i = 0, l = strlen(shname); i < l; i++)
 		if (shname[i] == '/')
 			shname[i] = '_';
@@ -69,7 +79,9 @@ main(int argc, char **argv)
 		execvp(argv[3], argv + 3);
 		assert(0);
 	}
-	wait(&rc);
+	r = wait(&rc);
+	assert(r >= 0);
+	rc = WEXITSTATUS(rc);
 	if (!rc)
 		dump(out, buf);
 	munmap(buf, LOGSZ);
