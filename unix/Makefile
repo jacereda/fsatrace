@@ -2,12 +2,13 @@ OS=$(shell uname -s)
 ifeq ($(OS),Linux)
 PRGLIBS=-lrt
 SOLIBS=-ldl -lrt
-else
-LIBS=
+endif
+ifeq ($(OS),Darwin)
+PRGLIBS=
 SOLIBS=
-endif	
+endif
 
-CC=cc -D_GNU_SOURCE -D_BSD_SOURCE=1 -std=c99 -Wall -O3
+CC=cc -D_GNU_SOURCE -D_BSD_SOURCE=1 -std=c99 -Wall -O2 -fomit-frame-pointer -fno-stack-protector -Wno-incompatible-pointer-types 
 
 all: fsatrace fsatrace.so
 
