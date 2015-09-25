@@ -1,3 +1,4 @@
+#include <stdint.h>
 #include <windows.h>
 
 int main() {
