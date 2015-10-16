@@ -96,14 +96,11 @@ void patchInstall(void *orig, void *hook, void **preal, const char *nm) {
 }
 
 int patchInstalled() {
-    return 0;
-    /*
     int ret;
     ASSERT(s_hooked);
     ret = (int)(intptr_t)TlsGetValue(s_hooked);
     TlsSetValue(s_hooked, (void *)1);
     return ret;
-    */
 }
 
 void patchInit() {
