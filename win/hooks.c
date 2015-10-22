@@ -166,7 +166,7 @@ static NTSTATUS NTAPI hNtSetInformationFile(HANDLE fh,
             emitOp("w", opath);
             break;
         case FileRenameInformation:
-            emitOp2("m", 
+            emitOp2("m",
                   sstr(buf2, ri->FileName,
                       ri->FileNameLength / sizeof(ri->FileName[0])),
                   opath);

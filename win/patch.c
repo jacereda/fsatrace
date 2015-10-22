@@ -70,9 +70,9 @@ static void modpatch(IMAGE_DOS_HEADER *dh,
         DWORD o;
         dbg("   patching %s %p %p -> %p\n", nm, td->u1.Function, orig, hook);
         *preal = (void *)td->u1.Function;
-        VirtualProtect(td, sizeof(*td), PAGE_EXECUTE_READWRITE, &o);
+        CHK(VirtualProtect(td, sizeof(*td), PAGE_EXECUTE_READWRITE, &o));
         td->u1.Function = (uintptr_t)hook;
-        VirtualProtect(td, sizeof(*td), o, &o);
+        CHK(VirtualProtect(td, sizeof(*td), o, &o));
     }
 }
 
@@ -81,13 +81,13 @@ void patchInstall(void *orig, void *hook, void **preal, const char *nm) {
     DWORD n;
     DWORD i;
     extern IMAGE_DOS_HEADER __ImageBase;
-    EnumProcessModules(GetCurrentProcess(), mod, sizeof(mod), &n);
+    CHK(EnumProcessModules(GetCurrentProcess(), mod, sizeof(mod), &n));
     n /= sizeof(HMODULE);
     dbg("orig %s %p\n", nm, orig);
     for (i = 0; i < n; i++) {
         HMODULE m = mod[i];
         char mname[4096];
-        GetModuleFileNameA(m, mname, sizeof(mname));
+        CHK(GetModuleFileNameA(m, mname, sizeof(mname)));
         dbg("module %s\n", mname);
         if (m != (HMODULE)&__ImageBase)
             modpatch((IMAGE_DOS_HEADER *)m, orig, hook, preal, nm);
@@ -99,15 +99,14 @@ int patchInstalled() {
     int ret;
     ASSERT(s_hooked);
     ret = (int)(intptr_t)TlsGetValue(s_hooked);
-    TlsSetValue(s_hooked, (void *)1);
+    CHK(TlsSetValue(s_hooked, (void *)1));
     return ret;
 }
 
 void patchInit() {
-    s_hooked = TlsAlloc();
-    ASSERT(s_hooked);
+    CHK(0 != (s_hooked = TlsAlloc()));
 }
 
 void patchTerm() {
-    TlsFree(s_hooked);
+    CHK(TlsFree(s_hooked));
 }

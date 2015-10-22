@@ -15,6 +15,7 @@ void fatal(const char * fmt, ...) {
     vfprintf(stderr, fmt, ap);
     fprintf(stderr, "\n");
     va_end(ap);
+    fflush(stderr);
     ExitProcess(777);
 }
 /*

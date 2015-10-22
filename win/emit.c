@@ -34,14 +34,12 @@ void emitOp2(const char *e, const char *p0, const char *p1) {
 
 void emitInit() {
     char out[MAX_PATH];
-    GetEnvironmentVariableA(ENVOUT, out, sizeof(out));
-    s_mf = OpenFileMappingA(FILE_MAP_ALL_ACCESS, FALSE, out);
-    ASSERT(s_mf);
-    s_buf = MapViewOfFile(s_mf, FILE_MAP_ALL_ACCESS, 0, 0, LOGSZ);
-    ASSERT(s_buf);
+    CHK(GetEnvironmentVariableA(ENVOUT, out, sizeof(out)));
+    CHK(0 != (s_mf = OpenFileMappingA(FILE_MAP_ALL_ACCESS, FALSE, out)));
+    CHK(0 != (s_buf = MapViewOfFile(s_mf, FILE_MAP_ALL_ACCESS, 0, 0, LOGSZ)));
 }
 
 void emitTerm() {
-    UnmapViewOfFile(s_buf);
-    CloseHandle(s_mf);
+    CHK(UnmapViewOfFile(s_buf));
+    CHK(CloseHandle(s_mf));
 }

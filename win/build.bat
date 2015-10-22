@@ -14,7 +14,7 @@ cl %CO% utf8.obj utf8.c
 cl %CO% fsatrace.obj fsatrace.c
 link %LO% /out:fsatrace.exe fsatrace.obj dbg.obj inject.obj shell32.lib
 cl %CO% fsatrace64.obj fsatracedll.c
-link %DO% /out:fsatrace64.dll fsatrace64.obj inject.obj  patch.obj hooks.obj emit.obj handle.obj utf8.obj
+link %DO% /out:fsatrace64.dll fsatrace64.obj inject.obj  patch.obj hooks.obj emit.obj handle.obj utf8.obj dbg.obj
 @endlocal
 @setlocal
 call "%VS140COMNTOOLS%..\..\vc\vcvarsall.bat" x86
@@ -28,7 +28,7 @@ cl %CO% utf8.obj utf8.c
 cl %CO% fsatracehelper.obj fsatracehelper.c
 link %LO% /out:fsatracehelper.exe fsatracehelper.obj
 cl %CO% fsatrace32.obj fsatracedll.c
-link %DO% /out:fsatrace32.dll fsatrace32.obj inject.obj  patch.obj hooks.obj emit.obj handle.obj utf8.obj
+link %DO% /out:fsatrace32.dll fsatrace32.obj inject.obj  patch.obj hooks.obj emit.obj handle.obj utf8.obj dbg.obj
 @endlocal
 @endlocal
 

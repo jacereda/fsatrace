@@ -4,9 +4,9 @@
 #include "handle.h"
 
 char * handlePath(char * dst, HANDLE h) {
-    char * ret;
     WCHAR wbuf[MAX_PATH];
-    DWORD len = GetFinalPathNameByHandleW(h, wbuf, MAX_PATH, FILE_NAME_NORMALIZED);
-    ret = utf8PathFromWide(dst, wbuf, len);
-    return ret;
+    DWORD len;
+    CHK(h);
+    len = GetFinalPathNameByHandleW(h, wbuf, MAX_PATH, FILE_NAME_NORMALIZED);
+    return utf8PathFromWide(dst, wbuf, len);
 }

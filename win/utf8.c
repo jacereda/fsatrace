@@ -1,9 +1,12 @@
 #include <string.h>
 #include <windows.h>
+#include "dbg.h"
 #include "utf8.h"
 
 char * utf8PathFromWide(char *buf, const PWSTR s, unsigned sl){
-    int l = WideCharToMultiByte(CP_UTF8, 0, s, sl, buf, MAX_PATH, 0, 0);
+    int l;
+    l = WideCharToMultiByte(CP_UTF8, 0, s, sl, buf, MAX_PATH, 0, 0);
+    CHK(l || !sl);
     buf[l] = 0;
     if (!buf[0])
         return 0;

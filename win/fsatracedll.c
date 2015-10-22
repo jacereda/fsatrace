@@ -7,10 +7,9 @@
 static void * resolve(const char * name) {
     void * ret;
     static HANDLE dll = 0;
-    if (!dll) dll = GetModuleHandleA("ntdll.dll");
-    ASSERT(dll);
-    ret = GetProcAddress(dll, name);
-    ASSERT(ret);
+    if (!dll)
+		CHK((dll = GetModuleHandleA("ntdll.dll")));
+    CHK((ret = GetProcAddress(dll, name)));
     return ret;
 }
 
