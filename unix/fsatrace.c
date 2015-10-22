@@ -32,7 +32,7 @@ dump(const char *path, char *p)
 		close(fd);
 }
 
-unsigned long
+static unsigned long
 hash(unsigned char *str)
 {
 	unsigned long	h = 5381;
