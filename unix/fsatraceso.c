@@ -52,8 +52,7 @@ term()
 	close(s_fd);
 }
 
-static inline void
-__attribute((noinline))
+static void
 iemit(int c, const char *p1, const char *p2)
 {
 	char           *dst = s_buf + sizeof(unsigned);
@@ -86,7 +85,6 @@ iemit(int c, const char *p1, const char *p2)
 }
 
 static void
-__attribute((noinline))
 emit(int c, const char *p1)
 {
 	char		ap        [PATH_MAX];
@@ -94,7 +92,6 @@ emit(int c, const char *p1)
 }
 
 static void
-__attribute((noinline))
 resolv(void ** p, const char * n) {
   if (!*p)
     *p = dlsym(RTLD_NEXT, n);
