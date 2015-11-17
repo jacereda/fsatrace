@@ -9,6 +9,9 @@
 #include <stdarg.h>
 #include <fcntl.h>
 #include <limits.h>
+#if !defined __linux__
+#include <libproc.h>
+#endif
 #include "fsatrace.h"
 
 extern char   **environ;
@@ -60,6 +63,7 @@ main(int argc, char **argv)
 	int		r;
 	char		so        [PATH_MAX];
 	char		shname    [PATH_MAX];
+	char		fullpath  [PATH_MAX];
 	int		rc = EXIT_FAILURE;
 	int		child;
 	const char     *out;
@@ -75,13 +79,19 @@ main(int argc, char **argv)
 	r = ftruncate(fd, LOGSZ);
 	assert(!r);
 	buf = mmap(0, LOGSZ, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
-#ifdef __APPLE__
-	snprintf(so, sizeof(so), "%s.dylib", argv[0]);
+#if defined __linux__
+	{
+		char		exepath   [64];
+		snprintf(exepath, sizeof(exepath), "/proc/%d/exe", getpid());
+		readlink(exepath, fullpath, sizeof(fullpath));
+		snprintf(so, sizeof(so), "%s.so", fullpath);
+		setenv("LD_PRELOAD", so, 1);
+	}
+#else
+	proc_pidpath(getpid(), fullpath, sizeof(fullpath));
+	snprintf(so, sizeof(so), "%s.dylib", fullpath);
 	setenv("DYLD_INSERT_LIBRARIES", so, 1);
 	setenv("DYLD_FORCE_FLAT_NAMESPACE", "1", 1);
-#else
-	snprintf(so, sizeof(so), "%s.so", argv[0]);
-	setenv("LD_PRELOAD", so, 1);
 #endif
 	setenv(ENVOUT, shname, 1);
 	child = fork();
