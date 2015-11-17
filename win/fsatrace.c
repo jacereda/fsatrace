@@ -44,18 +44,20 @@ int main(int argc, char **argv) {
     CHK(CloseHandle(pi.hProcess));
     if (!rc) {
         HANDLE of;
+        DWORD written;
         int con = 0 == strcmp(out, "-");
         if (con)
-            CHK(0 != (of = GetStdHandle(STD_OUTPUT_HANDLE)));
+            CHK(INVALID_HANDLE_VALUE != (of = GetStdHandle(STD_OUTPUT_HANDLE)));
         else
-            CHK(0 != (of = CreateFileA(out,
-                                       GENERIC_WRITE,
-                                       0,
-                                       0,
-                                       CREATE_ALWAYS,
-                                       FILE_ATTRIBUTE_NORMAL,
-                                       0)));
-        CHK(WriteFile(of, buf + 4, *(DWORD*)buf, 0, 0));
+            CHK(INVALID_HANDLE_VALUE != (of = CreateFileA(out,
+                                                          GENERIC_WRITE,
+                                                          0,
+                                                          0,
+                                                          CREATE_ALWAYS,
+                                                          FILE_ATTRIBUTE_NORMAL,
+                                                          0)));
+        CHK(WriteFile(of, buf + 4, *(DWORD*)buf, &written, 0));
+        CHK(written == *(DWORD*)buf);
         if (!con)
             CHK(CloseHandle(of));
     }
