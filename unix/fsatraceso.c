@@ -19,7 +19,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <dlfcn.h>
-#include "fsatrace.h"
+#include "../fsatrace.h"
 
 #undef open
 #undef open64
@@ -92,10 +92,11 @@ emit(int c, const char *p1)
 }
 
 static void
-resolv(void ** p, const char * n) {
-  if (!*p)
-    *p = dlsym(RTLD_NEXT, n);
-  assert(*p);
+resolv(void **p, const char *n)
+{
+	if (!*p)
+		*p = dlsym(RTLD_NEXT, n);
+	assert(*p);
 }
 
 #define R(f) resolv((void**)&o##f, #f)
@@ -105,7 +106,6 @@ fopen(const char *p, const char *m)
 {
 	FILE           *r;
 	static FILE    *(*ofopen) (const char *, const char *)= 0;
-	//	resolv(&ofopen, "fopen");
 	R(fopen);
 	r = ofopen(p, m);
 	if (r)
