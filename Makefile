@@ -1,4 +1,5 @@
 ifeq ($(OS), Windows_NT)
+
 PLAT=win
 ROOT64=$(HOMEPATH)\AppData\Local\Programs\stack\x86_64-windows\ghc-7.10.2\mingw
 ROOT32=$(HOMEPATH)\AppData\Local\Programs\stack\i386-windows\ghc-7.10.2\mingw
@@ -8,8 +9,15 @@ CPPFLAGS=-D_WIN32_WINNT=0x600 -I$(ROOT64)\x86_64-w64-mingw32\include\ddk
 CPPFLAGS32=-D_WIN32_WINNT=0x600 -I$(ROOT32)\include\ddk
 OSSRCS=win/inject.c win/dbg.c
 LIBS=kernel32.lib
+
 else
+
 PLAT=unix
+OS=$(shell uname -s)
+ifeq ($(OS),Linux)
+LIBS=-ldl -lrt
+endif
+
 endif
 
 CFLAGS= -Wall -O2 -fomit-frame-pointer -MMD
