@@ -1,7 +1,3 @@
-CFLAGS=-Wall -O2 -fomit-frame-pointer -Wall -D_WIN32_WINNT=0x600 -MMD
-CPPFLAGS=-I$(ROOT64)\x86_64-w64-mingw32\include\ddk
-CPPFLAGS32=-I$(ROOT32)\include\ddk
-LIBS=-lntdll -lpsapi -lkernel32 -lmsvcrt
 HELPER_SRCS=win/fsatracehelper.c
 SRCS32=win/fsatracedll.c win/inject.c win/patch.c win/hooks.c win/emit.c win/handle.c win/utf8.c win/dbg.c win/inject.c
 SRCS64=$(SRCS32) win/inject.c
@@ -10,6 +6,7 @@ OBJS64=$(patsubst %.c,%.o,$(SRCS64))
 OBJS32=$(patsubst %.c,%32.o,$(SRCS32))
 DEPS64=$(patsubst %.o,%.d,$(OBJS64))
 DEPS32=$(patsubst %.o,%.d,$(OBJS32) $(HELPER_OBJ))
+LIBS=-lntdll -lpsapi -lkernel32 -lmsvcrt
 
 lib: fsatrace32.dll fsatrace64.dll fsatracehelper.exe
 

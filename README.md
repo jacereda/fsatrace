@@ -10,12 +10,13 @@ declared dependencies match the real ones.
 
 ## Compiling
 
-On Windows, type `build.bat` to compile `fsatrace.exe` and associated DLLs
-`fsatrace32.dll` / `fsatrace64.dll`. The build script assumes VS 2015 is
-installed, if that's not the case just edit it so it can find the correct
-location of `vcvarsall.bat`.
+On Unix, type `make` to generate the `fsatrace` executable and the
+`fsatrace.so` shared library.
 
-On Unix, type `make` to generate a `fsatrace.so` object.
+On Windows, you'll need 64-bit and 32-bit versions of `mingw`. Adapt
+the `Makefile` to point to your compilers and type `make`. That should
+generate `fsatrace.exe`, `fsatracehelper.exe`, `fsatrace32.dll` and
+`fsatrace64.dll`.
 
 ## Usage
 
