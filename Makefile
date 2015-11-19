@@ -5,8 +5,8 @@ ROOT64=$(HOMEPATH)\AppData\Local\Programs\stack\x86_64-windows\ghc-7.10.2\mingw
 ROOT32=$(HOMEPATH)\AppData\Local\Programs\stack\i386-windows\ghc-7.10.2\mingw
 CC=$(ROOT64)\bin\gcc
 CC32=$(ROOT32)\bin\gcc
-CPPFLAGS=-D_WIN32_WINNT=0x600 -I$(ROOT64)\x86_64-w64-mingw32\include\ddk
-CPPFLAGS32=-D_WIN32_WINNT=0x600 -I$(ROOT32)\include\ddk
+CPPFLAGS=-D_WIN32_WINNT=0x600 -isystem$(ROOT64)\x86_64-w64-mingw32\include\ddk
+CPPFLAGS32=-D_WIN32_WINNT=0x600 -isystem$(ROOT32)\include\ddk
 OSSRCS=win/inject.c win/dbg.c
 LIBS=kernel32.lib
 
