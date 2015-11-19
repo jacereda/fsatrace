@@ -111,7 +111,7 @@ main(int argc, char **argv)
 		error("waiting for command completion");
 		break;
 	default:
-		if (strcmp(argv[2], "--")) {
+		if (strcmp(argv[2], "---")) {
 			static char		buf       [LOGSZ];
 			uniq(buf, &sz, shm.buf + 4, "", 0);
 			dump(out, buf, sz);
