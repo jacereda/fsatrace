@@ -11,7 +11,6 @@ CFLAGS=-std=c99 -Wall -pedantic -g -O2 -fomit-frame-pointer -fno-stack-protector
 
 lib: fsatrace.so
 
-
 fsatrace.so: unix/fsatraceso.c
 	$(CC) -shared -fPIC unix/fsatraceso.c -o fsatrace.so $(SOLIBS)
 
