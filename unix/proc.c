@@ -14,10 +14,12 @@ procPath(char *fullpath)
 {
 #if defined __linux__
 	char		exepath   [64];
+	ssize_t ret;
 	snprintf(exepath, sizeof(exepath), "/proc/%d/exe", getpid());
-	readlink(exepath, fullpath, PATH_MAX);
+	ret = readlink(exepath, fullpath, PATH_MAX);
+	assert(ret != -1);
 #else
-			proc_pidpath  (getpid(), fullpath, PATH_MAX);
+	proc_pidpath  (getpid(), fullpath, PATH_MAX);
 #endif
 }
 
