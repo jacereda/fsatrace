@@ -9,7 +9,7 @@ SOLIBS=
 endif
 
 CPPFLAGS=-D_GNU_SOURCE -D_BSD_SOURCE=1
-CFLAGS=-std=c99 -Wall -g -O2 -fomit-frame-pointer -fno-stack-protector -Wno-incompatible-pointer-types -MT $@ -MMD -MP -MF $*.d
+CFLAGS=-std=c99 -Wall -pedantic -g -O2 -fomit-frame-pointer -fno-stack-protector -Wno-incompatible-pointer-types -MT $@ -MMD -MP -MF $*.d
 
 SRCS=proc.c shm.c ../fsatrace.c
 

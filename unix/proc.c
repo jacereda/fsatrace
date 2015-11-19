@@ -19,10 +19,9 @@ procPath(char *fullpath)
 }
 
 enum procerr
-procRun(const char *cmd, char **args)
+procRun(const char *cmd, char **args, int *rc)
 {
 	int		ret;
-	int		r;
 	int		child;
 	char		so        [PATH_MAX];
 	char		fullpath  [PATH_MAX];
@@ -48,8 +47,14 @@ procRun(const char *cmd, char **args)
 		ret = ERR_PROC_EXEC;
 		break;
 	default:
-		r = wait(&ret);
-		ret = r == -1 ? ERR_PROC_WAIT : WEXITSTATUS(ret);
+		if (-1 != wait(rc)) {
+			if (WIFEXITED(*rc)) {
+				ret = ERR_PROC_OK;
+				*rc = WEXITSTATUS(*rc);
+			} else
+				ret = ERR_PROC_EXEC;
+		} else
+			ret = ERR_PROC_WAIT;
 	}
 	return ret;
 }
