@@ -17,7 +17,7 @@ CPPFLAGS=-D_GNU_SOURCE -D_BSD_SOURCE=1
 
 OS=$(shell uname -s)
 ifeq ($(OS),Linux)
-LDFLAGS+=-ldl -lrt
+LDLIBS=-ldl -lrt
 endif
 
 endif
