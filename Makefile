@@ -13,14 +13,17 @@ LIBS=kernel32.lib
 else
 
 PLAT=unix
+CPPFLAGS=-D_GNU_SOURCE -D_BSD_SOURCE=1
+LDFLAGS=-shared -fPIC
+
 OS=$(shell uname -s)
 ifeq ($(OS),Linux)
-LIBS=-ldl -lrt
+LDFLAGS+=-ldl -lrt
 endif
 
 endif
 
-CFLAGS= -Wall -O2 -fomit-frame-pointer -MMD
+CFLAGS+= -std=c99 -Wall -O2 -fomit-frame-pointer -fno-stack-protector -MMD
 
 SRCS=fsatrace.c $(PLAT)/proc.c $(PLAT)/shm.c $(OSSRCS)
 
