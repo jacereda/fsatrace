@@ -1,12 +1,19 @@
 #include <sys/types.h>
+#include <inttypes.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdarg.h>
 #include <string.h>
 #include <fcntl.h>
-#include <unistd.h>
 #include <limits.h>
+#ifdef _MSC_VER
+#include <io.h>
+#define ssize_t size_t
+#define basename(x) strrchr(x, '\\')+1
+#else
+#include <unistd.h>
 #include <libgen.h>
+#endif
 
 #include "fsatrace.h"
 #include "shm.h"
@@ -81,18 +88,19 @@ int
 main(int argc, char **argv)
 {
 	int		err;
-	int		rc;
+	int		rc = EXIT_FAILURE;
 	const char     *out;
 	struct shm	shm;
 	size_t		sz = 0;
+	char envout[PATH_MAX];
 	if (argc < 4 || (strcmp(argv[2], "--") && strcmp(argv[2], "---")))
 		fatal(" usage: %s <output> -- <cmdline>", argv[0]);
 	out = argv[1];
 	if ((err = shmInit(&shm, out, LOGSZ)))
 		fatal("allocating shared memory (%d)", err);
-	setenv(ENVOUT, shm.name, 1);
-	rc = procRun(argv[3], argv + 3);
-	switch (rc) {
+	snprintf(envout, sizeof(envout), ENVOUT"=%s", shm.name);
+	putenv(envout);
+	switch (procRun(argv[3], argv + 3, &rc)) {
 	case ERR_PROC_FORK:
 		error("forking process");
 		break;
@@ -104,7 +112,7 @@ main(int argc, char **argv)
 		break;
 	default:
 		if (strcmp(argv[2], "--")) {
-			char		buf       [LOGSZ];
+			static char		buf       [LOGSZ];
 			uniq(buf, &sz, shm.buf + 4, "", 0);
 			dump(out, buf, sz);
 		} else
