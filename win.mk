@@ -22,6 +22,9 @@ fsatrace64.dll: $(OBJS64)
 fsatrace32.dll: $(OBJS32)
 	$(CC32) -shared $(LDFLAGS32) $^ -o $@ $(LIBS)
 
+libinstall: fsatracehelper.exe fsatrace64.dll fsatrace32.dll
+	cp fsatracehelper.exe fsatrace64.dll fsatrace32.dll $(INSTALLDIR)
+
 cleanlib:
 	rm -f fsatracehelper.exe fsatrace64.dll fsatrace32.dll $(OBJS64) $(OBJS32) $(DEPS64) $(DEPS32)
 

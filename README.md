@@ -13,10 +13,17 @@ declared dependencies match the real ones.
 On Unix, type `make` to generate the `fsatrace` executable and the
 `fsatrace.so` shared library.
 
-On Windows, you'll need 64-bit and 32-bit versions of `mingw`. Adapt
-the `Makefile` to point to your compilers and type `make`. That should
-generate `fsatrace.exe`, `fsatracehelper.exe`, `fsatrace32.dll` and
-`fsatrace64.dll`.
+On Windows, you'll need recent 64-bit and 32-bit versions of
+`mingw`. You can either adapt the `Makefile` to point to your
+compilers or, alternatively, install
+https://github.com/commercialhaskell/stack and run the following
+sequence to get the required compilers:
+
+    stack setup 7.10.2 --arch=i386
+    stack setup 7.10.2 --arch=x86_64
+
+After that, invoke `make`. That should generate `fsatrace.exe`,
+`fsatracehelper.exe`, `fsatrace32.dll` and `fsatrace64.dll`.
 
 ## Usage
 
