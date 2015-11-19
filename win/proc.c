@@ -19,6 +19,7 @@ procRun(const char * unused0, char ** unused1, int * rc)
     PROCESS_INFORMATION pi;
 	enum procerr err = ERR_PROC_OK;
     LPWSTR cmd;
+	DWORD drc;
 	LPWSTR cl = GetCommandLineW();
     cmd = wcsstr(cl, L"-- ");
     if (cmd)
@@ -36,7 +37,9 @@ procRun(const char * unused0, char ** unused1, int * rc)
 		injectProcess(pi.hProcess);
 	CHK(ERR_PROC_EXEC, -1 == ResumeThread(pi.hThread));
 	CHK(ERR_PROC_WAIT, WAIT_OBJECT_0 != WaitForSingleObject(pi.hThread, INFINITE));
-	CHK(ERR_PROC_WAIT, !GetExitCodeProcess(pi.hProcess, rc));
+	CHK(ERR_PROC_WAIT, !GetExitCodeProcess(pi.hProcess, &drc));
 	CHK(ERR_PROC_FORK, !CloseHandle(pi.hProcess));
+	if (err == ERR_PROC_OK)
+		*rc = drc;
 	return err;
 }
