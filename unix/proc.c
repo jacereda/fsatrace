@@ -1,3 +1,5 @@
+#include <sys/types.h>
+#include <sys/wait.h>
 #include <limits.h>
 #include <unistd.h>
 #include <stdio.h>
@@ -27,17 +29,14 @@ procRun(const char *cmd, char **args, int *rc)
 	char		so        [PATH_MAX];
 	char		fullpath  [PATH_MAX];
 	procPath(fullpath);
-	{
 #if defined __linux__
-		char		exepath   [64];
-		snprintf(so, sizeof(so), "%s.so", fullpath);
-		setenv("LD_PRELOAD", so, 1);
+	snprintf(so, sizeof(so), "%s.so", fullpath);
+	setenv("LD_PRELOAD", so, 1);
 #else
-		snprintf(so, sizeof(so), "%s.so", fullpath);
-		setenv("DYLD_INSERT_LIBRARIES", so, 1);
-		setenv("DYLD_FORCE_FLAT_NAMESPACE", "1", 1);
+	snprintf(so, sizeof(so), "%s.so", fullpath);
+	setenv("DYLD_INSERT_LIBRARIES", so, 1);
+	setenv("DYLD_FORCE_FLAT_NAMESPACE", "1", 1);
 #endif
-	}
 	child = fork();
 	switch (child) {
 	case -1:

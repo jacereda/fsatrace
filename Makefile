@@ -14,7 +14,6 @@ else
 
 PLAT=unix
 CPPFLAGS=-D_GNU_SOURCE -D_BSD_SOURCE=1
-LDFLAGS=-shared -fPIC
 
 OS=$(shell uname -s)
 ifeq ($(OS),Linux)
@@ -36,4 +35,5 @@ clean: cleanlib
 
 
 -include $(patsubst %.c,%.d,$(SRCS))
+
 include $(PLAT).mk
