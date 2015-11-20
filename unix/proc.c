@@ -25,7 +25,7 @@ procPath(char *fullpath)
 }
 
 enum procerr
-procRun(const char *cmd, char **args, int *rc)
+procRun(unsigned nargs, const char * const *args, int *rc)
 {
 	int		ret;
 	int		child;
@@ -46,7 +46,7 @@ procRun(const char *cmd, char **args, int *rc)
 		ret = ERR_PROC_FORK;
 		break;
 	case 0:
-		execvp(cmd, args);
+		execvp(args[0], args);
 		exit(EXIT_FAILURE);
 		break;
 	default:

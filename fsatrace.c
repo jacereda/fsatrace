@@ -50,6 +50,20 @@ fatal(const char *fmt,...)
 }
 
 static void
+slurp(char *p, size_t sz, const char * path)
+{
+	int fd;
+	ssize_t r = 0;
+	fd = open(path, O_RDONLY);
+	if (fd >= 0)
+		r = read(fd, p, sz);
+	if (r)
+		p[r] = 0;
+	if (fd >= 0)
+		close(fd);
+}
+
+static void
 dump(const char *path, char *p, size_t sz)
 {
 	int		fd;
@@ -85,15 +99,29 @@ uniq(char *d, size_t * tot, const char *s, const char *last, size_t lastsz)
 }
 
 static void
-dumpargs(char * dst, size_t sz, int n, char ** l) {
+dumpargs(char * dst, size_t sz, int n, const char * const * l) {
 	int i;
 	size_t sofar = 0;
 	for (i = 0; i < n; i++)
 		sofar += snprintf(dst + sofar, sz - sofar, "\nargv[%d]=%s", i, l[i]);
 }
 
+static unsigned
+lines(char * s, char ** args) {
+	unsigned nargs  = 0;
+	int c;
+	char * start = s;
+	while ((c = *s++))
+		if (c == '\n') {
+			args[nargs++] = start;
+			s[-1] = 0;
+			start = s;
+		}
+	return nargs;
+}
+
 int
-main(int argc, char **argv)
+main(int argc, const char * const *argv)
 {
 	int		err;
 	int		rc = EXIT_FAILURE;
@@ -102,6 +130,8 @@ main(int argc, char **argv)
 	size_t		sz = 0;
 	char envout[PATH_MAX];
 	static char		buf       [LOGSZ];
+	const char * const * args = argv + 3;
+	unsigned nargs = argc - 3;
 	if (argc < 4 || (strcmp(argv[2], "--") && strcmp(argv[2], "---")))
 		fatal(" usage: %s <output> -- <cmdline>", argv[0]);
 	out = argv[1];
@@ -109,22 +139,31 @@ main(int argc, char **argv)
 		fatal("allocating shared memory (%d)", err);
 	snprintf(envout, sizeof(envout), ENVOUT"=%s", shm.name);
 	putenv(envout);
-	switch (procRun(argv[3], argv + 3, &rc)) {
+
+	if (argv[3][0] == '@') {
+		const int MAXARGS=0x8000;
+		size_t bsz = sizeof(buf)-MAXARGS*sizeof(char*);
+		slurp(buf, bsz, argv[3] + 1);
+		args = (const char * const *)(buf + bsz);
+		nargs = lines(buf, (char**)(buf + bsz));
+	}
+	
+	switch (procRun(nargs, args, &rc)) {
 	case ERR_PROC_FORK:
-		dumpargs(buf, sizeof(buf), argc-3, argv+3);
+		dumpargs(buf, sizeof(buf), nargs, args);
 		error("forking process:%s", buf);
 		break;
 	case ERR_PROC_EXEC:
-		dumpargs(buf, sizeof(buf), argc-3, argv+3);
+		dumpargs(buf, sizeof(buf), nargs, args);
 		error("executing command:%s", buf);
 		break;
 	case ERR_PROC_WAIT:
-		dumpargs(buf, sizeof(buf), argc-3, argv+3);
+		dumpargs(buf, sizeof(buf), nargs, args);
 		error("waiting for command completion:%s", buf);
 		break;
 	default:
 		if (rc) {
-			dumpargs(buf, sizeof(buf), argc-3, argv+3);
+			dumpargs(buf, sizeof(buf), nargs, args);
 			error("command failed with code %d:%s", rc, buf);
 		} else if (strcmp(argv[2], "---")) {
 			uniq(buf, &sz, shm.buf + 4, "", 0);

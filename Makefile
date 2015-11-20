@@ -9,7 +9,7 @@ CC32=$(ROOT32)\bin\gcc
 CPPFLAGS=-D_WIN32_WINNT=0x600 -isystem$(ROOT64)\x86_64-w64-mingw32\include\ddk
 CPPFLAGS32=-D_WIN32_WINNT=0x600 -isystem$(ROOT32)\include\ddk
 OSSRCS=win/inject.c win/dbg.c
-LIBS=kernel32.lib
+LDLIBS=$(ROOT64)\x86_64-w64-mingw32\lib\CRT_noglob.o
 INSTALLDIR=$(APPDATA)\local\bin
 
 else
