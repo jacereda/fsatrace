@@ -25,7 +25,7 @@ procPath(char *fullpath)
 }
 
 enum procerr
-procRun(unsigned nargs, const char * const *args, int *rc)
+procRun(unsigned nargs, char * const args[], int *rc)
 {
 	int		ret;
 	int		child;

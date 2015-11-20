@@ -19,8 +19,8 @@
 #include "shm.h"
 #include "proc.h"
 
-static void 
-errv(const char *fmt, const char * pref, va_list ap)
+static void
+errv(const char *fmt, const char *pref, va_list ap)
 {
 	char		fullpath  [PATH_MAX];
 	procPath(fullpath);
@@ -50,10 +50,10 @@ fatal(const char *fmt,...)
 }
 
 static void
-slurp(char *p, size_t sz, const char * path)
+slurp(char *p, size_t sz, const char *path)
 {
-	int fd;
-	ssize_t r = 0;
+	int		fd;
+	ssize_t		r = 0;
 	fd = open(path, O_RDONLY);
 	if (fd >= 0)
 		r = read(fd, p, sz);
@@ -82,7 +82,7 @@ dump(const char *path, char *p, size_t sz)
 		close(fd);
 }
 
-static void 
+static void
 uniq(char *d, size_t * tot, const char *s, const char *last, size_t lastsz)
 {
 	const char     *end = strchr(s, '\n');
@@ -99,18 +99,20 @@ uniq(char *d, size_t * tot, const char *s, const char *last, size_t lastsz)
 }
 
 static void
-dumpargs(char * dst, size_t sz, int n, const char * const * l) {
-	int i;
-	size_t sofar = 0;
+dumpargs(char *dst, size_t sz, int n, char *const *l)
+{
+	int		i;
+	size_t		sofar = 0;
 	for (i = 0; i < n; i++)
 		sofar += snprintf(dst + sofar, sz - sofar, "\nargv[%d]=%s", i, l[i]);
 }
 
 static unsigned
-lines(char * s, char ** args) {
-	unsigned nargs  = 0;
-	int c;
-	char * start = s;
+lines(char *s, char **args)
+{
+	unsigned	nargs = 0;
+	int		c;
+	char           *start = s;
 	while ((c = *s++))
 		if (c == '\n') {
 			args[nargs++] = start;
@@ -121,33 +123,32 @@ lines(char * s, char ** args) {
 }
 
 int
-main(int argc, const char * const *argv)
+main(int argc, char *const argv[])
 {
 	int		err;
 	int		rc = EXIT_FAILURE;
 	const char     *out;
 	struct shm	shm;
 	size_t		sz = 0;
-	char envout[PATH_MAX];
-	static char		buf       [LOGSZ];
-	const char * const * args = argv + 3;
-	unsigned nargs = argc - 3;
+	char		envout    [PATH_MAX];
+	static char	buf [LOGSZ];
+	char           *const *args = argv + 3;
+	unsigned	nargs = argc - 3;
 	if (argc < 4 || (strcmp(argv[2], "--") && strcmp(argv[2], "---")))
 		fatal(" usage: %s <output> -- <cmdline>", argv[0]);
 	out = argv[1];
 	if ((err = shmInit(&shm, out, LOGSZ)))
 		fatal("allocating shared memory (%d)", err);
-	snprintf(envout, sizeof(envout), ENVOUT"=%s", shm.name);
+	snprintf(envout, sizeof(envout), ENVOUT "=%s", shm.name);
 	putenv(envout);
 
 	if (argv[3][0] == '@') {
-		const int MAXARGS=0x8000;
-		size_t bsz = sizeof(buf)-MAXARGS*sizeof(char*);
+		const int	MAXARGS = 0x8000;
+		size_t		bsz = sizeof(buf) - MAXARGS * sizeof(char *);
 		slurp(buf, bsz, argv[3] + 1);
-		args = (const char * const *)(buf + bsz);
-		nargs = lines(buf, (char**)(buf + bsz));
+		args = (char *const *)(buf + bsz);
+		nargs = lines(buf, (char **)(buf + bsz));
 	}
-	
 	switch (procRun(nargs, args, &rc)) {
 	case ERR_PROC_FORK:
 		dumpargs(buf, sizeof(buf), nargs, args);
