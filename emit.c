@@ -11,13 +11,12 @@
 
 static struct shm shm;
 
-void emitInit() {
-	const char     *shname = getenv(ENVOUT);
-	shmInit(&shm, shname, LOGSZ);
+int emitInit() {
+	return shmInit(&shm, getenv(ENVOUT), LOGSZ, 0);
 }
 
-void emitTerm() {
-	shmTerm(&shm);
+int emitTerm() {
+	return shmTerm(&shm, 0);
 }
 
 void emitOp(int c, const char *p1, const char *p2)

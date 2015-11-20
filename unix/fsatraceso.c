@@ -38,14 +38,18 @@ static void
 __attribute((constructor(101)))
 init()
 {
-	emitInit();
+	int err = emitInit();
+	if (err)
+		fprintf(stderr, "init err: %x\n", err);
 }
 
 static void
 __attribute((destructor(101)))
 term()
 {
-	emitTerm();
+	int err = emitTerm();
+	if (err)
+		fprintf(stderr, "term err: %x\n", err);
 }
 
 static void

@@ -137,9 +137,9 @@ main(int argc, char *const argv[])
 	if (argc < 4 || (strcmp(argv[2], "--") && strcmp(argv[2], "---")))
 		fatal(" usage: %s <output> -- <cmdline>", argv[0]);
 	out = argv[1];
-	if ((err = shmInit(&shm, out, LOGSZ)))
+	if ((err = shmInit(&shm, out, LOGSZ, 1)))
 		fatal("allocating shared memory (%d)", err);
-	snprintf(envout, sizeof(envout), ENVOUT "=%s", shm.name);
+	snprintf(envout, sizeof(envout), ENVOUT "=%s", out);
 	putenv(envout);
 
 	if (argv[3][0] == '@') {
@@ -173,7 +173,7 @@ main(int argc, char *const argv[])
 			dump(out, shm.buf + 4, *(uint32_t *) shm.buf);
 
 	}
-	if ((err = shmTerm(&shm)))
+	if ((err = shmTerm(&shm, 1)))
 		error("freeing shared memory (%d)", err);
 	return rc;
 }
