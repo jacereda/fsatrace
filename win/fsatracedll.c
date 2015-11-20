@@ -1,5 +1,5 @@
 #include <windows.h>
-#include "emit.h"
+#include "../emit.h"
 #include "patch.h"
 #include "dbg.h"
 #include "hooks.h"

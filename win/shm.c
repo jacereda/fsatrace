@@ -1,5 +1,6 @@
 #include <assert.h>
 #include <windows.h>
+#include <limits.h>
 
 #include "../shm.h"
 

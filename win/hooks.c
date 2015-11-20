@@ -7,7 +7,7 @@
 #endif
 #undef ASSERT
 #include "dbg.h"
-#include "emit.h"
+#include "../emit.h"
 #include "handle.h"
 #include "utf8.h"
 #include "patch.h"
@@ -78,7 +78,7 @@ static void femit(HANDLE h, const char *op) {
             );
         if (!si.Directory) {
             char buf[MAX_PATH];
-            emitOp(op, handlePath(buf, h));
+            emitOp(*op, handlePath(buf, h), 0);
         }
     }
 }
@@ -140,7 +140,7 @@ static NTSTATUS NTAPI hNtDeleteFile(POBJECT_ATTRIBUTES oa) {
     D;
     r = oNtDeleteFile(oa);
     if (NT_SUCCESS(r))
-        emitOp("d", sstr(buf, oa->ObjectName->Buffer, oa->ObjectName->Length));
+        emitOp('d', sstr(buf, oa->ObjectName->Buffer, oa->ObjectName->Length), 0);
     return r;
 }
 
@@ -163,19 +163,19 @@ static NTSTATUS NTAPI hNtSetInformationFile(HANDLE fh,
     if (NT_SUCCESS(r)) {
         switch (ic) {
         case FileBasicInformation:
-            emitOp("w", opath);
+            emitOp('w', opath, 0);
             break;
         case FileRenameInformation:
-            emitOp2("m",
+            emitOp('m',
                   sstr(buf2, ri->FileName,
                       ri->FileNameLength / sizeof(ri->FileName[0])),
                   opath);
             break;
         case FileDispositionInformation:
-            emitOp("d", opath);
+            emitOp('d', opath, 0);
             break;
         case FileAllocationInformation:
-            emitOp("w", opath);
+            emitOp('w', opath, 0);
             break;
         default:
             break;

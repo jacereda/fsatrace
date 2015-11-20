@@ -38,57 +38,21 @@ static void
 __attribute((constructor(101)))
 init()
 {
-	const char     *shname = getenv(ENVOUT);
-	s_fd = shm_open(shname, O_RDWR, 0666);
-	s_buf = mmap(0, LOGSZ, PROT_READ | PROT_WRITE, MAP_SHARED, s_fd, 0);
-	assert(s_fd >= 0);
+	emitInit();
 }
 
 static void
 __attribute((destructor(101)))
 term()
 {
-	munmap(s_buf, LOGSZ);
-	close(s_fd);
-}
-
-static void
-iemit(int c, const char *p1, const char *p2)
-{
-	char           *dst = s_buf + sizeof(unsigned);
-	unsigned       *psofar = (unsigned *)s_buf;
-	unsigned	sofar;
-	unsigned	sz;
-	unsigned	s1;
-	unsigned	s2;
-	char           *p;
-	if (!s_buf)
-		return;
-	s1 = strlen(p1);
-	sz = s1 + 3;
-	if (p2) {
-		s2 = strlen(p2);
-		sz += s2 + 1;
-	}
-	sofar = __sync_fetch_and_add(psofar, sz);
-	p = dst + sofar;
-	*p++ = c;
-	*p++ = '|';
-	memcpy(p, p1, s1);
-	p += s1;
-	if (p2) {
-		*p++ = '|';
-		memcpy(p, p2, s2);
-		p += s2;
-	}
-	*p++ = '\n';
+	emitTerm();
 }
 
 static void
 emit(int c, const char *p1)
 {
 	char		ap        [PATH_MAX];
-	iemit(c, realpath(p1, ap), 0);
+	emitOp(c, realpath(p1, ap), 0);
 }
 
 static void
@@ -158,7 +122,7 @@ openat(int fd, const char *p, int f, mode_t m)
 		R(openat);
 		r = oopenat(fd, p, f, m);
 		if (r >= 0)
-			iemit(f & wmode ? 'W' : 'R', p, 0);
+			emitOp(f & wmode ? 'W' : 'R', p, 0);
 	} else
 		r = open(p, f, m);
 	return r;
@@ -173,7 +137,7 @@ openat64(int fd, const char *p, int f, mode_t m)
 		R(openat64);
 		r = oopenat64(fd, p, f, m);
 		if (r >= 0)
-			iemit(f & wmode ? 'W' : 'R', p, 0);
+			emitOp(f & wmode ? 'W' : 'R', p, 0);
 	} else
 		r = open64(p, f, m);
 	return r;
@@ -190,7 +154,7 @@ rename(const char *p1, const char *p2)
 	R(rename);
 	r = orename(p1, p2);
 	if (!r)
-		iemit('m', realpath(p2, b2), rp1);
+		emitOp('m', realpath(p2, b2), rp1);
 	return r;
 }
 
@@ -203,7 +167,7 @@ renameat(int fd1, const char *p1, int fd2, const char *p2)
 		R(renameat);
 		r = orenameat(p1, p2);
 		if (!r)
-			iemit('R', p2, p1);
+			emitOp('R', p2, p1);
 	} else
 		r = rename(p1, p2);
 	return r;
@@ -219,7 +183,7 @@ unlink(const char *p)
 	R(unlink);
 	r = ounlink(p);
 	if (!r)
-		iemit('d', rp, 0);
+		emitOp('d', rp, 0);
 	return r;
 }
 
@@ -232,7 +196,7 @@ unlinkat(int fd, const char *p, int f)
 		R(unlinkat);
 		r = ounlinkat(fd, p, f);
 		if (!r)
-			iemit('D', p, 0);
+			emitOp('D', p, 0);
 		assert(0);
 	} else if (f & AT_REMOVEDIR)
 		r = rmdir(p);
