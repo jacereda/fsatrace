@@ -89,7 +89,7 @@ dumpargs(char * dst, size_t sz, int n, char ** l) {
 	int i;
 	size_t sofar = 0;
 	for (i = 0; i < n; i++)
-		sofar += snprintf(dst + sofar, sz - sofar, "\nargv[%d]:%s", i, l[i]);
+		sofar += snprintf(dst + sofar, sz - sofar, "\nargv[%d]=%s", i, l[i]);
 }
 
 int
