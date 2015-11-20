@@ -46,7 +46,7 @@ aquote(char * dst, size_t sz, const char * a)
 }
 
 static void
-ajoin(char * dst, size_t sz, unsigned nargs, const char * const * args)
+ajoin(char * dst, size_t sz, unsigned nargs, char * const * args)
 {
 	size_t sofar = 0;
 	unsigned i;
@@ -59,7 +59,7 @@ ajoin(char * dst, size_t sz, unsigned nargs, const char * const * args)
 #define CHK(code, x) do { if (err == ERR_PROC_OK && (x)) err = code; } while (0)
 
 enum procerr
-procRun(unsigned nargs, const char * const * args, int * rc)
+procRun(unsigned nargs, char * const args[], int * rc)
 {
     STARTUPINFOA si;
     PROCESS_INFORMATION pi;
