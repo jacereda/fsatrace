@@ -19,6 +19,8 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <dlfcn.h>
+
+#include "../emit.h"
 #include "../fsatrace.h"
 
 #undef open
@@ -30,8 +32,6 @@
 #undef fopen
 #undef fopen64
 
-static int	s_fd;
-static char    *s_buf;
 static const int wmode = O_RDWR | O_WRONLY | O_APPEND | O_CREAT | O_TRUNC;
 
 static void
