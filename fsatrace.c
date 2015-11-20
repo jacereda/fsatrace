@@ -84,6 +84,14 @@ uniq(char *d, size_t * tot, const char *s, const char *last, size_t lastsz)
 		uniq(d, tot, end + 1, last, lastsz);
 }
 
+static void
+dumpargs(char * dst, size_t sz, int n, char ** l) {
+	int i;
+	size_t sofar = 0;
+	for (i = 0; i < n; i++)
+		sofar += snprintf(dst + sofar, sz - sofar, "\n%d:%s", i, l[i]);
+}
+
 int
 main(int argc, char **argv)
 {
@@ -93,6 +101,7 @@ main(int argc, char **argv)
 	struct shm	shm;
 	size_t		sz = 0;
 	char envout[PATH_MAX];
+	static char		buf       [LOGSZ];
 	if (argc < 4 || (strcmp(argv[2], "--") && strcmp(argv[2], "---")))
 		fatal(" usage: %s <output> -- <cmdline>", argv[0]);
 	out = argv[1];
@@ -102,17 +111,19 @@ main(int argc, char **argv)
 	putenv(envout);
 	switch (procRun(argv[3], argv + 3, &rc)) {
 	case ERR_PROC_FORK:
-		error("forking process");
+		dumpargs(buf, sizeof(buf), argc-3, argv+3);
+		error("forking process:%s", buf);
 		break;
 	case ERR_PROC_EXEC:
-		fatal("executing command");
+		dumpargs(buf, sizeof(buf), argc-3, argv+3);
+		error("executing command:%s", buf);
 		break;
 	case ERR_PROC_WAIT:
-		error("waiting for command completion");
+		dumpargs(buf, sizeof(buf), argc-3, argv+3);
+		error("waiting for command completion:%s", buf);
 		break;
 	default:
 		if (strcmp(argv[2], "---")) {
-			static char		buf       [LOGSZ];
 			uniq(buf, &sz, shm.buf + 4, "", 0);
 			dump(out, buf, sz);
 		} else
