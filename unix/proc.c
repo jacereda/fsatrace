@@ -47,7 +47,7 @@ procRun(const char *cmd, char **args, int *rc)
 		break;
 	case 0:
 		execvp(cmd, args);
-		ret = ERR_PROC_EXEC;
+		exit(EXIT_FAILURE);
 		break;
 	default:
 		if (-1 != wait(rc)) {

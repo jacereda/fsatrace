@@ -89,7 +89,7 @@ dumpargs(char * dst, size_t sz, int n, char ** l) {
 	int i;
 	size_t sofar = 0;
 	for (i = 0; i < n; i++)
-		sofar += snprintf(dst + sofar, sz - sofar, "\n%d:%s", i, l[i]);
+		sofar += snprintf(dst + sofar, sz - sofar, "\nargv[%d]:%s", i, l[i]);
 }
 
 int
@@ -123,7 +123,10 @@ main(int argc, char **argv)
 		error("waiting for command completion:%s", buf);
 		break;
 	default:
-		if (strcmp(argv[2], "---")) {
+		if (rc) {
+			dumpargs(buf, sizeof(buf), argc-3, argv+3);
+			error("command failed with code %d:%s", rc, buf);
+		} else if (strcmp(argv[2], "---")) {
 			uniq(buf, &sz, shm.buf + 4, "", 0);
 			dump(out, buf, sz);
 		} else
