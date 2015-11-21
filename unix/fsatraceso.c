@@ -88,7 +88,16 @@ static void
 emit(int c, const char *p1)
 {
 	char		ap        [PATH_MAX];
-	iemit(c, realpath(p1, ap), 0);
+	char           *rp = realpath(p1, ap);
+	iemit(c, rp ? rp : p1, 0);
+}
+
+static void
+fdemit(int c, int fd)
+{
+	char		ap        [PATH_MAX];
+	if (-1 != fcntl(fd, F_GETPATH, ap))
+		iemit(c, ap, 0);
 }
 
 static void
@@ -239,4 +248,58 @@ unlinkat(int fd, const char *p, int f)
 	else
 		r = unlink(p);
 	return r;
+}
+
+int
+fstat(int fd, struct stat *restrict buf)
+{
+	int		r;
+	static int      (*ofstat) (int, struct stat *restrict)= 0;
+	resolv((void **)&ofstat, "fstat$INODE64");
+	r = ofstat(fd, buf);
+	if (!r)
+		fdemit('q', fd);
+	return r;
+}
+
+int
+stat(const char *restrict path, struct stat *restrict buf)
+{
+	int		r;
+	static int      (*ostat) (const char *restrict, struct stat *restrict)= 0;
+	resolv((void **)&ostat, "stat$INODE64");
+	r = ostat(path, buf);
+	if (!r)
+		emit('q', path);
+	return r;
+}
+
+int
+lstat(const char *restrict path, struct stat *restrict buf)
+{
+	int		r;
+	static int      (*olstat) (const char *restrict, struct stat *restrict)= 0;
+	resolv((void **)&olstat, "lstat$INODE64");
+	r = olstat(path, buf);
+	if (!r)
+		emit('q', path);
+	return r;
+}
+
+int
+fstatat(int fd, const char *path, struct stat *buf, int flag)
+{
+	int		r;
+	if (fd != AT_FDCWD) {
+		static int      (*ofstatat) (int, const char *, struct stat *restrict)= 0;
+		resolv((void **)&ofstatat, "fstatat$INODE64");
+		r = ofstatat(fd, path, buf);
+		if (!r)
+			emit('Q', path);
+	} else if (flag & AT_SYMLINK_NOFOLLOW)
+		r = stat(path, buf);
+	else
+		r = lstat(path, buf);
+	return r;
+
 }
