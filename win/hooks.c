@@ -53,24 +53,24 @@ enum { FileBasicInformation = 4,
 
 #endif
 
-static const char *fop(ULONG co, ACCESS_MASK am) {
-    const char *op;
+static const int fop(ULONG co, ACCESS_MASK am) {
+	int op;
     if (0)
         ;
     else if (co & FILE_DIRECTORY_FILE)
         op = 0;
     else if (co & FILE_DELETE_ON_CLOSE)
-        op = "d";
+        op = 'd';
     else if (am & GENERIC_WRITE)
-        op = "w";
+        op = 'w';
     else if (am & GENERIC_READ)
-        op = "r";
+        op = 'r';
     else
         op = 0;
     return op;
 }
 
-static void femit(HANDLE h, const char *op) {
+static void femit(HANDLE h, int op) {
     if (op) {
         IO_STATUS_BLOCK sb;
         FILE_STANDARD_INFORMATION si;
@@ -79,7 +79,9 @@ static void femit(HANDLE h, const char *op) {
             );
         if (!si.Directory) {
             char buf[MAX_PATH];
-            emitOp(*op, handlePath(buf, h), 0);
+			char * p = handlePath(buf, h);
+			if (p)
+				emitOp(op, p, 0);
         }
     }
 }
