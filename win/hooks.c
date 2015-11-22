@@ -5,6 +5,8 @@
 #include <ntifs.h>
 #include <ntddk.h>
 #endif
+#include <limits.h>
+
 #undef ASSERT
 #include "dbg.h"
 #include "../emit.h"
@@ -13,10 +15,6 @@
 #include "patch.h"
 #include "inject.h"
 #include "hooks.h"
-
-#ifndef MAX_PATH
-#define MAX_PATH 4096
-#endif
 
 #define HOOK(n) static NTSTATUS(NTAPI *o##n)()
 HOOK(NtCreateFile);
@@ -78,7 +76,7 @@ static void femit(HANDLE h, int op) {
                                5 // FileStandardInformation
             );
         if (!si.Directory) {
-            char buf[MAX_PATH];
+            char buf[PATH_MAX];
 			char * p = handlePath(buf, h);
 			if (p)
 				emitOp(op, p, 0);
@@ -107,7 +105,7 @@ static NTSTATUS NTAPI hNtCreateFile(PHANDLE ph,
     r = oNtCreateFile(ph, am, oa, sb, as, fa, sa, cd, co, bu, le);
     if (NT_SUCCESS(r)) {
 #ifdef TRACE
-        char buf[MAX_PATH];
+        char buf[PATH_MAX];
         pr("creat %x %x %x %x %x %s\n",
            am, co, fa, sa, cd,
            sstr(buf, oa->ObjectName->Buffer, oa->ObjectName->Length));
@@ -128,7 +126,7 @@ static NTSTATUS NTAPI hNtOpenFile(PHANDLE ph,
     r = oNtOpenFile(ph, am, oa, sb, sa, oo);
     if (NT_SUCCESS(r)) {
 #ifdef TRACE
-        char buf[MAX_PATH];
+        char buf[PATH_MAX];
         pr("open %x %x %s\n", am, oo,
            sstr(buf, oa->ObjectName->Buffer, oa->ObjectName->Length));
 #endif
@@ -139,7 +137,7 @@ static NTSTATUS NTAPI hNtOpenFile(PHANDLE ph,
 
 static NTSTATUS NTAPI hNtDeleteFile(POBJECT_ATTRIBUTES oa) {
     NTSTATUS r;
-    char buf[MAX_PATH];
+    char buf[PATH_MAX];
     D;
     r = oNtDeleteFile(oa);
     if (NT_SUCCESS(r))
@@ -153,8 +151,8 @@ static NTSTATUS NTAPI hNtSetInformationFile(HANDLE fh,
                                             ULONG ln,
                                             FILE_INFORMATION_CLASS ic) {
     NTSTATUS r;
-    char buf[MAX_PATH];
-    char buf2[MAX_PATH];
+    char buf[PATH_MAX];
+    char buf2[PATH_MAX];
 #ifdef _MSC_VER
     PFILE_RENAME_INFO ri = (PFILE_RENAME_INFO)fi;
 #else
@@ -193,7 +191,7 @@ static NTSTATUS NTAPI hNtQueryInformationFile(HANDLE fh,
                                               ULONG ln,
                                               FILE_INFORMATION_CLASS ic) {
     NTSTATUS r;
-    char buf[MAX_PATH];
+    char buf[PATH_MAX];
     D;
     r = oNtQueryInformationFile(fh, sb, fi, ln, ic);
     if (NT_SUCCESS(r)) {
@@ -215,7 +213,7 @@ static NTSTATUS NTAPI hNtQueryFullAttributesFile(POBJECT_ATTRIBUTES oa, PFILE_NE
     D;
     r = oNtQueryFullAttributesFile(oa, oi);
     if (NT_SUCCESS(r)) {
-        char buf[MAX_PATH];
+        char buf[PATH_MAX];
         emitOp('q', sstr(buf, oa->ObjectName->Buffer, oa->ObjectName->Length), 0);
         }
     return r;

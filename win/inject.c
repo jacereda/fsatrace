@@ -1,5 +1,7 @@
 #include <stdint.h>
 #include <windows.h>
+#include <limits.h>
+
 #include <shellapi.h>
 #include "dbg.h"
 #include "fsatrace.h"
@@ -11,7 +13,7 @@ void injectProcess(HANDLE proc) {
     BOOL is32;
     FARPROC addr;
     LPVOID arg;
-    char dll[MAX_PATH];
+    char dll[PATH_MAX];
     char *ext = 0;
     DWORD rc;
     extern IMAGE_DOS_HEADER __ImageBase;
@@ -33,7 +35,7 @@ void injectProcess(HANDLE proc) {
         STARTUPINFO si;
         PROCESS_INFORMATION pi;
         const char * helpername = "fsatracehelper.exe";
-        char helper[MAX_PATH];
+        char helper[PATH_MAX];
         char * p;
         memset(&si, 0, sizeof(si));
         memset(&pi, 0, sizeof(pi));

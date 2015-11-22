@@ -1,12 +1,14 @@
 #include <windows.h>
+#include <limits.h>
+
 #include "utf8.h"
 #include "dbg.h"
 #include "handle.h"
 
 char * handlePath(char * dst, HANDLE h) {
-    WCHAR wbuf[MAX_PATH];
+    WCHAR wbuf[PATH_MAX];
     DWORD len;
     CHK(h);
-    len = GetFinalPathNameByHandleW(h, wbuf, MAX_PATH, FILE_NAME_NORMALIZED);
+    len = GetFinalPathNameByHandleW(h, wbuf, PATH_MAX, FILE_NAME_NORMALIZED);
     return utf8PathFromWide(dst, wbuf, len);
 }
