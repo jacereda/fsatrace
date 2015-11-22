@@ -21,14 +21,15 @@ int emitTerm() {
 
 void emitOp(int c, const char *p1, const char *p2)
 {
-	char           *dst = shm.buf + sizeof(unsigned);
-	unsigned       *psofar = (unsigned *)shm.buf;
-	unsigned	sofar;
-	unsigned	sz;
-	unsigned	s1;
-	unsigned	s2;
+	char           *dst = shm.buf + 4 + 256;
+	char *opts = shm.buf+4;
+	uint32_t       *psofar = (uint32_t *)shm.buf;
+	uint32_t	sofar;
+	uint32_t	sz;
+	uint32_t	s1;
+	uint32_t	s2;
 	char           *p;
-	if (!shm.buf)
+	if (!shm.buf || !opts[c])
 		return;
 	s1 = strlen(p1);
 	sz = s1 + 3;

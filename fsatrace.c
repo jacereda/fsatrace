@@ -50,16 +50,16 @@ fatal(const char *fmt,...)
 }
 
 static void
-aerror(unsigned n, char * const * l, const char * fmt, ...) {
+aerror(unsigned n, char *const *l, const char *fmt,...)
+{
 	int		i;
-	va_list ap;
-	va_start(ap,fmt);
+	va_list		ap;
+	va_start(ap, fmt);
 	errv(fmt, "error: ", ap);
 	va_end(ap);
 	for (i = 0; i < n; i++)
-	  fprintf(stderr, "argv[%d]=%s\n", i, l[i]);
+		fprintf(stderr, "argv[%d]=%s\n", i, l[i]);
 }
-
 
 static void
 slurp(char *p, size_t sz, const char *path)
@@ -135,38 +135,43 @@ main(int argc, char *const argv[])
 	size_t		sz = 0;
 	char		envout    [PATH_MAX];
 	static char	buf [LOGSZ];
-	char           *const *args = argv + 3;
-	unsigned	nargs = argc - 3;
-	if (argc < 4 || (strcmp(argv[2], "--") && strcmp(argv[2], "---")))
-		fatal(" usage: %s <output> -- <cmdline>", argv[0]);
-	out = argv[1];
+	char           *const *args = argv + 4;
+	unsigned	nargs = argc - 4;
+	const char     *opts;
+	if (argc < 5 || (strcmp(argv[3], "--") && strcmp(argv[3], "---")))
+		fatal(" usage: %s <options> <output> -- <cmdline>", argv[0]);
+	out = argv[2];
 	if ((err = shmInit(&shm, out, LOGSZ, 1)))
 		fatal("allocating shared memory (%d)", err);
 	snprintf(envout, sizeof(envout), ENVOUT "=%s", out);
 	putenv(envout);
 
-	if (argv[3][0] == '@') {
+	opts = argv[1];
+	while (*opts)
+		shm.buf[4 + *opts++] = 1;
+
+	if (argv[4][0] == '@') {
 		const int	MAXARGS = 0x8000;
 		size_t		bsz = sizeof(buf) - MAXARGS * sizeof(char *);
-		slurp(buf, bsz, argv[3] + 1);
+		slurp(buf, bsz, argv[4] + 1);
 		args = (char *const *)(buf + bsz);
 		nargs = lines(buf, (char **)(buf + bsz));
 	}
 	switch (procRun(nargs, args, &rc)) {
 	case ERR_PROC_FORK:
-	  aerror(nargs, args, "forking process");
+		aerror(nargs, args, "forking process");
 		break;
 	case ERR_PROC_EXEC:
-	  aerror(nargs, args, "executing command");
+		aerror(nargs, args, "executing command");
 		break;
 	case ERR_PROC_WAIT:
-	  aerror(nargs, args, "waiting for command completion:");
+		aerror(nargs, args, "waiting for command completion:");
 		break;
 	default:
-		if (rc) 
-		  aerror(nargs, args, "command failed with code %d", rc);
-		else if (strcmp(argv[2], "---")) {
-			uniq(buf, &sz, shm.buf + 4, "", 0);
+		if (rc)
+			aerror(nargs, args, "command failed with code %d", rc);
+		else if (strcmp(argv[3], "---")) {
+			uniq(buf, &sz, shm.buf + 4 + 256, "", 0);
 			dump(out, buf, sz);
 		} else
 			dump(out, shm.buf + 4, *(uint32_t *) shm.buf);
