@@ -137,7 +137,8 @@ main(int argc, char *const argv[])
 	static char	buf [LOGSZ];
 	char           *const *args = argv + 4;
 	unsigned	nargs = argc - 4;
-	const char     *opts;
+	const unsigned char *opts;
+	char           *bopts;
 	if (argc < 5 || (strcmp(argv[3], "--") && strcmp(argv[3], "---")))
 		fatal(" usage: %s <options> <output> -- <cmdline>", argv[0]);
 	out = argv[2];
@@ -146,9 +147,10 @@ main(int argc, char *const argv[])
 	snprintf(envout, sizeof(envout), ENVOUT "=%s", out);
 	putenv(envout);
 
-	opts = argv[1];
+	opts = (const unsigned char *)argv[1];
+	bopts = shm.buf + 4;
 	while (*opts)
-		shm.buf[4 + *opts++] = 1;
+		bopts[*opts++] = 1;
 
 	if (argv[4][0] == '@') {
 		const int	MAXARGS = 0x8000;
@@ -157,6 +159,9 @@ main(int argc, char *const argv[])
 		args = (char *const *)(buf + bsz);
 		nargs = lines(buf, (char **)(buf + bsz));
 	}
+	if (bopts['v'])
+		aerror(nargs, args, "verbose");
+
 	switch (procRun(nargs, args, &rc)) {
 	case ERR_PROC_FORK:
 		aerror(nargs, args, "forking process");
