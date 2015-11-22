@@ -267,10 +267,12 @@ fstat(int fd, struct stat *restrict buf)
 {
 	int		r;
 	static int      (*ofstat) (int, struct stat *restrict)= 0;
+	static int __thread nested = 0;
 	resolv((void **)&ofstat, "fstat"SUF);
 	r = ofstat(fd, buf);
-	if (!r)
+	if (!nested++ && !r)
 		fdemit('q', fd);
+	nested--;
 	return r;
 }
 
@@ -279,10 +281,12 @@ stat(const char *restrict path, struct stat *restrict buf)
 {
 	int		r;
 	static int      (*ostat) (const char *restrict, struct stat *restrict)= 0;
+	static int __thread nested = 0;
 	resolv((void **)&ostat, "stat"SUF);
 	r = ostat(path, buf);
-	if (!r)
+	if (!nested++ && !r)
 		emit('q', path);
+	nested--;
 	return r;
 }
 
@@ -291,12 +295,12 @@ lstat(const char *restrict path, struct stat *restrict buf)
 {
 	int		r;
 	static int      (*olstat) (const char *restrict, struct stat *restrict)= 0;
-	static int __thread nest;
+	static int __thread nested = 0;
 	resolv((void **)&olstat, "lstat"SUF);
 	r = olstat(path, buf);
-	if (0 == nest++ && !r)
+	if (!nested++ && !r)
 		emit('q', path);
-	nest--;
+	nested--;
 	return r;
 }
 
@@ -361,7 +365,7 @@ __fxstatat(int v, int fd, const char *path, struct stat *buf, int flag)
 {
 	int		r;
 	if (fd != AT_FDCWD) {
-	  static int      (*o__fxstatat) (int, int, const char *, struct stat *restrict, int)= 0;
+		static int      (*o__fxstatat) (int, int, const char *, struct stat *restrict, int)= 0;
 		R(__fxstatat);
 		r = o__fxstatat(v, fd, path, buf, flag);
 		if (!r)
