@@ -34,6 +34,8 @@ static int	s_fd;
 static char    *s_buf;
 static const int wmode = O_RDWR | O_WRONLY | O_APPEND | O_CREAT | O_TRUNC;
 
+#define D fprintf(stderr, "%s\n", __FUNCTION__)
+
 static void
 __attribute((constructor(101)))
 init()
@@ -268,6 +270,7 @@ fstat(int fd, struct stat *restrict buf)
 	int		r;
 	static int      (*ofstat) (int, struct stat *restrict)= 0;
 	static int __thread nested = 0;
+	D;
 	resolv((void **)&ofstat, "fstat"SUF);
 	r = ofstat(fd, buf);
 	if (!nested++ && !r)
@@ -282,6 +285,7 @@ stat(const char *restrict path, struct stat *restrict buf)
 	int		r;
 	static int      (*ostat) (const char *restrict, struct stat *restrict)= 0;
 	static int __thread nested = 0;
+	D;
 	resolv((void **)&ostat, "stat"SUF);
 	r = ostat(path, buf);
 	if (!nested++ && !r)
@@ -296,6 +300,7 @@ lstat(const char *restrict path, struct stat *restrict buf)
 	int		r;
 	static int      (*olstat) (const char *restrict, struct stat *restrict)= 0;
 	static int __thread nested = 0;
+	D;
 	resolv((void **)&olstat, "lstat"SUF);
 	r = olstat(path, buf);
 	if (!nested++ && !r)
@@ -308,6 +313,7 @@ int
 fstatat(int fd, const char *path, struct stat *buf, int flag)
 {
 	int		r;
+	D;
 	if (fd != AT_FDCWD) {
 		static int      (*ofstatat) (int, const char *, struct stat *restrict)= 0;
 		resolv((void **)&ofstatat, "fstatat"SUF);
