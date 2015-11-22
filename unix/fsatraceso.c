@@ -291,10 +291,12 @@ lstat(const char *restrict path, struct stat *restrict buf)
 {
 	int		r;
 	static int      (*olstat) (const char *restrict, struct stat *restrict)= 0;
+	static int __thread nest;
 	resolv((void **)&olstat, "lstat"SUF);
 	r = olstat(path, buf);
-	if (!r)
+	if (!r && 0 == nest++)
 		emit('q', path);
+	nest--;
 	return r;
 }
 
