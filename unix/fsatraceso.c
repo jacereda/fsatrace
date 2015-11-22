@@ -6,10 +6,6 @@
 #define unlink Ounlink
 #define fopen Ofopen
 #define fopen64 Ofopen64
-#define __fxstat64 O__fxstat64
-#define __xstat64 O__xstat64
-#define __xlstat64 O__xlstat64
-#define __fxstatat64 O__fxstatat64
 
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -33,10 +29,6 @@
 #undef unlink
 #undef fopen
 #undef fopen64
-#undef __fxstat
-#undef __xstat
-#undef __xlstat
-#undef __fxstatat
 
 static int	s_fd;
 static char    *s_buf;
