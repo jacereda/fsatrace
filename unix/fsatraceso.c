@@ -266,10 +266,10 @@ unlinkat(int fd, const char *p, int f)
 #define SUF "$INODE64"
 
 int
-fstat(int fd, struct stat *restrict buf)
+fstat(int fd, struct stat * buf)
 {
 	int		r;
-	static int      (*ofstat) (int, struct stat *restrict)= 0;
+	static int      (*ofstat) (int, struct stat *)= 0;
 	static int __thread nested = 0;
 	D;
 	resolv((void **)&ofstat, "fstat"SUF);
@@ -281,10 +281,10 @@ fstat(int fd, struct stat *restrict buf)
 }
 
 int
-stat(const char *restrict path, struct stat *restrict buf)
+stat(const char * path, struct stat * buf)
 {
 	int		r;
-	static int      (*ostat) (const char *restrict, struct stat *restrict)= 0;
+	static int      (*ostat) (const char *, struct stat *)= 0;
 	static int __thread nested = 0;
 	D;
 	resolv((void **)&ostat, "stat"SUF);
@@ -296,10 +296,10 @@ stat(const char *restrict path, struct stat *restrict buf)
 }
 
 int
-lstat(const char *restrict path, struct stat *restrict buf)
+lstat(const char * path, struct stat * buf)
 {
 	int		r;
-	static int      (*olstat) (const char *restrict, struct stat *restrict)= 0;
+	static int      (*olstat) (const char *, struct stat *)= 0;
 	static int __thread nested = 0;
 	D;
 	resolv((void **)&olstat, "lstat"SUF);
@@ -316,9 +316,9 @@ fstatat(int fd, const char *path, struct stat *buf, int flag)
 	int		r;
 	D;
 	if (fd != AT_FDCWD) {
-		static int      (*ofstatat) (int, const char *, struct stat *restrict)= 0;
+		static int      (*ofstatat) (int, const char *, struct stat *, int)= 0;
 		resolv((void **)&ofstatat, "fstatat"SUF);
-		r = ofstatat(fd, path, buf);
+		r = ofstatat(fd, path, buf, flag);
 		if (!r)
 			emit('Q', path);
 	} else if (flag & AT_SYMLINK_NOFOLLOW)
