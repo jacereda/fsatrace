@@ -50,6 +50,18 @@ fatal(const char *fmt,...)
 }
 
 static void
+aerror(unsigned n, char * const * l, const char * fmt, ...) {
+	int		i;
+	va_list ap;
+	va_start(ap,fmt);
+	errv(fmt, "error: ", ap);
+	va_end(ap);
+	for (i = 0; i < n; i++)
+	  fprintf(stderr, "argv[%d]=%s\n", i, l[i]);
+}
+
+
+static void
 slurp(char *p, size_t sz, const char *path)
 {
 	int		fd;
@@ -98,15 +110,6 @@ uniq(char *d, size_t * tot, const char *s, const char *last, size_t lastsz)
 		uniq(d, tot, end + 1, last, lastsz);
 }
 
-static void
-dumpargs(char *dst, size_t sz, int n, char *const *l)
-{
-	int		i;
-	size_t		sofar = 0;
-	for (i = 0; i < n; i++)
-		sofar += snprintf(dst + sofar, sz - sofar, "\nargv[%d]=%s", i, l[i]);
-}
-
 static unsigned
 lines(char *s, char **args)
 {
@@ -151,22 +154,18 @@ main(int argc, char *const argv[])
 	}
 	switch (procRun(nargs, args, &rc)) {
 	case ERR_PROC_FORK:
-		dumpargs(buf, sizeof(buf), nargs, args);
-		error("forking process:%s", buf);
+	  aerror(nargs, args, "forking process");
 		break;
 	case ERR_PROC_EXEC:
-		dumpargs(buf, sizeof(buf), nargs, args);
-		error("executing command:%s", buf);
+	  aerror(nargs, args, "executing command");
 		break;
 	case ERR_PROC_WAIT:
-		dumpargs(buf, sizeof(buf), nargs, args);
-		error("waiting for command completion:%s", buf);
+	  aerror(nargs, args, "waiting for command completion:");
 		break;
 	default:
-		if (rc) {
-			dumpargs(buf, sizeof(buf), nargs, args);
-			error("command failed with code %d:%s", rc, buf);
-		} else if (strcmp(argv[2], "---")) {
+		if (rc) 
+		  aerror(nargs, args, "command failed with code %d", rc);
+		else if (strcmp(argv[2], "---")) {
 			uniq(buf, &sz, shm.buf + 4, "", 0);
 			dump(out, buf, sz);
 		} else
