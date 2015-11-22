@@ -192,15 +192,13 @@ static NTSTATUS NTAPI hNtQueryInformationFile(HANDLE fh,
                                               FILE_INFORMATION_CLASS ic) {
     NTSTATUS r;
     char buf[MAX_PATH];
-    char buf2[MAX_PATH];
-    PFILE_NAME_INFORMATION fni = (PFILE_NAME_INFORMATION)fi;
     D;
     r = oNtQueryInformationFile(fh, sb, fi, ln, ic);
     if (NT_SUCCESS(r)) {
         switch (ic) {
         case FileAllInformation: 
         case FileNetworkOpenInformation:
-            emitOp("q", handlePath(buf, fh));
+            emitOp('q', handlePath(buf, fh), 0);
             break;
         default:
             break;
@@ -216,7 +214,7 @@ static NTSTATUS NTAPI hNtQueryFullAttributesFile(POBJECT_ATTRIBUTES oa, PFILE_NE
     r = oNtQueryFullAttributesFile(oa, oi);
     if (NT_SUCCESS(r)) {
         char buf[MAX_PATH];
-        emitOp("q", sstr(buf, oa->ObjectName->Buffer, oa->ObjectName->Length));
+        emitOp('q', sstr(buf, oa->ObjectName->Buffer, oa->ObjectName->Length), 0);
         }
     return r;
 }
