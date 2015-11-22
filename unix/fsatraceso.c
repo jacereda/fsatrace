@@ -99,6 +99,7 @@ fdemit(int c, int fd)
 {
 	char		ap        [PATH_MAX];
 #ifdef G_GETPATH
+	D;
 	if (-1 != fcntl(fd, F_GETPATH, ap))
 #else
 	ssize_t ret;
