@@ -35,6 +35,7 @@ static char    *s_buf;
 static const int wmode = O_RDWR | O_WRONLY | O_APPEND | O_CREAT | O_TRUNC;
 
 #define D fprintf(stderr, "%s\n", __FUNCTION__)
+#define DD fprintf(stderr, "/%s\n", __FUNCTION__)
 
 static void
 __attribute((constructor(101)))
@@ -277,6 +278,7 @@ fstat(int fd, struct stat * buf)
 	if (!nested++ && !r)
 		fdemit('q', fd);
 	nested--;
+	DD;
 	return r;
 }
 
@@ -292,6 +294,7 @@ stat(const char * path, struct stat * buf)
 	if (!nested++ && !r)
 		emit('q', path);
 	nested--;
+	DD;
 	return r;
 }
 
@@ -307,6 +310,7 @@ lstat(const char * path, struct stat * buf)
 	if (!nested++ && !r)
 		emit('q', path);
 	nested--;
+	DD;
 	return r;
 }
 
@@ -325,6 +329,7 @@ fstatat(int fd, const char *path, struct stat *buf, int flag)
 		r = stat(path, buf);
 	else
 		r = lstat(path, buf);
+	DD;
 	return r;
 
 }
