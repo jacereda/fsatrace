@@ -30,7 +30,16 @@ After that, invoke `make`. That should generate `fsatrace.exe`,
 Make sure the .dll or .so files are in the same path as the executable
 and run:
 
-	fsatrace <output-file> -- <command>
+	fsatrace <options> <output-file> -- <command>
+
+Options is a combination of the following characters:
+
+* `v`: print args vector
+* `r`: dump read operations
+* `w`: dump write operations
+* `m`: dump file move operations
+* `d`: dump file delete operations
+* `q`: dump file stat operations
 
 ## Output format
 
@@ -40,3 +49,4 @@ Newline-separated sequence with the following possibilities:
 * r|`path-to-file-opened-for-write`
 * m|`path-to-destination-of-move`|`path-to-source-of-move`
 * d|`path-to-deleted-file`
+* q|`path-to-queried-file`
