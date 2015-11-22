@@ -294,7 +294,7 @@ lstat(const char *restrict path, struct stat *restrict buf)
 	static int __thread nest;
 	resolv((void **)&olstat, "lstat"SUF);
 	r = olstat(path, buf);
-	if (!r && 0 == nest++)
+	if (0 == nest++ && !r)
 		emit('q', path);
 	nest--;
 	return r;
