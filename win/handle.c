@@ -10,5 +10,6 @@ char * handlePath(char * dst, HANDLE h) {
     DWORD len;
     CHK(h);
     len = GetFinalPathNameByHandleW(h, wbuf, PATH_MAX, FILE_NAME_NORMALIZED);
+	CHK(len >= 0 && len < PATH_MAX);
     return utf8PathFromWide(dst, wbuf, len);
 }

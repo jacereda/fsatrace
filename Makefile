@@ -24,7 +24,7 @@ endif
 
 endif
 
-CFLAGS+= -std=c99 -Wall -O2 -fomit-frame-pointer -fno-stack-protector -MMD
+CFLAGS+= -g -std=c99 -Wall -O2 -fomit-frame-pointer -fno-stack-protector -MMD
 
 SRCS=fsatrace.c $(PLAT)/proc.c $(PLAT)/shm.c $(OSSRCS)
 

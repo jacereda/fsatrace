@@ -108,7 +108,7 @@ static NTSTATUS NTAPI hNtCreateFile(PHANDLE ph,
         char buf[PATH_MAX];
         pr("creat %x %x %x %x %x %s\n",
            am, co, fa, sa, cd,
-           sstr(buf, oa->ObjectName->Buffer, oa->ObjectName->Length));
+           sstr(buf, oa->ObjectName->Buffer, oa->ObjectName->Length/2));
 #endif
         femit(*ph, fop(co, am));
     }
@@ -128,7 +128,7 @@ static NTSTATUS NTAPI hNtOpenFile(PHANDLE ph,
 #ifdef TRACE
         char buf[PATH_MAX];
         pr("open %x %x %s\n", am, oo,
-           sstr(buf, oa->ObjectName->Buffer, oa->ObjectName->Length));
+           sstr(buf, oa->ObjectName->Buffer, oa->ObjectName->Length/2));
 #endif
         femit(*ph, fop(oo, am));
     }
@@ -141,7 +141,7 @@ static NTSTATUS NTAPI hNtDeleteFile(POBJECT_ATTRIBUTES oa) {
     D;
     r = oNtDeleteFile(oa);
     if (NT_SUCCESS(r))
-        emitOp('d', sstr(buf, oa->ObjectName->Buffer, oa->ObjectName->Length), 0);
+        emitOp('d', sstr(buf, oa->ObjectName->Buffer, oa->ObjectName->Length/2), 0);
     return r;
 }
 
@@ -214,7 +214,7 @@ static NTSTATUS NTAPI hNtQueryFullAttributesFile(POBJECT_ATTRIBUTES oa, PFILE_NE
     r = oNtQueryFullAttributesFile(oa, oi);
     if (NT_SUCCESS(r)) {
         char buf[PATH_MAX];
-        emitOp('q', sstr(buf, oa->ObjectName->Buffer, oa->ObjectName->Length), 0);
+        emitOp('q', sstr(buf, oa->ObjectName->Buffer, oa->ObjectName->Length/2), 0);
         }
     return r;
 }
