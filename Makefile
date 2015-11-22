@@ -39,6 +39,13 @@ install: fsatrace$(EXE) libinstall
 clean: cleanlib
 	rm -f fsatrace$(EXE) $(patsubst %.c,%.o,$(SRCS)) $(patsubst %.c,%.d,$(SRCS))
 
+test: all
+	./fsatrace$(EXE) - -- cp /bin/ls /tmp/foo
+	./fsatrace$(EXE) - -- mv /tmp/foo /tmp/bar
+	./fsatrace$(EXE) - -- rm /tmp/bar
+	./fsatrace$(EXE) - -- sh -c "cp /bin/ls /tmp/foo && mv /tmp/foo /tmp/bar && rm /tmp/bar"
+	./fsatrace$(EXE) - -- cc -c -D_GNU_SOURCE -D_BSD_SOURCE=1 -std=c99 -Wall -O3 fsatrace.c -o /tmp/fsatrace.o
+
 
 -include $(patsubst %.c,%.d,$(SRCS))
 

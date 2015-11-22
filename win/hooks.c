@@ -23,6 +23,8 @@ HOOK(NtCreateFile);
 HOOK(NtOpenFile);
 HOOK(NtDeleteFile);
 HOOK(NtSetInformationFile);
+HOOK(NtQueryFullAttributesFile);
+HOOK(NtQueryInformationFile);
 HOOK(NtResumeThread);
 #undef HOOK
 
@@ -51,7 +53,6 @@ enum { FileBasicInformation = 4,
 
 #endif
 
-
 static const char *fop(ULONG co, ACCESS_MASK am) {
     const char *op;
     if (0)
@@ -73,7 +74,7 @@ static void femit(HANDLE h, const char *op) {
     if (op) {
         IO_STATUS_BLOCK sb;
         FILE_STANDARD_INFORMATION si;
-        NtQueryInformationFile(h, &sb, &si, sizeof(si),
+        oNtQueryInformationFile(h, &sb, &si, sizeof(si),
                                5 // FileStandardInformation
             );
         if (!si.Directory) {
@@ -184,6 +185,42 @@ static NTSTATUS NTAPI hNtSetInformationFile(HANDLE fh,
     return r;
 }
 
+static NTSTATUS NTAPI hNtQueryInformationFile(HANDLE fh,
+                                              PIO_STATUS_BLOCK sb,
+                                              PVOID fi,
+                                              ULONG ln,
+                                              FILE_INFORMATION_CLASS ic) {
+    NTSTATUS r;
+    char buf[MAX_PATH];
+    char buf2[MAX_PATH];
+    PFILE_NAME_INFORMATION fni = (PFILE_NAME_INFORMATION)fi;
+    D;
+    r = oNtQueryInformationFile(fh, sb, fi, ln, ic);
+    if (NT_SUCCESS(r)) {
+        switch (ic) {
+        case FileAllInformation: 
+        case FileNetworkOpenInformation:
+            emitOp("q", handlePath(buf, fh));
+            break;
+        default:
+            break;
+        }
+    }
+    return r;
+}
+
+
+static NTSTATUS NTAPI hNtQueryFullAttributesFile(POBJECT_ATTRIBUTES oa, PFILE_NETWORK_OPEN_INFORMATION oi) {
+    NTSTATUS r;
+    D;
+    r = oNtQueryFullAttributesFile(oa, oi);
+    if (NT_SUCCESS(r)) {
+        char buf[MAX_PATH];
+        emitOp("q", sstr(buf, oa->ObjectName->Buffer, oa->ObjectName->Length));
+        }
+    return r;
+}
+
 static NTSTATUS NTAPI hNtResumeThread(HANDLE th, PULONG sc) {
     NTSTATUS r;
     D;
@@ -204,6 +241,8 @@ void hooksInit(void *(*resolve)(const char *)) {
     HOOK(NtOpenFile);
     HOOK(NtDeleteFile);
     HOOK(NtSetInformationFile);
+    HOOK(NtQueryFullAttributesFile);
+    HOOK(NtQueryInformationFile);
     HOOK(NtResumeThread);
 #undef HOOK
 }
