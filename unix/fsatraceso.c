@@ -233,6 +233,30 @@ unlinkat(int fd, const char *p, int f)
 	return r;
 }
 
+int
+futimes(int fd, const struct timeval t[2])
+{
+	int r;
+	static int (*ofutimes)(int, const struct timeval[2]);
+	R(futimes);
+	r = ofutimes(fd, t);
+	if (!r)
+		fdemit('w', fd);
+	return r;
+}
+
+int
+utimes(const char * p, const struct timeval t[2])
+{
+	int r;
+	static int (*outimes)(const char *, const struct timeval[2]);
+	R(utimes);
+	r = outimes(p, t);
+	if (!r)
+		emit('w', p);
+	return r;
+}
+
 #ifdef __APPLE__
 #define SUF "$INODE64"
 
