@@ -51,6 +51,9 @@ test: all
 #	./fsatrace$(EXE) wrmd - -- sh -c "cp /bin/ls /tmp/foo && mv /tmp/foo /tmp/bar && rm /tmp/bar"
 	./fsatrace$(EXE) wrmd - -- cc -c -D_GNU_SOURCE -D_BSD_SOURCE=1 -std=c99 -Wall -O3 fsatrace.c -o /tmp/fsatrace.o
 
+htest: all
+	stack test
+
 
 -include $(patsubst %.c,%.d,$(SRCS))
 
