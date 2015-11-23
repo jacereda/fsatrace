@@ -47,6 +47,7 @@ clean: cleanlib
 test: all
 	./fsatrace$(EXE) wrmd - -- cp /bin/ls /tmp/foo
 	./fsatrace$(EXE) wrmd - -- mv /tmp/foo /tmp/bar
+	./fsatrace$(EXE) wrmd - -- touch /tmp/bar
 	./fsatrace$(EXE) wrmd - -- rm /tmp/bar
 #	./fsatrace$(EXE) wrmd - -- sh -c "cp /bin/ls /tmp/foo && mv /tmp/foo /tmp/bar && rm /tmp/bar"
 	./fsatrace$(EXE) wrmd - -- cc -c -D_GNU_SOURCE -D_BSD_SOURCE=1 -std=c99 -Wall -O3 fsatrace.c -o /tmp/fsatrace.o
