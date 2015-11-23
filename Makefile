@@ -22,6 +22,8 @@ ifeq ($(OS),Linux)
 LDLIBS=-ldl -lrt
 endif
 
+INSTALLDIR=$(HOME)/.local/bin
+
 endif
 
 CFLAGS+= -g -std=c99 -Wall -O2 -fomit-frame-pointer -fno-stack-protector -MMD
@@ -31,6 +33,9 @@ SRCS=fsatrace.c $(PLAT)/proc.c $(PLAT)/shm.c $(OSSRCS)
 all: fsatrace$(EXE) lib
 
 fsatrace$(EXE): $(patsubst %.c,%.o,$(SRCS))
+	$(CC) $(LDLAGS) $^ $(LDLIBS) -o $@
+
+dumpargs$(EXE): dumpargs.o
 	$(CC) $(LDLAGS) $^ $(LDLIBS) -o $@
 
 install: fsatrace$(EXE) libinstall
