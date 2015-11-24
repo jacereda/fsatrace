@@ -27,7 +27,7 @@ prop_args args = monadicIO $ do
 outputFrom :: [String] -> IO String
 outputFrom args = do
   cd <- getCurrentDirectory
-  readProcess (cd </> "fsatrace") ([head args, "-", "--"] ++ tail args) ""
+  readProcess (cd </> ".." </> "fsatrace") ([head args, "-", "--"] ++ tail args) ""
 
 yields :: [String] -> [Access] -> Property
 yields args res = monadicIO $ do
