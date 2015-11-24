@@ -8,7 +8,7 @@ install:
 - stack setup --arch=x86_64 > nul
 - stack setup --arch=i386 > nul
 
-build: no
+build: off
 
 test_script:
 - make htest
