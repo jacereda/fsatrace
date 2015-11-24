@@ -3,6 +3,7 @@ build: off
 before_test:
 - curl -ostack.zip -L --insecure http://www.stackage.org/stack/windows-i386
 - 7z x stack.zip stack.exe
+- stack setup
 
 test_script:
-- make htest
+- stack exec -- make htest
