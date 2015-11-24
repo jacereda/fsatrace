@@ -5,7 +5,7 @@ install:
 - curl -ostack.zip -L --insecure http://www.stackage.org/stack/windows-x86_64
 - 7z x stack.zip stack.exe
 - curl -omake.zip -L --insecure http://sourceforge.net/projects/mingw-w64/files/External%20binary%20packages%20%28Win64%20hosted%29/make/make-3.82.90-20111115.zip/download
-- 7x x make.zip
+- 7z x make.zip
 - copy make-3.82.90-20111115\bin_amd64\make.exe .
 - stack setup --arch=x86_64 > nul
 - stack setup --arch=i386 > nul
