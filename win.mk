@@ -1,5 +1,5 @@
 HELPER_SRCS=win/fsatracehelper.c
-SRCS32=src/win/fsatracedll.c src/win/inject.c src/win/patch.c src/win/hooks.c emit.c src/win/shm.c src/win/handle.c src/win/utf8.c src/win/dbg.c src/win/inject.c
+SRCS32=src/win/fsatracedll.c src/win/inject.c src/win/patch.c src/win/hooks.c src/emit.c src/win/shm.c src/win/handle.c src/win/utf8.c src/win/dbg.c src/win/inject.c
 SRCS64=$(SRCS32) src/win/inject.c
 HELPER_OBJ=src/win/fsatracehelper32.o
 OBJS64=$(patsubst %.c,%.o,$(SRCS64))
