@@ -8,7 +8,7 @@ CC=$(ROOT64)\bin\gcc
 CC32=$(ROOT32)\bin\gcc
 CPPFLAGS=-D_WIN32_WINNT=0x600 -isystem$(ROOT64)\x86_64-w64-mingw32\include\ddk
 CPPFLAGS32=-D_WIN32_WINNT=0x600 -isystem$(ROOT32)\include\ddk
-OSSRCS=win/inject.c win/dbg.c
+OSSRCS=src/win/inject.c src/win/dbg.c
 LDLIBS=$(ROOT64)\x86_64-w64-mingw32\lib\CRT_noglob.o
 INSTALLDIR=$(APPDATA)\local\bin
 
@@ -28,7 +28,7 @@ endif
 
 CFLAGS+= -g -std=c99 -Wall -O2 -fomit-frame-pointer -fno-stack-protector -MMD
 
-SRCS=fsatrace.c $(PLAT)/proc.c $(PLAT)/shm.c $(OSSRCS)
+SRCS=src/fsatrace.c src/$(PLAT)/proc.c src/$(PLAT)/shm.c $(OSSRCS)
 
 all: fsatrace$(EXE) lib
 
