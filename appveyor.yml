@@ -1,9 +1,14 @@
-build: off
+platform: 
+- x64
 
-before_test:
-- curl -ostack.zip -L --insecure http://www.stackage.org/stack/windows-i386
+install:
+- curl -ostack.zip -L --insecure http://www.stackage.org/stack/windows-x86_64
+- curl -omake.exe -L --insecure ftp://ftp.equation.com/make/64/make.exe
 - 7z x stack.zip stack.exe
-- stack setup
+- stack setup --arch=x86_64 > nul
+- stack setup --arch=i386 > nul
+
+build: no
 
 test_script:
-- stack exec -- make htest
+- make htest
