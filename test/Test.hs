@@ -71,15 +71,15 @@ main = do
   withSystemTempDirectory "fsatrace" $ \tmp -> do
     ctmp <- canonicalizePath tmp
     let qc1 = quickCheckWith stdArgs {maxSuccess=1}
-        tls = ctmp </> "ls"
+        tls = ctmp </> "LICENSE"
         tfoo = ctmp </> "foo"
     
-    qc1 $ prop_cp "/bin/ls" tls
+    qc1 $ prop_cp (".." </> "LICENSE") tls
     qc1 $ prop_mv tls tfoo
     qc1 $ prop_touch tfoo
     qc1 $ prop_rm tfoo
 
-    qc1 $ prop_shcp "/bin/ls" tls
+    qc1 $ prop_shcp (".." </> "LICENSE") tls
     qc1 $ prop_shmv tls tfoo
     qc1 $ prop_shtouch tfoo
     qc1 $ prop_shrm tfoo
