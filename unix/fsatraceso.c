@@ -241,7 +241,7 @@ futimes(int fd, const struct timeval t[2])
 	R(futimes);
 	r = ofutimes(fd, t);
 	if (!r)
-		fdemit('w', fd);
+		fdemit('t', fd);
 	return r;
 }
 
@@ -253,7 +253,7 @@ utimes(const char * p, const struct timeval t[2])
 	R(utimes);
 	r = outimes(p, t);
 	if (!r)
-		emit('w', p);
+		emit('t', p);
 	return r;
 }
 

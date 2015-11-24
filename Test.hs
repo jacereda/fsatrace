@@ -44,7 +44,7 @@ prop_mv :: FilePath -> FilePath -> Property
 prop_mv src dst = ["m", "mv", src, dst] `yields` [M dst src]
 
 prop_touch :: FilePath -> Property
-prop_touch dst = ["w", "touch", dst] `yields` [W dst]
+prop_touch dst = ["wt", "touch", dst] `yields` [T dst]
 
 prop_rm :: FilePath -> Property
 prop_rm dst = ["d", "rm", dst] `yields` [D dst]
@@ -56,7 +56,7 @@ prop_shmv :: FilePath -> FilePath -> Property
 prop_shmv src dst = sh ["m", "mv", src, dst] `yields` [M dst src]
 
 prop_shtouch :: FilePath -> Property
-prop_shtouch dst = sh ["w", "touch", dst] `yields` [W dst]
+prop_shtouch dst = sh ["wt", "touch", dst] `yields` [T dst]
 
 prop_shrm :: FilePath -> Property
 prop_shrm dst = sh ["d", "rm", dst] `yields` [D dst]
@@ -90,6 +90,7 @@ data Access
     | R FilePath
     | D FilePath
     | Q FilePath
+    | T FilePath
     | M FilePath FilePath
     deriving (Show, Eq)
 
@@ -99,6 +100,7 @@ parse = mapMaybe f . lines
           f ('r':'|':xs) = Just $ R xs
           f ('d':'|':xs) = Just $ D xs
           f ('q':'|':xs) = Just $ Q xs
+          f ('t':'|':xs) = Just $ T xs
           f ('m':'|':xs) | (xs','|':ys) <- break (== '|') xs = Just $ M xs' ys
           f _ = Nothing
 

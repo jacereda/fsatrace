@@ -40,6 +40,7 @@ Options is a combination of the following characters:
 * `m`: dump file move operations
 * `d`: dump file delete operations
 * `q`: dump file stat operations
+* `t`: dump touch operations
 
 ## Output format
 
