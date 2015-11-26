@@ -32,3 +32,6 @@
 *.dSYM/
 
 .stack-work/
+
+*~
+*#

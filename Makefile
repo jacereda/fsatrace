@@ -9,7 +9,7 @@ CC32=$(ROOT32)\bin\gcc
 CPPFLAGS=-D_WIN32_WINNT=0x600 -isystem$(ROOT64)\x86_64-w64-mingw32\include\ddk
 CPPFLAGS32=-D_WIN32_WINNT=0x600 -isystem$(ROOT32)\include\ddk
 OSSRCS=src/win/inject.c src/win/dbg.c
-LDLIBS=$(ROOT64)\x86_64-w64-mingw32\lib\CRT_noglob.o
+LDOBJS=$(ROOT64)\x86_64-w64-mingw32\lib\CRT_noglob.o
 INSTALLDIR=$(APPDATA)\local\bin
 
 else
@@ -33,7 +33,7 @@ SRCS=src/fsatrace.c src/$(PLAT)/proc.c src/$(PLAT)/shm.c $(OSSRCS)
 all: fsatrace$(EXE) lib
 
 fsatrace$(EXE): $(patsubst %.c,%.o,$(SRCS))
-	$(CC) $(LDLAGS) $^ $(LDLIBS) -o $@
+	$(CC) $(LDLAGS) $(LDOBJS) $^ $(LDLIBS) -o $@
 
 dumpargs$(EXE): dumpargs.o
 	$(CC) $(LDLAGS) $^ $(LDLIBS) -o $@

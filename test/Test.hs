@@ -1,98 +1,154 @@
 module Main where
 
 import           Control.Monad
-import           Data.Char
 import           Data.List
 import           Data.Maybe
-import           Debug.Trace
 import           System.Directory
 import           System.FilePath
 import           System.IO.Temp
+import           System.IO.Unsafe
+import           System.Info
 import           System.Process
 import           Test.QuickCheck
-import           Test.QuickCheck.Monadic (assert, monadicIO, run)
+import           Test.QuickCheck.Monadic
+--import           Debug.Trace
 
 newtype Arg = Arg { unarg :: String } deriving (Show, Eq)
 
 instance Arbitrary Arg where
   arbitrary = liftM Arg $ listOf1 validChars
-    where validChars = chr <$> choose (1,255)
+    where validChars = arbitrary `suchThat` (`notElem` "\0")
+
+inWin :: Bool
+inWin = os == "mingw32"
+
+chkargs :: [Arg] -> String -> PropertyM IO ()
+chkargs args out = assert $ args == (Arg <$> read (head $ lines out))
+
+prop_rawargs :: [Arg] -> Property
+prop_rawargs args = monadicIO $ run (readProcess "dumpargs" (map unarg args) "") >>= chkargs args
 
 prop_args :: [Arg] -> Property
-prop_args args = monadicIO $ do
-  out <- run $ outputFrom $ "" : "dumpargs" : map unarg args
-  let l0 = head $ lines out
-  assert $ args == (Arg <$> read l0)
+prop_args args = monadicIO $ run (outputFrom $ fsatrace "x" ++ "dumpargs" : map unarg args) >>= chkargs args
 
 outputFrom :: [String] -> IO String
-outputFrom args = do
+outputFrom (cmd:args) = readProcess cmd args ""
+outputFrom _ = undefined
+
+fsatrace :: String -> [String]
+fsatrace flags = [cd </> ".." </> "fsatrace", flags, "-", "--"]
+  where cd = unsafePerformIO getCurrentDirectory
+
+parsedOutputFrom :: [String] -> IO [Access]
+parsedOutputFrom x = do
   cd <- getCurrentDirectory
-  readProcess (cd </> ".." </> "fsatrace") ([head args, "-", "--"] ++ tail args) ""
+  let valid (R p) = inParent p
+      valid (Q p) = inParent p
+      valid _ = True
+      inParent = isPrefixOf pdir
+      pdir = takeDirectory cd
+  o <- outputFrom x
+  return $ filter valid $ parse o
 
 yields :: [String] -> [Access] -> Property
 yields args res = monadicIO $ do
-  r <- run $ outputFrom (traceShowId args)
-  assert $ (traceShowId (filter valid $ parse r)) == (traceShowId res)
-  where valid (W x) | "/dev/" `isPrefixOf` x = False
-        valid _ = True
+  r <- run $ parsedOutputFrom args
+  let sr = nub $ sort r
+      ok = sr == res
+  unless ok $ do
+    run $ putStrLn $ "Expecting " ++ show res
+    run $ putStrLn $ "Got       " ++ show sr
+  assert ok
+
+data ShellMode = Shelled | Unshelled deriving Show
+data TraceMode = Traced | Untraced deriving Show
+data SpaceMode = Spaced | Unspaced deriving Show
+
+cp :: ShellMode -> String
+cp Shelled | inWin = "copy"
+cp _ = "cp"
+
+rm :: ShellMode -> String
+rm Shelled | inWin = "del"
+rm _ = "rm"
+
+mv :: ShellMode -> String
+mv _ = "mv"
+
+touch :: ShellMode -> String
+touch _ = "touch"
+
+quoted :: String -> String
+quoted x = "\"" ++ x ++ "\""
 
 
-prop_cp :: FilePath -> FilePath -> Property
-prop_cp src dst = ["rw", "cp", src, dst] `yields` [R src, W dst]
+command :: ShellMode -> TraceMode -> String -> [String] -> [String]
+command sm Traced flags args = fsatrace flags ++ command sm Untraced flags args
+command Unshelled _ _ args = args
+command Shelled _ _ args | inWin = "cmd.exe" : "/c" : args
+                         | otherwise = ["sh", "-c", unwords args]
 
-prop_mv :: FilePath -> FilePath -> Property
-prop_mv src dst = ["m", "mv", src, dst] `yields` [M dst src]
+whenTracing :: TraceMode -> [a] -> [a]
+whenTracing Traced x = x
+whenTracing _ _ = []
 
-prop_touch :: FilePath -> Property
-prop_touch dst = ["wt", "touch", dst] `yields` [T dst]
+prop_cp :: ShellMode -> TraceMode -> FilePath -> FilePath -> Property
+prop_cp sm tm src dst = command sm tm "rwmd" ["cp", src, dst] `yields` whenTracing tm [R src, W dst]
 
-prop_rm :: FilePath -> Property
-prop_rm dst = ["d", "rm", dst] `yields` [D dst]
+prop_mv :: ShellMode -> TraceMode -> FilePath -> FilePath -> Property
+prop_mv sm tm src dst = command sm tm "rwmd" ["mv", src, dst] `yields` whenTracing tm [M dst src]
 
-prop_shcp :: FilePath -> FilePath -> Property
-prop_shcp src dst = sh ["rw", "cp", src, dst] `yields` [R src, W dst]
+prop_touch :: ShellMode -> TraceMode -> FilePath -> Property
+prop_touch sm tm dst = command sm tm "t" ["touch", dst] `yields` whenTracing tm [T dst]
 
-prop_shmv :: FilePath -> FilePath -> Property
-prop_shmv src dst = sh ["m", "mv", src, dst] `yields` [M dst src]
+prop_rm :: ShellMode -> TraceMode -> FilePath -> Property
+prop_rm sm tm dst = command sm tm "rwmd" ["rm", dst] `yields` whenTracing tm [D dst]
 
-prop_shtouch :: FilePath -> Property
-prop_shtouch dst = sh ["wt", "touch", dst] `yields` [T dst]
-
-prop_shrm :: FilePath -> Property
-prop_shrm dst = sh ["d", "rm", dst] `yields` [D dst]
-
-sh :: [String] -> [String]
-sh (flags:rest) = flags:"sh":"-c":intercalate " " rest:[]
-sh _ = undefined
+shelled :: [String] -> [String]
+shelled args | inWin = "cmd.exe" : "/c" : args
+             | otherwise = ["sh", "-c", unwords args]
 
 main :: IO ()
 main = do
-  quickCheck prop_args
-  withSystemTempDirectory "fsatrace" $ \tmp -> do
-    ctmp <- canonicalizePath tmp
-    let qc1 = quickCheckWith stdArgs {maxSuccess=1}
-        tls = ctmp </> "LICENSE"
-        tfoo = ctmp </> "foo"
+  qc "rawargs" prop_rawargs
+  qc "args" prop_args
+
+  allTests Unspaced Unshelled Untraced
+  allTests Unspaced Unshelled Traced
+  allTests Unspaced Shelled Untraced
+  allTests Unspaced Shelled Traced
+  allTests Spaced Unshelled Untraced
+  allTests Spaced Unshelled Traced
+  allTests Spaced Shelled Untraced
+  allTests Spaced Shelled Traced
     
-    qc1 $ prop_cp (".." </> "LICENSE") tls
-    qc1 $ prop_mv tls tfoo
-    qc1 $ prop_touch tfoo
-    qc1 $ prop_rm tfoo
 
-    qc1 $ prop_shcp (".." </> "LICENSE") tls
-    qc1 $ prop_shmv tls tfoo
-    qc1 $ prop_shtouch tfoo
-    qc1 $ prop_shrm tfoo
+  where qc1 s p = noisy s >> quickCheckWith stdArgs {maxSuccess=1} p
+        qc s p = noisy s >> quickCheckWith stdArgs p
+        noisy s = putStrLn ("Testing " ++ s)
+        banner x = putStrLn $ "================ " ++ x ++ " ================"
+        dirname Unspaced = "fsatrace"
+        dirname Spaced = "fsatrace with spaces"
+        allTests sp sm tm = withSystemTempDirectory (dirname sp) $ \tmp -> do
+          banner $ show sp ++ " " ++ show sm ++ " " ++ show tm
+          lic <- canonicalizePath $ ".." </> "LICENSE"
+          ctmp <- canonicalizePath tmp
+          let tls = ctmp </> "LICENSE"
+              tfoo = ctmp </> "foo"
+          qc1 "cp" $ prop_cp sm tm lic tls
+          qc1 "mv" $ prop_mv sm tm tls tfoo
+          qc1 "touch" $ prop_touch sm tm tfoo
+          qc1 "rm" $ prop_rm sm tm tfoo
 
-
-data Access
-    = W FilePath
-    | R FilePath
-    | D FilePath
-    | Q FilePath
-    | T FilePath
-    | M FilePath FilePath
-    deriving (Show, Eq)
+--          qc1 "rawshcp" $ prop_rawshcp lic tls    
+        
+data Access = R FilePath
+            | W FilePath
+            | D FilePath
+            | Q FilePath
+            | T FilePath
+            | M FilePath FilePath
+            deriving (Show, Eq, Ord)
 
 parse :: String -> [Access]
 parse = mapMaybe f . lines
@@ -103,5 +159,3 @@ parse = mapMaybe f . lines
           f ('t':'|':xs) = Just $ T xs
           f ('m':'|':xs) | (xs','|':ys) <- break (== '|') xs = Just $ M xs' ys
           f _ = Nothing
-
-

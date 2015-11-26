@@ -25,6 +25,14 @@ procPath(char *fullpath)
 #endif
 }
 
+void
+prodDumpArgs(unsigned nargs, char *const args[]) {
+{
+	unsigned i;
+	for (i = 0; i < nargs; i++)
+		fprintf(stderr, "argv[%d]=%s\n", i, args[i]);
+}
+
 enum procerr
 procRun(unsigned nargs, char *const args[], int *rc)
 {
