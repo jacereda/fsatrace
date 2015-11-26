@@ -26,7 +26,7 @@ procPath(char *fullpath)
 }
 
 void
-prodDumpArgs(unsigned nargs, char *const args[]) {
+procDumpArgs(unsigned nargs, char *const args[])
 {
 	unsigned i;
 	for (i = 0; i < nargs; i++)

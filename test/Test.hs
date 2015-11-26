@@ -44,6 +44,7 @@ parsedOutputFrom x = do
   cd <- getCurrentDirectory
   let valid (R p) = inParent p
       valid (Q p) = inParent p
+      valid (W p) = not $ "/dev/" `isPrefixOf` p
       valid _ = True
       inParent = isPrefixOf pdir
       pdir = takeDirectory cd
@@ -86,7 +87,7 @@ command :: ShellMode -> TraceMode -> String -> [String] -> [String]
 command sm Traced flags args = fsatrace flags ++ command sm Untraced flags args
 command Unshelled _ _ args = args
 command Shelled _ _ args | inWin = "cmd.exe" : "/c" : args
-                         | otherwise = ["sh", "-c", unwords args]
+                         | otherwise = ["sh", "-c", unwords (map quoted args)]
 
 whenTracing :: TraceMode -> [a] -> [a]
 whenTracing Traced x = x
