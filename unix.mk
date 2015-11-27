@@ -1,4 +1,4 @@
-SOSRCS=src/unix/fsatraceso.c src/emit.c src/unix/shm.c
+SOSRCS=src/unix/fsatraceso.c src/emit.c src/unix/shm.c src/unix/proc.c
 
 lib: fsatrace.so
 

@@ -61,9 +61,9 @@ yields args res = monadicIO $ do
     run $ putStrLn $ "Got       " ++ show sr
   assert ok
 
-data ShellMode = Shelled | Unshelled deriving (Show, Enum, Bounded)
-data TraceMode = Traced | Untraced deriving (Show, Enum, Bounded)
-data SpaceMode = Spaced | Unspaced deriving (Show, Enum, Bounded)
+data ShellMode = Unshelled | Shelled deriving (Show, Enum, Bounded)
+data TraceMode = Untraced | Traced deriving (Show, Enum, Bounded)
+data SpaceMode = Unspaced | Spaced deriving (Show, Enum, Bounded)
 
 cp :: ShellMode -> String
 cp Shelled | inWin = "copy"
@@ -93,6 +93,9 @@ whenTracing :: TraceMode -> [a] -> [a]
 whenTracing Traced x = x
 whenTracing _ _ = []
 
+prop_echo :: ShellMode -> TraceMode -> FilePath -> Property
+prop_echo sm tm src = command sm tm "rwmd" ["echo", src] `yields` []
+
 prop_cp :: ShellMode -> TraceMode -> FilePath -> FilePath -> Property
 prop_cp sm tm src dst = command sm tm "rwmd" ["cp", src, dst] `yields` whenTracing tm [R src, W dst]
 
@@ -111,8 +114,8 @@ shelled args | inWin = "cmd.exe" : "/c" : args
 
 main :: IO ()
 main = do
-  qc "rawargs" prop_rawargs
-  qc "args" prop_args
+--  qc "rawargs" prop_rawargs
+--  qc "args" prop_args
 
   sequence_ [allTests sp sm tm | sp <- allValues, sm <- allValues, tm <- allValues]
 
@@ -130,9 +133,10 @@ main = do
           ctmp <- canonicalizePath tmp
           let tls = ctmp </> "LICENSE"
               tfoo = ctmp </> "foo"
+          qc1 "echo" $ prop_echo sm tm tls
           qc1 "cp" $ prop_cp sm tm lic tls
           qc1 "mv" $ prop_mv sm tm tls tfoo
---          qc1 "touch" $ prop_touch sm tm tfoo
+          qc1 "touch" $ prop_touch sm tm tfoo
           qc1 "rm" $ prop_rm sm tm tfoo
 
 data Access = R FilePath
@@ -152,3 +156,4 @@ parse = mapMaybe f . lines
           f ('t':'|':xs) = Just $ T xs
           f ('m':'|':xs) | (xs','|':ys) <- break (== '|') xs = Just $ M xs' ys
           f _ = Nothing
+

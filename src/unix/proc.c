@@ -33,6 +33,25 @@ procDumpArgs(unsigned nargs, char *const args[])
 		fprintf(stderr, "argv[%d]=%s\n", i, args[i]);
 }
 
+static enum procerr 
+waitchild(int child, int *rc) 
+{
+	enum procerr ret;
+	fprintf(stderr, "%d spawned %d\n", getpid(), child);
+	fflush(stderr);
+
+	if (-1 != waitpid(child, rc, 0)) {
+		if (WIFEXITED(*rc)) {
+			ret = ERR_PROC_OK;
+			*rc = WEXITSTATUS(*rc);
+		} else
+			ret = ERR_PROC_EXEC;
+	} else
+		ret = ERR_PROC_WAIT;
+	return ret;
+}
+
+
 enum procerr
 procRun(unsigned nargs, char *const args[], int *rc)
 {
@@ -49,15 +68,25 @@ procRun(unsigned nargs, char *const args[], int *rc)
 	setenv("DYLD_INSERT_LIBRARIES", so, 1);
 	setenv("DYLD_FORCE_FLAT_NAMESPACE", "1", 1);
 #endif
+
+#if defined USE_SPAWN
 	if (posix_spawnp(&child, args[0], 0, 0, args, environ))
 		ret = ERR_PROC_FORK;
-	else if (-1 != waitpid(child, rc, 0)) {
-		if (WIFEXITED(*rc)) {
-			ret = ERR_PROC_OK;
-			*rc = WEXITSTATUS(*rc);
-		} else
-			ret = ERR_PROC_EXEC;
-	} else
-		ret = ERR_PROC_WAIT;
+	else 
+		ret = waitchild(child, rc)
+#else
+	child = vfork();
+	switch (child) {
+	case -1: 
+		ret = ERR_PROC_FORK; 
+		break;
+	case 0:
+		execvp(args[0], args);
+		_exit(EXIT_FAILURE);
+		break;
+	default:
+		ret = waitchild(child, rc);
+	}
+#endif
 	return ret;
 }

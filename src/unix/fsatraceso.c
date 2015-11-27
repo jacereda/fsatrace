@@ -34,60 +34,79 @@
 
 static const int wmode = O_RDWR | O_WRONLY | O_APPEND | O_CREAT | O_TRUNC;
 
-//#define D fprintf(stderr, "%s\n", __FUNCTION__)
-//#define DD fprintf(stderr, "/%s\n", __FUNCTION__)
-#define D
-#define DD
+#define D // do { char b[PATH_MAX]; procPath(b); fprintf(stderr, "%s:%d %s\n", b, getpid(), __FUNCTION__); fflush(stderr); } while (0)
+#define DD // do { char b[PATH_MAX]; procPath(b); fprintf(stderr, "%s:%d /%s\n", b, getpid(), __FUNCTION__); fflush(stderr); } while (0)
+
+#define SE //int _oerrno = errno
+#define RE //errno = _oerrno
 
 static void
 __attribute((constructor(101)))
 init()
 {
-	int err = emitInit();
+	int		err;
+	D;
+	err = emitInit();
 	if (err)
 		fprintf(stderr, "init err: %x\n", err);
+	DD;
 }
 
 static void
 __attribute((destructor(101)))
 term()
 {
-	int err = emitTerm();
+	int		err;
+	err = emitTerm();
+	D;
 	if (err)
 		fprintf(stderr, "term err: %x\n", err);
+	DD;
 }
 
 static void
 emit(int c, const char *p1)
 {
 	char		ap        [PATH_MAX];
-	char           *rp = realpath(p1, ap);
-	emitOp(c, rp? rp : p1, 0);
+	char           *rp;
+	SE;
+	rp = realpath(p1, ap);
+	emitOp(c, rp ? rp : p1, 0);
+	RE;
 }
 
 static void
 fdemit(int c, int fd)
 {
 	char		ap        [PATH_MAX];
-#ifdef F_GETPATH
+	int		ok;
+	SE;
 	D;
-	if (-1 != fcntl(fd, F_GETPATH, ap))
+#ifdef F_GETPATH
+	ok = -1 != fcntl(fd, F_GETPATH, ap);
 #else
+	{
 	ssize_t		ret;
 	char		fdpath    [100];
+	D;
 	snprintf(fdpath, sizeof(fdpath), "/proc/self/fd/%d", fd);
-	ret = readlink(fdpath, ap, sizeof(ap));
-	if (ret != -1)
+	ok = -1 != readlink(fdpath, ap, sizeof(ap));
+	}
 #endif
+	if (ok)
 		emitOp(c, ap, 0);
-
+	DD;
+	RE;
 }
 
 static void
 resolv(void **p, const char *n)
 {
-	if (!*p)
+	if (!*p) {
+		SE;
 		*p = dlsym(RTLD_NEXT, n);
+		RE;
+	}
 	assert(*p);
 }
 
@@ -98,10 +117,12 @@ fopen(const char *p, const char *m)
 {
 	FILE           *r;
 	static FILE    *(*ofopen) (const char *, const char *)= 0;
+	D;
 	R(fopen);
 	r = ofopen(p, m);
 	if (r)
 		emit(strchr(m, 'r') ? 'r' : 'w', p);
+	DD;
 	return r;
 }
 
@@ -110,10 +131,12 @@ fopen64(const char *p, const char *m)
 {
 	FILE           *r;
 	static FILE    *(*ofopen64) (const char *, const char *)= 0;
+	D;
 	R(fopen64);
 	r = ofopen64(p, m);
 	if (r)
 		emit(strchr(m, 'r') ? 'r' : 'w', p);
+	DD;
 	return r;
 }
 
@@ -122,10 +145,12 @@ open(const char *p, int f, mode_t m)
 {
 	int		r;
 	static int      (*oopen) (const char *, int, mode_t)= 0;
+	D;
 	R(open);
 	r = oopen(p, f, m);
 	if (r >= 0)
 		emit(f & wmode ? 'w' : 'r', p);
+	DD;
 	return r;
 }
 
@@ -134,10 +159,12 @@ open64(const char *p, int f, mode_t m)
 {
 	int		r;
 	static int      (*oopen64) (const char *, int, mode_t)= 0;
+	D;
 	R(open64);
 	r = oopen64(p, f, m);
 	if (r >= 0)
 		emit(f & wmode ? 'w' : 'r', p);
+	DD;
 	return r;
 }
 
@@ -145,6 +172,7 @@ int
 openat(int fd, const char *p, int f, mode_t m)
 {
 	int		r;
+	D;
 	if (fd != AT_FDCWD) {
 		static int      (*oopenat) (int, const char *, int, mode_t)= 0;
 		R(openat);
@@ -153,6 +181,7 @@ openat(int fd, const char *p, int f, mode_t m)
 			emitOp(f & wmode ? 'W' : 'R', p, 0);
 	} else
 		r = open(p, f, m);
+	DD;
 	return r;
 }
 
@@ -160,6 +189,7 @@ int
 openat64(int fd, const char *p, int f, mode_t m)
 {
 	int		r;
+	D;
 	if (fd != AT_FDCWD) {
 		static int      (*oopenat64) (int, const char *, int, mode_t)= 0;
 		R(openat64);
@@ -168,6 +198,7 @@ openat64(int fd, const char *p, int f, mode_t m)
 			emitOp(f & wmode ? 'W' : 'R', p, 0);
 	} else
 		r = open64(p, f, m);
+	DD;
 	return r;
 }
 
@@ -179,10 +210,12 @@ rename(const char *p1, const char *p2)
 	char		b2        [PATH_MAX];
 	char           *rp1 = realpath(p1, b1);
 	static int      (*orename) (const char *, const char *)= 0;
+	D;
 	R(rename);
 	r = orename(p1, p2);
 	if (!r)
 		emitOp('m', realpath(p2, b2), rp1);
+	DD;
 	return r;
 }
 
@@ -190,6 +223,7 @@ int
 renameat(int fd1, const char *p1, int fd2, const char *p2)
 {
 	int		r;
+	D;
 	if (fd1 != AT_FDCWD || fd2 != AT_FDCWD) {
 		static int      (*orenameat) (const char *, const char *)= 0;
 		R(renameat);
@@ -198,6 +232,7 @@ renameat(int fd1, const char *p1, int fd2, const char *p2)
 			emitOp('R', p2, p1);
 	} else
 		r = rename(p1, p2);
+	DD;
 	return r;
 }
 
@@ -206,12 +241,15 @@ unlink(const char *p)
 {
 	int		r;
 	char		b         [PATH_MAX];
-	char           *rp = realpath(p, b);
+	char           *rp;
 	static int      (*ounlink) (const char *)= 0;
+	D;
 	R(unlink);
+	rp = realpath(p, b);
 	r = ounlink(p);
 	if (!r)
 		emitOp('d', rp, 0);
+	DD;
 	return r;
 }
 
@@ -219,6 +257,7 @@ int
 unlinkat(int fd, const char *p, int f)
 {
 	int		r;
+	D;
 	if (fd != AT_FDCWD) {
 		static int      (*ounlinkat) (int fd, const char *p, int f);
 		R(unlinkat);
@@ -230,36 +269,40 @@ unlinkat(int fd, const char *p, int f)
 		r = rmdir(p);
 	else
 		r = unlink(p);
+	DD;
 	return r;
 }
 
 int
 futimes(int fd, const struct timeval t[2])
 {
-	int r;
-	static int (*ofutimes)(int, const struct timeval[2]);
+	int		r;
+	static int      (*ofutimes) (int, const struct timeval[2]);
+	D;
 	R(futimes);
 	r = ofutimes(fd, t);
 	if (!r)
 		fdemit('t', fd);
+	DD;
 	return r;
 }
 
 int
-utimes(const char * p, const struct timeval t[2])
+utimes(const char *p, const struct timeval t[2])
 {
-	int r;
-	static int (*outimes)(const char *, const struct timeval[2]);
+	int		r;
+	static int      (*outimes) (const char *, const struct timeval[2]);
+	D;
 	R(utimes);
 	r = outimes(p, t);
 	if (!r)
 		emit('t', p);
+	DD;
 	return r;
 }
 
 #ifdef __APPLE__
 #define SUF "$INODE64"
-
 int
 fstat(int fd, struct stat *buf)
 {
@@ -293,7 +336,7 @@ stat(const char *path, struct stat *buf)
 }
 
 int
-lstat(const char *restrict path, struct stat * buf)
+lstat(const char *restrict path, struct stat *buf)
 {
 	int		r;
 	static int      (*olstat) (const char *restrict, struct stat *restrict)= 0;
@@ -335,10 +378,12 @@ __fxstat(int v, int fd, struct stat *restrict buf)
 {
 	int		r;
 	static int      (*o__fxstat) (int, int, struct stat *restrict)= 0;
+	D;
 	R(__fxstat);
 	r = o__fxstat(v, fd, buf);
 	if (!r)
 		fdemit('q', fd);
+	DD;
 	return r;
 }
 
@@ -347,10 +392,12 @@ __xstat(int v, const char *restrict path, struct stat *restrict buf)
 {
 	int		r;
 	static int      (*o__xstat) (int, const char *restrict, struct stat *restrict)= 0;
+	D;
 	R(__xstat);
 	r = o__xstat(v, path, buf);
 	if (!r)
 		emit('q', path);
+	DD;
 	return r;
 }
 
@@ -359,10 +406,12 @@ __xlstat(int v, const char *restrict path, struct stat *restrict buf)
 {
 	int		r;
 	static int      (*o__xlstat) (int, const char *restrict, struct stat *restrict)= 0;
+	D;
 	R(__xlstat);
 	r = o__xlstat(v, path, buf);
 	if (!r)
 		emit('q', path);
+	DD;
 	return r;
 }
 
@@ -370,6 +419,7 @@ int
 __fxstatat(int v, int fd, const char *path, struct stat *buf, int flag)
 {
 	int		r;
+	D;
 	if (fd != AT_FDCWD) {
 		static int      (*o__fxstatat) (int, int, const char *, struct stat *restrict, int)= 0;
 		R(__fxstatat);
@@ -380,6 +430,7 @@ __fxstatat(int v, int fd, const char *path, struct stat *buf, int flag)
 		r = __xstat(v, path, buf);
 	else
 		r = __xlstat(v, path, buf);
+	DD;
 	return r;
 }
 
