@@ -12,6 +12,8 @@
 
 static struct shm shm;
 
+#include <stdio.h>
+
 int emitInit() {
 	assert(!shm.buf);
 	return shmInit(&shm, getenv(ENVOUT), LOGSZ, 0);
@@ -34,6 +36,8 @@ void emitOp(int c, const char *p1, const char *p2)
 	char           *p;
 	if (!shm.buf || !opts[c])
 		return;
+	fprintf(stderr, "op %c %s %s\n", c, p1? p1 : "none", p2? p2 : "none");
+	fflush(stderr);
 	s1 = strlen(p1);
 	sz = s1 + 3;
 	if (p2) {

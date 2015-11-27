@@ -78,6 +78,7 @@ fdemit(int c, int fd)
 #ifdef F_GETPATH
 	D;
 	if (-1 != fcntl(fd, F_GETPATH, ap))
+		emitOp(c, ap, 0);
 #else
 	ssize_t		ret;
 	char		fdpath    [100];
@@ -85,8 +86,8 @@ fdemit(int c, int fd)
 	snprintf(fdpath, sizeof(fdpath), "/proc/self/fd/%d", fd);
 	ret = readlink(fdpath, ap, sizeof(ap));
 	if (ret != -1)
-#endif
 		emitOp(c, ap, 0);
+#endif
 	DD;
 }
 
