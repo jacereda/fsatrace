@@ -86,10 +86,14 @@ fdemit(int c, int fd)
 	ok = -1 != fcntl(fd, F_GETPATH, ap);
 #else
 	{
+	ssize_t written;
 	char		fdpath    [100];
 	D;
 	snprintf(fdpath, sizeof(fdpath), "/proc/self/fd/%d", fd);
-	ok = -1 != readlink(fdpath, ap, sizeof(ap));
+	written = readlink(fdpath, ap, sizeof(ap));
+	ok = written >= 0 && written < sizeof(ap);
+	if (ok)
+		ap[written] = 0;
 	}
 #endif
 	if (ok)
