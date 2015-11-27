@@ -34,10 +34,10 @@ void emitOp(int c, const char *p1, const char *p2)
 	uint32_t	s1;
 	uint32_t	s2;
 	char           *p;
-	if (!shm.buf || !opts[c])
-		return;
 	fprintf(stderr, "op %c %s %s\n", c, p1? p1 : "none", p2? p2 : "none");
 	fflush(stderr);
+	if (!shm.buf || !opts[c])
+		return;
 	s1 = strlen(p1);
 	sz = s1 + 3;
 	if (p2) {

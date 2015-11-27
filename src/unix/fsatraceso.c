@@ -79,6 +79,10 @@ fdemit(int c, int fd)
 	D;
 	if (-1 != fcntl(fd, F_GETPATH, ap))
 		emitOp(c, ap, 0);
+	else {
+		fprintf(stderr, "fdemit %c %d err %d\n", c, fd, errno);
+		fflush(stderr);
+	}
 #else
 	ssize_t		ret;
 	char		fdpath    [100];
