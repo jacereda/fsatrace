@@ -24,7 +24,7 @@ LDLIBS=-ldl -lrt
 endif
 
 ifeq ($(OS),Darwin)
-CFLAGS=-mmacosx-version-min=10.7 -g
+CFLAGS=-mmacosx-version-min=10.9 -g
 endif
 
 INSTALLDIR=$(HOME)/.local/bin

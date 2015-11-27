@@ -312,12 +312,12 @@ fstat(int fd, struct stat *buf)
 {
 	int		r;
 	static int      (*ofstat) (int, struct stat *)= 0;
-	static int nested = 0;
+	static int __thread nested = 0;
 	D;
 	resolv((void **)&ofstat, "fstat" SUF);
 	r = ofstat(fd, buf);
 	if (!nested++ && !r)
-		fdemit('q', fd);
+		; //fdemit('q', fd);
 	nested--;
 	DD;
 	return r;
@@ -328,12 +328,12 @@ stat(const char *path, struct stat *buf)
 {
 	int		r;
 	static int      (*ostat) (const char *, struct stat *)= 0;
-	static int nested = 0;
+	static int __thread nested = 0;
 	D;
 	resolv((void **)&ostat, "stat" SUF);
 	r = ostat(path, buf);
 	if (!nested++ && !r)
-		emit('q', path);
+		; //emit('q', path);
 	nested--;
 	DD;
 	return r;
@@ -344,12 +344,12 @@ lstat(const char *path, struct stat *buf)
 {
 	int		r;
 	static int      (*olstat) (const char *, struct stat *)= 0;
-	static int nested = 0;
+	static int __thread nested = 0;
 	D;
 	resolv((void **)&olstat, "lstat" SUF);
 	r = olstat(path, buf);
 	if (!nested++ && !r)
-		emit('q', path);
+		; //emit('q', path);
 	nested--;
 	DD;
 	return r;
@@ -365,7 +365,7 @@ fstatat(int fd, const char *path, struct stat *buf, int flag)
 		resolv((void **)&ofstatat, "fstatat" SUF);
 		r = ofstatat(fd, path, buf, flag);
 		if (!r)
-			emit('Q', path);
+			; //emit('Q', path);
 	} else if (flag & AT_SYMLINK_NOFOLLOW)
 		r = stat(path, buf);
 	else
