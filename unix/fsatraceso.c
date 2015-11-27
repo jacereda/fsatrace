@@ -6,6 +6,10 @@
 #define unlink Ounlink
 #define fopen Ofopen
 #define fopen64 Ofopen64
+#define __fxstat64 O__fxstat64
+#define __xstat64 O__xstat64
+#define __xlstat64 O__xlstat64
+#define __fxstatat64 O__fxstatat64
 
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -29,6 +33,10 @@
 #undef unlink
 #undef fopen
 #undef fopen64
+#undef __fxstat
+#undef __xstat
+#undef __xlstat
+#undef __fxstatat
 
 static int	s_fd;
 static char    *s_buf;
@@ -96,8 +104,17 @@ static void
 fdemit(int c, int fd)
 {
 	char		ap        [PATH_MAX];
+#ifdef F_GETPATH
 	if (-1 != fcntl(fd, F_GETPATH, ap))
-		iemit(c, ap, 0);
+#else
+	ssize_t ret;
+	char fdpath[100];
+	snprintf(fdpath, sizeof(fdpath), "/proc/self/fd/%d", fd);
+	ret = readlink(fdpath, ap, sizeof(ap));
+	if (ret != -1)
+#endif
+	  iemit(c, ap, 0);
+
 }
 
 static void
@@ -275,8 +292,8 @@ utimes(const char * p, const struct timeval t[2])
 }
 
 
+#ifdef __APPLE__
 #define SUF "$INODE64"
-
 
 int
 fstat(int fd, struct stat *restrict buf)
@@ -331,3 +348,60 @@ fstatat(int fd, const char *path, struct stat *buf, int flag)
 	return r;
 
 }
+#endif
+
+#ifdef __linux__
+int
+__fxstat(int v, int fd, struct stat *restrict buf)
+{
+	int		r;
+	static int      (*o__fxstat) (int, int, struct stat *restrict)= 0;
+	R(__fxstat);
+	r = o__fxstat(v, fd, buf);
+	if (!r)
+		fdemit('q', fd);
+	return r;
+}
+
+int
+__xstat(int v, const char *restrict path, struct stat *restrict buf)
+{
+	int		r;
+	static int      (*o__xstat) (int, const char *restrict, struct stat *restrict)= 0;
+	R(__xstat);
+	r = o__xstat(v, path, buf);
+	if (!r)
+		emit('q', path);
+	return r;
+}
+
+int
+__xlstat(int v, const char *restrict path, struct stat *restrict buf)
+{
+	int		r;
+	static int      (*o__xlstat) (int, const char *restrict, struct stat *restrict)= 0;
+	R(__xlstat);
+	r = o__xlstat(v, path, buf);
+	if (!r)
+		emit('q', path);
+	return r;
+}
+
+int
+__fxstatat(int v, int fd, const char *path, struct stat *buf, int flag)
+{
+	int		r;
+	if (fd != AT_FDCWD) {
+	  static int      (*o__fxstatat) (int, int, const char *, struct stat *restrict, int)= 0;
+		R(__fxstatat);
+		r = o__fxstatat(v, fd, path, buf, flag);
+		if (!r)
+			emit('Q', path);
+	} else if (flag & AT_SYMLINK_NOFOLLOW)
+	  r = __xstat(v, path, buf);
+	else
+	  r = __xlstat(v, path, buf);
+	return r;
+}
+
+#endif
