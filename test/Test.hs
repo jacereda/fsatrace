@@ -93,6 +93,9 @@ whenTracing :: TraceMode -> [a] -> [a]
 whenTracing Traced x = x
 whenTracing _ _ = []
 
+prop_echo :: ShellMode -> TraceMode -> FilePath -> Property
+prop_echo sm tm src = command sm tm "rwmd" ["echo", src] `yields` []
+
 prop_cp :: ShellMode -> TraceMode -> FilePath -> FilePath -> Property
 prop_cp sm tm src dst = command sm tm "rwmd" ["cp", src, dst] `yields` whenTracing tm [R src, W dst]
 
@@ -111,8 +114,8 @@ shelled args | inWin = "cmd.exe" : "/c" : args
 
 main :: IO ()
 main = do
-  qc "rawargs" prop_rawargs
-  qc "args" prop_args
+--  qc "rawargs" prop_rawargs
+--  qc "args" prop_args
 
   sequence_ [allTests sp sm tm | sp <- allValues, sm <- allValues, tm <- allValues]
 
@@ -130,6 +133,7 @@ main = do
           ctmp <- canonicalizePath tmp
           let tls = ctmp </> "LICENSE"
               tfoo = ctmp </> "foo"
+          qc1 "echo" $ prop_echo sm tm tls
           qc1 "cp" $ prop_cp sm tm lic tls
           qc1 "mv" $ prop_mv sm tm tls tfoo
           qc1 "touch" $ prop_touch sm tm tfoo
