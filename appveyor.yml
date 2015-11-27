@@ -1,0 +1,15 @@
+platform: 
+- x64
+
+install:
+- cinst make
+- curl -ostack.zip -L --insecure http://www.stackage.org/stack/windows-x86_64
+- 7z x stack.zip stack.exe
+- stack setup --arch=x86_64 > nul
+- stack setup --arch=i386 > nul
+- set PATH=%PATH%;%CD%
+
+build: off
+
+test_script:
+- make htest

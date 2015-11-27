@@ -1,7 +1,7 @@
 HELPER_SRCS=win/fsatracehelper.c
-SRCS32=win/fsatracedll.c win/inject.c win/patch.c win/hooks.c emit.c win/shm.c win/handle.c win/utf8.c win/dbg.c win/inject.c
-SRCS64=$(SRCS32) win/inject.c
-HELPER_OBJ=win/fsatracehelper32.o
+SRCS32=src/win/fsatracedll.c src/win/inject.c src/win/patch.c src/win/hooks.c src/emit.c src/win/shm.c src/win/handle.c src/win/utf8.c src/win/dbg.c src/win/inject.c
+SRCS64=$(SRCS32) src/win/inject.c
+HELPER_OBJ=src/win/fsatracehelper32.o
 OBJS64=$(patsubst %.c,%.o,$(SRCS64))
 OBJS32=$(patsubst %.c,%32.o,$(SRCS32))
 DEPS64=$(patsubst %.o,%.d,$(OBJS64))
@@ -26,7 +26,7 @@ libinstall: fsatracehelper.exe fsatrace64.dll fsatrace32.dll
 	cp fsatracehelper.exe fsatrace64.dll fsatrace32.dll $(INSTALLDIR)
 
 cleanlib:
-	rm -f win/fsatracehelper32.o fsatracehelper.exe fsatrace64.dll fsatrace32.dll $(OBJS64) $(OBJS32) $(DEPS64) $(DEPS32)
+	rm -f src/win/fsatracehelper32.o fsatracehelper.exe fsatrace64.dll fsatrace32.dll $(OBJS64) $(OBJS32) $(DEPS64) $(DEPS32)
 
 -include $(DEPS64)
 -include $(DEPS32)

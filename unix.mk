@@ -1,4 +1,4 @@
-SOSRCS=unix/fsatraceso.c emit.c unix/shm.c
+SOSRCS=src/unix/fsatraceso.c src/emit.c src/unix/shm.c
 
 lib: fsatrace.so
 
@@ -7,6 +7,9 @@ lib: fsatrace.so
 
 fsatrace.so: $(patsubst %.c,%.os,$(SOSRCS))
 	$(CC) -shared $(LFLAGS) $^ -o $@ $(LDLIBS) 
+
+libinstall: fsatrace.so
+	cp fsatrace.so $(INSTALLDIR)
 
 cleanlib:
 	rm -f fsatrace.so $(patsubst %.c,%.d,$(SOSRCS)) $(patsubst %.c,%.os,$(SOSRCS))

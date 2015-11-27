@@ -257,7 +257,6 @@ utimes(const char * p, const struct timeval t[2])
 	return r;
 }
 
-
 #ifdef __APPLE__
 #define SUF "$INODE64"
 

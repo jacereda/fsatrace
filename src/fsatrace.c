@@ -52,13 +52,11 @@ fatal(const char *fmt,...)
 static void
 aerror(unsigned n, char *const *l, const char *fmt,...)
 {
-	int		i;
 	va_list		ap;
 	va_start(ap, fmt);
 	errv(fmt, "error: ", ap);
 	va_end(ap);
-	for (i = 0; i < n; i++)
-		fprintf(stderr, "argv[%d]=%s\n", i, l[i]);
+	procDumpArgs(n, l);
 }
 
 static void
@@ -168,7 +166,7 @@ main(int argc, char *const argv[])
 		nargs = lines(buf, (char **)(buf + bsz));
 	}
 	if (bopts['v'])
-		aerror(nargs, args, "verbose");
+		procDumpArgs(nargs, args);
 
 	switch (procRun(nargs, args, &rc)) {
 	case ERR_PROC_FORK:
