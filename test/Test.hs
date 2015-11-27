@@ -61,9 +61,9 @@ yields args res = monadicIO $ do
     run $ putStrLn $ "Got       " ++ show sr
   assert ok
 
-data ShellMode = Shelled | Unshelled deriving Show
-data TraceMode = Traced | Untraced deriving Show
-data SpaceMode = Spaced | Unspaced deriving Show
+data ShellMode = Shelled | Unshelled deriving (Show, Enum, Bounded)
+data TraceMode = Traced | Untraced deriving (Show, Enum, Bounded)
+data SpaceMode = Spaced | Unspaced deriving (Show, Enum, Bounded)
 
 cp :: ShellMode -> String
 cp Shelled | inWin = "copy"
@@ -114,15 +114,7 @@ main = do
   qc "rawargs" prop_rawargs
   qc "args" prop_args
 
-  allTests Unspaced Unshelled Untraced
-  allTests Unspaced Unshelled Traced
-  allTests Unspaced Shelled Untraced
-  allTests Unspaced Shelled Traced
-  allTests Spaced Unshelled Untraced
-  allTests Spaced Unshelled Traced
-  allTests Spaced Shelled Untraced
-  allTests Spaced Shelled Traced
-    
+  sequence_ [allTests sp sm tm | sp <- allValues, sm <- allValues, tm <- allValues]
 
   where qc1 s p = noisy s >> quickCheckWith stdArgs {maxSuccess=1} p
         qc s p = noisy s >> quickCheckWith stdArgs p
@@ -130,6 +122,8 @@ main = do
         banner x = putStrLn $ "================ " ++ x ++ " ================"
         dirname Unspaced = "fsatrace"
         dirname Spaced = "fsatrace with spaces"
+        allValues :: (Enum a, Bounded a) => [a]
+        allValues = enumFrom minBound
         allTests sp sm tm = withSystemTempDirectory (dirname sp) $ \tmp -> do
           banner $ show sp ++ " " ++ show sm ++ " " ++ show tm
           lic <- canonicalizePath $ ".." </> "LICENSE"
@@ -138,11 +132,9 @@ main = do
               tfoo = ctmp </> "foo"
           qc1 "cp" $ prop_cp sm tm lic tls
           qc1 "mv" $ prop_mv sm tm tls tfoo
-          qc1 "touch" $ prop_touch sm tm tfoo
+--          qc1 "touch" $ prop_touch sm tm tfoo
           qc1 "rm" $ prop_rm sm tm tfoo
 
---          qc1 "rawshcp" $ prop_rawshcp lic tls    
-        
 data Access = R FilePath
             | W FilePath
             | D FilePath
