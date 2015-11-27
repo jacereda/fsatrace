@@ -2,7 +2,6 @@ os:
  - linux
  - osx
 osx_image: xcode7
-sudo: false
 language: c
 addons:
   apt:
@@ -17,6 +16,7 @@ before_install:
 - cp stack-*/stack ~/.local/bin
 
 script:
+- env
 - uname -a
 - make
 - otool -L fsatrace
