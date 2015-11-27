@@ -17,8 +17,12 @@ before_install:
 - cp stack-*/stack ~/.local/bin
 
 script:
+- uname -a
 - make
+- otool -L fsatrace
+- otool -L fsatrace.so
 - cd test
 - stack setup
-- stack test
+- stack test --no-run-tests
+- sudo dtruss -f .stack-work/dist/x86_64-osx/Cabal-1.22.4.0/build/fsatrace-test/fsatrace-test
 

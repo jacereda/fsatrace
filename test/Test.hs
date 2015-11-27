@@ -152,3 +152,4 @@ parse = mapMaybe f . lines
           f ('t':'|':xs) = Just $ T xs
           f ('m':'|':xs) | (xs','|':ys) <- break (== '|') xs = Just $ M xs' ys
           f _ = Nothing
+
