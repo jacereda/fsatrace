@@ -34,6 +34,8 @@ static int	s_fd;
 static char    *s_buf;
 static const int wmode = O_RDWR | O_WRONLY | O_APPEND | O_CREAT | O_TRUNC;
 
+#define D fprintf(stderr, "%s\n", __FUNCTION__)
+
 static void
 __attribute((constructor(101)))
 init()
@@ -97,6 +99,7 @@ fdemit(int c, int fd)
 {
 	char		ap        [PATH_MAX];
 #ifdef F_GETPATH
+	D;
 	if (-1 != fcntl(fd, F_GETPATH, ap))
 #else
 	ssize_t ret;
@@ -288,14 +291,17 @@ utimes(const char * p, const struct timeval t[2])
 #define SUF "$INODE64"
 
 int
-fstat(int fd, struct stat *restrict buf)
+fstat(int fd, struct stat * buf)
 {
 	int		r;
-	static int      (*ofstat) (int, struct stat *restrict)= 0;
+	static int      (*ofstat) (int, struct stat *)= 0;
+	static int __thread nested = 0;
+	D;
 	resolv((void **)&ofstat, "fstat" SUF);
 	r = ofstat(fd, buf);
-	if (!r)
+	if (!nested++ && !r)
 		fdemit('q', fd);
+	nested--;
 	return r;
 }
 
@@ -304,22 +310,28 @@ stat(const char *restrict path, struct stat *restrict buf)
 {
 	int		r;
 	static int      (*ostat) (const char *restrict, struct stat *restrict)= 0;
+	static int __thread nested = 0;
+	D;
 	resolv((void **)&ostat, "stat" SUF);
 	r = ostat(path, buf);
-	if (!r)
+	if (!nested++ && !r)
 		emit('q', path);
+	nested--;
 	return r;
 }
 
 int
-lstat(const char *restrict path, struct stat *restrict buf)
+lstat(const char *restrict path, struct stat * buf)
 {
 	int		r;
 	static int      (*olstat) (const char *restrict, struct stat *restrict)= 0;
+	static int __thread nested = 0;
+	D;
 	resolv((void **)&olstat, "lstat" SUF);
 	r = olstat(path, buf);
-	if (!r)
+	if (!nested++ && !r)
 		emit('q', path);
+	nested--;
 	return r;
 }
 
@@ -327,10 +339,11 @@ int
 fstatat(int fd, const char *path, struct stat *buf, int flag)
 {
 	int		r;
+	D;
 	if (fd != AT_FDCWD) {
-		static int      (*ofstatat) (int, const char *, struct stat *restrict)= 0;
+		static int      (*ofstatat) (int, const char *, struct stat *, int)= 0;
 		resolv((void **)&ofstatat, "fstatat" SUF);
-		r = ofstatat(fd, path, buf);
+		r = ofstatat(fd, path, buf, flag);
 		if (!r)
 			emit('Q', path);
 	} else if (flag & AT_SYMLINK_NOFOLLOW)
@@ -384,7 +397,7 @@ __fxstatat(int v, int fd, const char *path, struct stat *buf, int flag)
 {
 	int		r;
 	if (fd != AT_FDCWD) {
-	  static int      (*o__fxstatat) (int, int, const char *, struct stat *restrict, int)= 0;
+		static int      (*o__fxstatat) (int, int, const char *, struct stat *restrict, int)= 0;
 		R(__fxstatat);
 		r = o__fxstatat(v, fd, path, buf, flag);
 		if (!r)
