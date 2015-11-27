@@ -39,6 +39,9 @@ static const int wmode = O_RDWR | O_WRONLY | O_APPEND | O_CREAT | O_TRUNC;
 //#define D
 //#define DD
 
+#define SE int _oerrno = errno
+#define RE errno = _oerrno
+
 static void
 __attribute((constructor(101)))
 init()
@@ -67,39 +70,49 @@ static void
 emit(int c, const char *p1)
 {
 	char		ap        [PATH_MAX];
-	char           *rp = realpath(p1, ap);
+	char           *rp;
+	SE;
+	rp = realpath(p1, ap);
 	emitOp(c, rp? rp : p1, 0);
+	RE;
 }
 
 static void
 fdemit(int c, int fd)
 {
 	char		ap        [PATH_MAX];
-#ifdef F_GETPATH
+	int ok;
+	SE;
 	D;
-	if (-1 != fcntl(fd, F_GETPATH, ap))
+#ifdef F_GETPATH
+	ok = -1 != fcntl(fd, F_GETPATH, ap);
+#else
+	if (1) {
+		ssize_t		ret;
+		char		fdpath    [100];
+		D;
+		snprintf(fdpath, sizeof(fdpath), "/proc/self/fd/%d", fd);
+		ok = -1 != readlink(fdpath, ap, sizeof(ap);
+	}
+#endif
+	if (ok)
 		emitOp(c, ap, 0);
 	else {
 		fprintf(stderr, "fdemit %c %d err %d\n", c, fd, errno);
 		fflush(stderr);
 	}
-#else
-	ssize_t		ret;
-	char		fdpath    [100];
-	D;
-	snprintf(fdpath, sizeof(fdpath), "/proc/self/fd/%d", fd);
-	ret = readlink(fdpath, ap, sizeof(ap));
-	if (ret != -1)
-		emitOp(c, ap, 0);
-#endif
 	DD;
+	RE;
 }
 
 static void
 resolv(void **p, const char *n)
 {
-	if (!*p)
+	if (!*p) {
+		SE;
 		*p = dlsym(RTLD_NEXT, n);
+		RE;
+	}
 	assert(*p);
 }
 
