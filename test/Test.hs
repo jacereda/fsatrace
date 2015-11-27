@@ -61,9 +61,9 @@ yields args res = monadicIO $ do
     run $ putStrLn $ "Got       " ++ show sr
   assert ok
 
-data ShellMode = Shelled | Unshelled deriving (Show, Enum, Bounded)
-data TraceMode = Traced | Untraced deriving (Show, Enum, Bounded)
-data SpaceMode = Spaced | Unspaced deriving (Show, Enum, Bounded)
+data ShellMode = Unshelled | Shelled deriving (Show, Enum, Bounded)
+data TraceMode = Untraced | Traced deriving (Show, Enum, Bounded)
+data SpaceMode = Unspaced | Spaced deriving (Show, Enum, Bounded)
 
 cp :: ShellMode -> String
 cp Shelled | inWin = "copy"

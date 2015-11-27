@@ -24,8 +24,5 @@ script:
 - otool -L fsatrace.so
 - cd test
 - stack setup
-- stack build
-- stack test --no-run-tests
-- export PATH=$PATH:.stack-work//install/x86_64-osx/lts-3.12/7.10.2/bin
-- sudo dtruss -f .stack-work/dist/x86_64-osx/Cabal-1.22.4.0/build/fsatrace-test/fsatrace-test
+- stack test
 
