@@ -7,7 +7,7 @@
 #endif
 #undef ASSERT
 #include "dbg.h"
-#include "emit.h"
+#include "../emit.h"
 #include "handle.h"
 #include "utf8.h"
 #include "patch.h"
@@ -53,24 +53,24 @@ enum { FileBasicInformation = 4,
 
 #endif
 
-static const char *fop(ULONG co, ACCESS_MASK am) {
-    const char *op;
+static const int fop(ULONG co, ACCESS_MASK am) {
+	int op;
     if (0)
         ;
     else if (co & FILE_DIRECTORY_FILE)
         op = 0;
     else if (co & FILE_DELETE_ON_CLOSE)
-        op = "d";
+        op = 'd';
     else if (am & GENERIC_WRITE)
-        op = "w";
+        op = 'w';
     else if (am & GENERIC_READ)
-        op = "r";
+        op = 'r';
     else
         op = 0;
     return op;
 }
 
-static void femit(HANDLE h, const char *op) {
+static void femit(HANDLE h, int op) {
     if (op) {
         IO_STATUS_BLOCK sb;
         FILE_STANDARD_INFORMATION si;
@@ -79,7 +79,9 @@ static void femit(HANDLE h, const char *op) {
             );
         if (!si.Directory) {
             char buf[MAX_PATH];
-            emitOp(op, handlePath(buf, h));
+			char * p = handlePath(buf, h);
+			if (p)
+				emitOp(op, p, 0);
         }
     }
 }
@@ -141,7 +143,7 @@ static NTSTATUS NTAPI hNtDeleteFile(POBJECT_ATTRIBUTES oa) {
     D;
     r = oNtDeleteFile(oa);
     if (NT_SUCCESS(r))
-        emitOp("d", sstr(buf, oa->ObjectName->Buffer, oa->ObjectName->Length));
+        emitOp('d', sstr(buf, oa->ObjectName->Buffer, oa->ObjectName->Length), 0);
     return r;
 }
 
@@ -164,19 +166,19 @@ static NTSTATUS NTAPI hNtSetInformationFile(HANDLE fh,
     if (NT_SUCCESS(r)) {
         switch (ic) {
         case FileBasicInformation:
-            emitOp("w", opath);
+            emitOp('w', opath, 0);
             break;
         case FileRenameInformation:
-            emitOp2("m",
+            emitOp('m',
                   sstr(buf2, ri->FileName,
                       ri->FileNameLength / sizeof(ri->FileName[0])),
                   opath);
             break;
         case FileDispositionInformation:
-            emitOp("d", opath);
+            emitOp('d', opath, 0);
             break;
         case FileAllocationInformation:
-            emitOp("w", opath);
+            emitOp('w', opath, 0);
             break;
         default:
             break;
@@ -192,15 +194,13 @@ static NTSTATUS NTAPI hNtQueryInformationFile(HANDLE fh,
                                               FILE_INFORMATION_CLASS ic) {
     NTSTATUS r;
     char buf[MAX_PATH];
-    char buf2[MAX_PATH];
-    PFILE_NAME_INFORMATION fni = (PFILE_NAME_INFORMATION)fi;
     D;
     r = oNtQueryInformationFile(fh, sb, fi, ln, ic);
     if (NT_SUCCESS(r)) {
         switch (ic) {
         case FileAllInformation: 
         case FileNetworkOpenInformation:
-            emitOp("q", handlePath(buf, fh));
+            emitOp('q', handlePath(buf, fh), 0);
             break;
         default:
             break;
@@ -216,7 +216,7 @@ static NTSTATUS NTAPI hNtQueryFullAttributesFile(POBJECT_ATTRIBUTES oa, PFILE_NE
     r = oNtQueryFullAttributesFile(oa, oi);
     if (NT_SUCCESS(r)) {
         char buf[MAX_PATH];
-        emitOp("q", sstr(buf, oa->ObjectName->Buffer, oa->ObjectName->Length));
+        emitOp('q', sstr(buf, oa->ObjectName->Buffer, oa->ObjectName->Length), 0);
         }
     return r;
 }

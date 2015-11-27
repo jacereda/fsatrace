@@ -1,5 +1,6 @@
 #include <assert.h>
 #include <windows.h>
+#include <limits.h>
 
 #include "../shm.h"
 
@@ -8,7 +9,7 @@ struct priv {
 };
 
 int
-shmInit(struct shm *shm, const char *key, size_t sz)
+shmInit(struct shm *shm, const char *key, size_t sz, int root)
 {
 	int i;
 	int err = 0;
@@ -25,7 +26,7 @@ shmInit(struct shm *shm, const char *key, size_t sz)
 }
 
 int
-shmTerm(struct shm *shm)
+shmTerm(struct shm *shm, int root)
 {
 	int err = 0;
 	struct priv * p = (struct priv *)shm->storage;

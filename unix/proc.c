@@ -3,6 +3,7 @@
 #include <sys/wait.h>
 #include <limits.h>
 #include <unistd.h>
+#include <spawn.h>
 #include <stdio.h>
 #include <stdlib.h>
 #if !defined __linux__
@@ -15,7 +16,7 @@ procPath(char *fullpath)
 {
 #if defined __linux__
 	char		exepath   [64];
-	ssize_t ret;
+	ssize_t		ret;
 	snprintf(exepath, sizeof(exepath), "/proc/%d/exe", getpid());
 	ret = readlink(exepath, fullpath, PATH_MAX);
 	assert(ret != -1);
@@ -25,39 +26,30 @@ procPath(char *fullpath)
 }
 
 enum procerr
-procRun(const char *cmd, char **args, int *rc)
+procRun(unsigned nargs, char *const args[], int *rc)
 {
+	extern char   **environ;
 	int		ret;
 	int		child;
 	char		so        [PATH_MAX];
 	char		fullpath  [PATH_MAX];
 	procPath(fullpath);
-#if defined __linux__
 	snprintf(so, sizeof(so), "%s.so", fullpath);
+#if defined __linux__
 	setenv("LD_PRELOAD", so, 1);
 #else
-	snprintf(so, sizeof(so), "%s.so", fullpath);
 	setenv("DYLD_INSERT_LIBRARIES", so, 1);
 	setenv("DYLD_FORCE_FLAT_NAMESPACE", "1", 1);
 #endif
-	child = fork();
-	switch (child) {
-	case -1:
+	if (posix_spawnp(&child, args[0], 0, 0, args, environ))
 		ret = ERR_PROC_FORK;
-		break;
-	case 0:
-		execvp(cmd, args);
-		exit(EXIT_FAILURE);
-		break;
-	default:
-		if (-1 != wait(rc)) {
-			if (WIFEXITED(*rc)) {
-				ret = ERR_PROC_OK;
-				*rc = WEXITSTATUS(*rc);
-			} else
-				ret = ERR_PROC_EXEC;
+	else if (-1 != waitpid(child, rc, 0)) {
+		if (WIFEXITED(*rc)) {
+			ret = ERR_PROC_OK;
+			*rc = WEXITSTATUS(*rc);
 		} else
-			ret = ERR_PROC_WAIT;
-	}
+			ret = ERR_PROC_EXEC;
+	} else
+		ret = ERR_PROC_WAIT;
 	return ret;
 }

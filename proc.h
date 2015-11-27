@@ -6,4 +6,4 @@ enum procerr {
 };
 
 void		procPath  (char *);
-enum procerr	procRun(const char *, char **, int *);
+enum procerr	procRun(unsigned, char * const [], int *);

@@ -19,6 +19,8 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <dlfcn.h>
+
+#include "../emit.h"
 #include "../fsatrace.h"
 
 #undef open
@@ -30,60 +32,29 @@
 #undef fopen
 #undef fopen64
 
-static int	s_fd;
-static char    *s_buf;
 static const int wmode = O_RDWR | O_WRONLY | O_APPEND | O_CREAT | O_TRUNC;
 
-#define D fprintf(stderr, "%s\n", __FUNCTION__)
+//#define D fprintf(stderr, "%s\n", __FUNCTION__)
+//#define DD fprintf(stderr, "/%s\n", __FUNCTION__)
+#define D
+#define DD
 
 static void
 __attribute((constructor(101)))
 init()
 {
-	const char     *shname = getenv(ENVOUT);
-	s_fd = shm_open(shname, O_RDWR, 0666);
-	s_buf = mmap(0, LOGSZ, PROT_READ | PROT_WRITE, MAP_SHARED, s_fd, 0);
-	assert(s_fd >= 0);
+	int err = emitInit();
+	if (err)
+		fprintf(stderr, "init err: %x\n", err);
 }
 
 static void
 __attribute((destructor(101)))
 term()
 {
-	munmap(s_buf, LOGSZ);
-	close(s_fd);
-}
-
-static void
-iemit(int c, const char *p1, const char *p2)
-{
-	char           *dst = s_buf + sizeof(unsigned);
-	unsigned       *psofar = (unsigned *)s_buf;
-	unsigned	sofar;
-	unsigned	sz;
-	unsigned	s1;
-	unsigned	s2;
-	char           *p;
-	if (!s_buf)
-		return;
-	s1 = strlen(p1);
-	sz = s1 + 3;
-	if (p2) {
-		s2 = strlen(p2);
-		sz += s2 + 1;
-	}
-	sofar = __sync_fetch_and_add(psofar, sz);
-	p = dst + sofar;
-	*p++ = c;
-	*p++ = '|';
-	memcpy(p, p1, s1);
-	p += s1;
-	if (p2) {
-		*p++ = '|';
-		memcpy(p, p2, s2);
-		p += s2;
-	}
-	*p++ = '\n';
+	int err = emitTerm();
+	if (err)
+		fprintf(stderr, "term err: %x\n", err);
 }
 
 static void
@@ -91,7 +62,7 @@ emit(int c, const char *p1)
 {
 	char		ap        [PATH_MAX];
 	char           *rp = realpath(p1, ap);
-	iemit(c, rp ? rp : p1, 0);
+	emitOp(c, rp? rp : p1, 0);
 }
 
 static void
@@ -102,13 +73,13 @@ fdemit(int c, int fd)
 	D;
 	if (-1 != fcntl(fd, F_GETPATH, ap))
 #else
-	ssize_t ret;
-	char fdpath[100];
+	ssize_t		ret;
+	char		fdpath    [100];
 	snprintf(fdpath, sizeof(fdpath), "/proc/self/fd/%d", fd);
 	ret = readlink(fdpath, ap, sizeof(ap));
 	if (ret != -1)
 #endif
-	  iemit(c, ap, 0);
+		emitOp(c, ap, 0);
 
 }
 
@@ -179,7 +150,7 @@ openat(int fd, const char *p, int f, mode_t m)
 		R(openat);
 		r = oopenat(fd, p, f, m);
 		if (r >= 0)
-			iemit(f & wmode ? 'W' : 'R', p, 0);
+			emitOp(f & wmode ? 'W' : 'R', p, 0);
 	} else
 		r = open(p, f, m);
 	return r;
@@ -194,7 +165,7 @@ openat64(int fd, const char *p, int f, mode_t m)
 		R(openat64);
 		r = oopenat64(fd, p, f, m);
 		if (r >= 0)
-			iemit(f & wmode ? 'W' : 'R', p, 0);
+			emitOp(f & wmode ? 'W' : 'R', p, 0);
 	} else
 		r = open64(p, f, m);
 	return r;
@@ -211,7 +182,7 @@ rename(const char *p1, const char *p2)
 	R(rename);
 	r = orename(p1, p2);
 	if (!r)
-		iemit('m', realpath(p2, b2), rp1);
+		emitOp('m', realpath(p2, b2), rp1);
 	return r;
 }
 
@@ -224,7 +195,7 @@ renameat(int fd1, const char *p1, int fd2, const char *p2)
 		R(renameat);
 		r = orenameat(p1, p2);
 		if (!r)
-			iemit('R', p2, p1);
+			emitOp('R', p2, p1);
 	} else
 		r = rename(p1, p2);
 	return r;
@@ -240,7 +211,7 @@ unlink(const char *p)
 	R(unlink);
 	r = ounlink(p);
 	if (!r)
-		iemit('d', rp, 0);
+		emitOp('d', rp, 0);
 	return r;
 }
 
@@ -253,7 +224,7 @@ unlinkat(int fd, const char *p, int f)
 		R(unlinkat);
 		r = ounlinkat(fd, p, f);
 		if (!r)
-			iemit('D', p, 0);
+			emitOp('D', p, 0);
 		assert(0);
 	} else if (f & AT_REMOVEDIR)
 		r = rmdir(p);
@@ -291,7 +262,7 @@ utimes(const char * p, const struct timeval t[2])
 #define SUF "$INODE64"
 
 int
-fstat(int fd, struct stat * buf)
+fstat(int fd, struct stat *buf)
 {
 	int		r;
 	static int      (*ofstat) (int, struct stat *)= 0;
@@ -302,11 +273,12 @@ fstat(int fd, struct stat * buf)
 	if (!nested++ && !r)
 		fdemit('q', fd);
 	nested--;
+	DD;
 	return r;
 }
 
 int
-stat(const char *restrict path, struct stat *restrict buf)
+stat(const char *path, struct stat *buf)
 {
 	int		r;
 	static int      (*ostat) (const char *restrict, struct stat *restrict)= 0;
@@ -317,6 +289,7 @@ stat(const char *restrict path, struct stat *restrict buf)
 	if (!nested++ && !r)
 		emit('q', path);
 	nested--;
+	DD;
 	return r;
 }
 
@@ -332,6 +305,7 @@ lstat(const char *restrict path, struct stat * buf)
 	if (!nested++ && !r)
 		emit('q', path);
 	nested--;
+	DD;
 	return r;
 }
 
@@ -350,6 +324,7 @@ fstatat(int fd, const char *path, struct stat *buf, int flag)
 		r = stat(path, buf);
 	else
 		r = lstat(path, buf);
+	DD;
 	return r;
 
 }
@@ -403,9 +378,9 @@ __fxstatat(int v, int fd, const char *path, struct stat *buf, int flag)
 		if (!r)
 			emit('Q', path);
 	} else if (flag & AT_SYMLINK_NOFOLLOW)
-	  r = __xstat(v, path, buf);
+		r = __xstat(v, path, buf);
 	else
-	  r = __xlstat(v, path, buf);
+		r = __xlstat(v, path, buf);
 	return r;
 }
 
