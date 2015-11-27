@@ -13,10 +13,12 @@
 static struct shm shm;
 
 int emitInit() {
+	assert(!shm.buf);
 	return shmInit(&shm, getenv(ENVOUT), LOGSZ, 0);
 }
 
 int emitTerm() {
+	assert(shm.buf);
 	return shmTerm(&shm, 0);
 }
 

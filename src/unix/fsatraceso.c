@@ -34,8 +34,8 @@
 
 static const int wmode = O_RDWR | O_WRONLY | O_APPEND | O_CREAT | O_TRUNC;
 
-#define D do { fprintf(stderr, "%s\n", __FUNCTION__); fflush(stderr); } while (0)
-#define DD do { fprintf(stderr, "/%s\n", __FUNCTION__); fflush(stderr); } while (0)
+#define D do { char b[PATH_MAX]; procPath(b); fprintf(stderr, "%s:%d %s\n", b, getpid(), __FUNCTION__); fflush(stderr); } while (0)
+#define DD do { char b[PATH_MAX]; procPath(b); fprintf(stderr, "%s:%d /%s\n", b, getpid(), __FUNCTION__); fflush(stderr); } while (0)
 //#define D
 //#define DD
 
