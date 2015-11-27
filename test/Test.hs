@@ -132,7 +132,7 @@ main = do
               tfoo = ctmp </> "foo"
           qc1 "cp" $ prop_cp sm tm lic tls
           qc1 "mv" $ prop_mv sm tm tls tfoo
---          qc1 "touch" $ prop_touch sm tm tfoo
+          qc1 "touch" $ prop_touch sm tm tfoo
           qc1 "rm" $ prop_rm sm tm tfoo
 
 data Access = R FilePath
