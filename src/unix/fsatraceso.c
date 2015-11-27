@@ -69,12 +69,13 @@ static void
 fdemit(int c, int fd)
 {
 	char		ap        [PATH_MAX];
-#ifdef G_GETPATH
+#ifdef F_GETPATH
 	D;
 	if (-1 != fcntl(fd, F_GETPATH, ap))
 #else
 	ssize_t		ret;
 	char		fdpath    [100];
+	D;
 	snprintf(fdpath, sizeof(fdpath), "/proc/self/fd/%d", fd);
 	ret = readlink(fdpath, ap, sizeof(ap));
 	if (ret != -1)
