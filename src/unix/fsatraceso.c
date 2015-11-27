@@ -36,11 +36,9 @@ static const int wmode = O_RDWR | O_WRONLY | O_APPEND | O_CREAT | O_TRUNC;
 
 #define D do { char b[PATH_MAX]; procPath(b); fprintf(stderr, "%s:%d %s\n", b, getpid(), __FUNCTION__); fflush(stderr); } while (0)
 #define DD do { char b[PATH_MAX]; procPath(b); fprintf(stderr, "%s:%d /%s\n", b, getpid(), __FUNCTION__); fflush(stderr); } while (0)
-//#define D
-//#define DD
 
-#define SE int _oerrno = errno
-#define RE errno = _oerrno
+#define SE //int _oerrno = errno
+#define RE //errno = _oerrno
 
 static void
 __attribute((constructor(101)))
@@ -307,15 +305,14 @@ utimes(const char * p, const struct timeval t[2])
 	return r;
 }
 
-#if 0 //def __APPLE__
+#ifdef __APPLE__
 #define SUF "$INODE64"
-
 int
 fstat(int fd, struct stat *buf)
 {
 	int		r;
 	static int      (*ofstat) (int, struct stat *)= 0;
-	static int __thread nested = 0;
+	static int nested = 0;
 	D;
 	resolv((void **)&ofstat, "fstat" SUF);
 	r = ofstat(fd, buf);
@@ -331,7 +328,7 @@ stat(const char *path, struct stat *buf)
 {
 	int		r;
 	static int      (*ostat) (const char *, struct stat *)= 0;
-	static int __thread nested = 0;
+	static int nested = 0;
 	D;
 	resolv((void **)&ostat, "stat" SUF);
 	r = ostat(path, buf);
@@ -347,7 +344,7 @@ lstat(const char *path, struct stat *buf)
 {
 	int		r;
 	static int      (*olstat) (const char *, struct stat *)= 0;
-	static int __thread nested = 0;
+	static int nested = 0;
 	D;
 	resolv((void **)&olstat, "lstat" SUF);
 	r = olstat(path, buf);
