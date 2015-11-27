@@ -4,15 +4,12 @@
 #include <sys/types.h>
 #include <stdlib.h>
 #include <string.h>
-//#include <emmintrin.h>
 
 #include "fsatrace.h"
 #include "shm.h"
 #include "emit.h"
 
 static struct shm shm;
-
-#include <stdio.h>
 
 int emitInit() {
 	assert(!shm.buf);
@@ -34,8 +31,6 @@ void emitOp(int c, const char *p1, const char *p2)
 	uint32_t	s1;
 	uint32_t	s2;
 	char           *p;
-	fprintf(stderr, "op %c %s %s\n", c, p1? p1 : "none", p2? p2 : "none");
-	fflush(stderr);
 	if (!shm.buf || !opts[c])
 		return;
 	s1 = strlen(p1);

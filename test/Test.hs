@@ -114,8 +114,8 @@ shelled args | inWin = "cmd.exe" : "/c" : args
 
 main :: IO ()
 main = do
---  qc "rawargs" prop_rawargs
---  qc "args" prop_args
+  qc "rawargs" prop_rawargs
+  qc "args" prop_args
 
   sequence_ [allTests sp sm tm | sp <- allValues, sm <- allValues, tm <- allValues]
 
@@ -156,4 +156,3 @@ parse = mapMaybe f . lines
           f ('t':'|':xs) = Just $ T xs
           f ('m':'|':xs) | (xs','|':ys) <- break (== '|') xs = Just $ M xs' ys
           f _ = Nothing
-

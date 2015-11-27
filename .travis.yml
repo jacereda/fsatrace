@@ -17,11 +17,7 @@ before_install:
 - cp stack-*/stack ~/.local/bin
 
 script:
-- env
-- uname -a
 - make
-- otool -L fsatrace
-- otool -L fsatrace.so
 - cd test
 - stack setup
 - stack test

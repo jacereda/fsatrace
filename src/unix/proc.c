@@ -37,9 +37,6 @@ static enum procerr
 waitchild(int child, int *rc) 
 {
 	enum procerr ret;
-	fprintf(stderr, "%d spawned %d\n", getpid(), child);
-	fflush(stderr);
-
 	if (-1 != waitpid(child, rc, 0)) {
 		if (WIFEXITED(*rc)) {
 			ret = ERR_PROC_OK;
@@ -69,11 +66,11 @@ procRun(unsigned nargs, char *const args[], int *rc)
 	setenv("DYLD_FORCE_FLAT_NAMESPACE", "1", 1);
 #endif
 
-#if defined USE_SPAWN
+#if 1 
 	if (posix_spawnp(&child, args[0], 0, 0, args, environ))
 		ret = ERR_PROC_FORK;
 	else 
-		ret = waitchild(child, rc)
+		ret = waitchild(child, rc);
 #else
 	child = vfork();
 	switch (child) {
