@@ -437,4 +437,36 @@ __fxstatat(int v, int fd, const char *path, struct stat *buf, int flag)
 	return r;
 }
 
+int 
+utimensat(int fd, const char *path, const struct timespec ts[2], int flags)
+{
+	int		r;
+	static int      (*outimensat) (int, const char *, const struct timespec[2], int);
+	D;
+	if (fd != AT_FDCWD || flags == AT_SYMLINK_NOFOLLOW) {
+		R(utimensat);
+		r = outimensat(fd, path, ts, flags);
+		if (!r)
+			emit('T', path);
+	} else
+		r = futimens(fd, ts);
+	DD;
+	return r;
+
+}
+
+int 
+futimens(int fd, const struct timespec ts[2])
+{
+	int		r;
+	static int      (*ofutimens) (int, const struct timespec[2]);
+	D;
+	R(futimens);
+	r = ofutimens(fd, ts);
+	if (!r)
+		fdemit('t', fd);
+	DD;
+	return r;
+}
+
 #endif
