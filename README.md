@@ -46,8 +46,9 @@ Options is a combination of the following characters:
 
 Newline-separated sequence with the following possibilities:
 
-* w|`path-to-file-opened-for-read`
 * r|`path-to-file-opened-for-write`
+* w|`path-to-file-opened-for-read`
 * m|`path-to-destination-of-move`|`path-to-source-of-move`
 * d|`path-to-deleted-file`
 * q|`path-to-queried-file`
+* t|`path-to-touched-file`
