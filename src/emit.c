@@ -34,10 +34,10 @@ void emitOp(int oc, const char *op1, const char *p2)
 	char           *p;
 	const char * p1;
 	int c;
-	if (!shm.buf || !opts[tolower(c)])
+	if (!shm.buf || !opts[tolower(oc)])
 		return;
 	p1 = op1? op1 : "<unknown>";
-	c = op1? oc : toupper(c);
+	c = op1? oc : toupper(oc);
 	s1 = strlen(p1);
 	sz = s1 + 3;
 	if (p2) {
