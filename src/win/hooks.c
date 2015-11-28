@@ -78,15 +78,9 @@ static void femit(HANDLE h, int op) {
         if (!si.Directory) {
             char buf[PATH_MAX];
 			char * p = handlePath(buf, h);
-			if (p)
-				emitOp(op, p, 0);
+			emitOp(op, p, 0);
         }
     }
-}
-
-static char * sstr(char * buf, const PWSTR s, unsigned sl) {
-    char * r = utf8PathFromWide(buf, s, sl);
-    return r? r : "<none>";
 }
 
 static NTSTATUS NTAPI hNtCreateFile(PHANDLE ph,
@@ -108,7 +102,7 @@ static NTSTATUS NTAPI hNtCreateFile(PHANDLE ph,
         char buf[PATH_MAX];
         pr("creat %x %x %x %x %x %s\n",
            am, co, fa, sa, cd,
-           sstr(buf, oa->ObjectName->Buffer, oa->ObjectName->Length/2));
+           utf8PathFromWide(buf, oa->ObjectName->Buffer, oa->ObjectName->Length/2));
 #endif
         femit(*ph, fop(co, am));
     }
@@ -128,7 +122,7 @@ static NTSTATUS NTAPI hNtOpenFile(PHANDLE ph,
 #ifdef TRACE
         char buf[PATH_MAX];
         pr("open %x %x %s\n", am, oo,
-           sstr(buf, oa->ObjectName->Buffer, oa->ObjectName->Length/2));
+           utf8PathFromWide(buf, oa->ObjectName->Buffer, oa->ObjectName->Length/2));
 #endif
         femit(*ph, fop(oo, am));
     }
@@ -141,7 +135,7 @@ static NTSTATUS NTAPI hNtDeleteFile(POBJECT_ATTRIBUTES oa) {
     D;
     r = oNtDeleteFile(oa);
     if (NT_SUCCESS(r))
-        emitOp('d', sstr(buf, oa->ObjectName->Buffer, oa->ObjectName->Length/2), 0);
+        emitOp('d', utf8PathFromWide(buf, oa->ObjectName->Buffer, oa->ObjectName->Length/2), 0);
     return r;
 }
 
@@ -167,8 +161,8 @@ static NTSTATUS NTAPI hNtSetInformationFile(HANDLE fh,
             emitOp('t', opath, 0);
             break;
         case FileRenameInformation:
-            emitOp('m',
-                  sstr(buf2, ri->FileName,
+            emitOp(opath? 'm' : 'M',
+                  utf8PathFromWide(buf2, ri->FileName,
                       ri->FileNameLength / sizeof(ri->FileName[0])),
                   opath);
             break;
@@ -214,7 +208,7 @@ static NTSTATUS NTAPI hNtQueryFullAttributesFile(POBJECT_ATTRIBUTES oa, PFILE_NE
     r = oNtQueryFullAttributesFile(oa, oi);
     if (NT_SUCCESS(r)) {
         char buf[PATH_MAX];
-        emitOp('q', sstr(buf, oa->ObjectName->Buffer, oa->ObjectName->Length/2), 0);
+        emitOp('q', utf8PathFromWide(buf, oa->ObjectName->Buffer, oa->ObjectName->Length/2), 0);
         }
     return r;
 }
