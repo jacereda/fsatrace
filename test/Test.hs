@@ -4,13 +4,15 @@ import           Control.Monad
 import           Data.List
 import           Data.Maybe
 import           System.Directory
+import           System.Exit
 import           System.FilePath
+import           System.Info
 import           System.IO.Temp
 import           System.IO.Unsafe
-import           System.Info
 import           System.Process
 import           Test.QuickCheck
 import           Test.QuickCheck.Monadic
+import           Test.QuickCheck.Test
 --import           Debug.Trace
 
 newtype Arg = Arg { unarg :: String } deriving (Show, Eq)
@@ -113,31 +115,31 @@ shelled args | inWin = "cmd.exe" : "/c" : args
              | otherwise = ["sh", "-c", unwords args]
 
 main :: IO ()
-main = do
-  qc "rawargs" prop_rawargs
-  qc "args" prop_args
-
-  sequence_ [allTests sp sm tm | sp <- allValues, sm <- allValues, tm <- allValues]
-
-  where qc1 s p = noisy s >> quickCheckWith stdArgs {maxSuccess=1} p
-        qc s p = noisy s >> quickCheckWith stdArgs p
+main = sequence [allTests sp sm tm | sp <- allValues, sm <- allValues, tm <- allValues]
+       >>= mapM_ (mapM_ chk)
+  where qc n s p = noisy s >> quickCheckWithResult stdArgs {maxSuccess=n} p
+        chk x = unless (isSuccess x) exitFailure
         noisy s = putStrLn ("Testing " ++ s)
         banner x = putStrLn $ "================ " ++ x ++ " ================"
         dirname Unspaced = "fsatrace"
         dirname Spaced = "fsatrace with spaces"
         allValues :: (Enum a, Bounded a) => [a]
         allValues = enumFrom minBound
+        allTests :: SpaceMode -> ShellMode -> TraceMode -> IO [Result]
         allTests sp sm tm = withSystemTempDirectory (dirname sp) $ \tmp -> do
           banner $ show sp ++ " " ++ show sm ++ " " ++ show tm
           lic <- canonicalizePath $ ".." </> "LICENSE"
           ctmp <- canonicalizePath tmp
           let tls = ctmp </> "LICENSE"
               tfoo = ctmp </> "foo"
-          qc1 "echo" $ prop_echo sm tm tls
-          qc1 "cp" $ prop_cp sm tm lic tls
-          qc1 "mv" $ prop_mv sm tm tls tfoo
-          qc1 "touch" $ prop_touch sm tm tfoo
-          qc1 "rm" $ prop_rm sm tm tfoo
+          sequence [ qc 10 "rawargs" prop_rawargs
+                   , qc 10 "args" prop_args
+                   , qc 1 "echo" $ prop_echo sm tm tls
+                   , qc 1 "cp" $ prop_cp sm tm lic tls
+                   , qc 1 "mv" $ prop_mv sm tm tls tfoo
+                   , qc 1 "touch" $ prop_touch sm tm tfoo
+                   , qc 1 "rm" $ prop_rm sm tm tfoo
+                   ]
 
 data Access = R FilePath
             | W FilePath
