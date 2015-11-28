@@ -145,6 +145,12 @@ data Access = R FilePath
             | Q FilePath
             | T FilePath
             | M FilePath FilePath
+            | RR FilePath
+            | RW FilePath
+            | RD FilePath
+            | RQ FilePath
+            | RT FilePath
+            | RM FilePath FilePath
             deriving (Show, Eq, Ord)
 
 parse :: String -> [Access]
@@ -155,4 +161,10 @@ parse = mapMaybe f . lines
           f ('q':'|':xs) = Just $ Q xs
           f ('t':'|':xs) = Just $ T xs
           f ('m':'|':xs) | (xs','|':ys) <- break (== '|') xs = Just $ M xs' ys
+          f ('W':'|':xs) = Just $ W xs
+          f ('R':'|':xs) = Just $ R xs
+          f ('D':'|':xs) = Just $ D xs
+          f ('Q':'|':xs) = Just $ Q xs
+          f ('T':'|':xs) = Just $ T xs
+          f ('M':'|':xs) | (xs','|':ys) <- break (== '|') xs = Just $ M xs' ys
           f _ = Nothing

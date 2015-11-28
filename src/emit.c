@@ -1,4 +1,5 @@
 #include <assert.h>
+#include <ctype.h>
 #include <limits.h>
 #include <stdint.h>
 #include <sys/types.h>
@@ -21,7 +22,7 @@ int emitTerm() {
 	return shmTerm(&shm, 0);
 }
 
-void emitOp(int c, const char *p1, const char *p2)
+void emitOp(int oc, const char *op1, const char *p2)
 {
 	char           *dst = shm.buf + 4 + 256;
 	char *opts = shm.buf+4;
@@ -31,8 +32,12 @@ void emitOp(int c, const char *p1, const char *p2)
 	uint32_t	s1;
 	uint32_t	s2;
 	char           *p;
-	if (!shm.buf || !opts[c])
+	const char * p1;
+	int c;
+	if (!shm.buf || !opts[tolower(c)])
 		return;
+	p1 = op1? op1 : "<unknown>";
+	c = op1? oc : toupper(c);
 	s1 = strlen(p1);
 	sz = s1 + 3;
 	if (p2) {

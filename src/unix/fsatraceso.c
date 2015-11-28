@@ -68,10 +68,8 @@ static void
 emit(int c, const char *p1)
 {
 	char		ap        [PATH_MAX];
-	char           *rp;
 	SE;
-	rp = realpath(p1, ap);
-	emitOp(c, rp ? rp : p1, 0);
+	emitOp(c, realpath(p1, ap), 0);
 	RE;
 }
 
@@ -96,8 +94,7 @@ fdemit(int c, int fd)
 		ap[written] = 0;
 	}
 #endif
-	if (ok)
-		emitOp(c, ap, 0);
+	emitOp(c, ok? ap : 0, 0);
 	DD;
 	RE;
 }
@@ -210,14 +207,16 @@ rename(const char *p1, const char *p2)
 {
 	int		r;
 	char		b1        [PATH_MAX];
-	char		b2        [PATH_MAX];
 	char           *rp1 = realpath(p1, b1);
 	static int      (*orename) (const char *, const char *)= 0;
 	D;
 	R(rename);
 	r = orename(p1, p2);
-	if (!r)
-		emitOp('m', realpath(p2, b2), rp1);
+	if (!r) {
+		char		b2        [PATH_MAX];
+		char           *rp2 = realpath(p2, b2);
+		emitOp(rp1? 'm' : 'M', rp2, rp1);
+	}
 	DD;
 	return r;
 }
