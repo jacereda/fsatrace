@@ -66,7 +66,7 @@ procRun(unsigned nargs, char *const args[], int *rc)
 	setenv("DYLD_FORCE_FLAT_NAMESPACE", "1", 1);
 #endif
 
-#if 1 
+#if 0
 	if (posix_spawnp(&child, args[0], 0, 0, args, environ))
 		ret = ERR_PROC_FORK;
 	else 
