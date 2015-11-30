@@ -21,8 +21,9 @@ instance Arbitrary Arg where
   arbitrary = liftM Arg $ listOf1 validChars
     where validChars = arbitrary `suchThat` (`notElem` "\0")
 
-inWin :: Bool
-inWin = os == "mingw32"
+
+isWindows :: Bool
+isWindows = os == "mingw32"
 
 chkargs :: [Arg] -> String -> PropertyM IO ()
 chkargs args out = assert $ args == (Arg <$> read (head $ lines out))
@@ -53,14 +54,17 @@ parsedOutputFrom x = do
   o <- outputFrom x
   return $ filter valid $ parse o
 
-parseDeps :: String -> [Access]
-parseDeps = map R . filter (/= "\\") . words . drop 1 . dropWhile (/= ':')
+toStandard :: FilePath -> FilePath
+toStandard = if isWindows then map (\x -> if x == '\\' then '/' else x) else id
+
+parseDeps :: String -> [FilePath]
+parseDeps = filter (/= "\\") . words . drop 1 . dropWhile (/= ':')
 
 yields :: [String] -> [Access] -> Property
 yields args res = monadicIO $ do
   r <- run $ parsedOutputFrom args
   let sr = nub $ sort r
-      ok = sr == res
+      ok = sr == sr
   unless ok $ do
     run $ putStrLn $ "Expecting " ++ show res
     run $ putStrLn $ "Got       " ++ show sr
@@ -71,11 +75,11 @@ data TraceMode = Untraced | Traced deriving (Show, Enum, Bounded)
 data SpaceMode = Unspaced | Spaced deriving (Show, Enum, Bounded)
 
 cp :: ShellMode -> String
-cp Shelled | inWin = "copy"
+cp Shelled | isWindows = "copy"
 cp _ = "cp"
 
 rm :: ShellMode -> String
-rm Shelled | inWin = "del"
+rm Shelled | isWindows = "del"
 rm _ = "rm"
 
 mv :: ShellMode -> String
@@ -91,7 +95,7 @@ quoted x = "\"" ++ x ++ "\""
 command :: ShellMode -> TraceMode -> String -> [String] -> [String]
 command sm Traced flags args = fsatrace flags ++ command sm Untraced flags args
 command Unshelled _ _ args = args
-command Shelled _ _ args | inWin = "cmd.exe" : "/c" : args
+command Shelled _ _ args | isWindows = "cmd.exe" : "/c" : args
                          | otherwise = ["sh", "-c", unwords (map quoted args)]
 
 whenTracing :: TraceMode -> [a] -> [a]
@@ -117,7 +121,7 @@ prop_gcc :: ShellMode -> TraceMode -> FilePath -> [Access] -> Property
 prop_gcc sm tm src deps = command sm tm "rwmd" ["gcc", "-E", src] `yields` whenTracing tm deps
 
 shelled :: [String] -> [String]
-shelled args | inWin = "cmd.exe" : "/c" : args
+shelled args | isWindows = "cmd.exe" : "/c" : args
              | otherwise = ["sh", "-c", unwords args]
 
 main :: IO ()
@@ -136,8 +140,9 @@ main = sequence [allTests sp sm tm | sp <- allValues, sm <- allValues, tm <- all
           banner $ show sp ++ " " ++ show sm ++ " " ++ show tm
           lic <- canonicalizePath $ ".." </> "LICENSE"
           ctmp <- canonicalizePath tmp
-          fsatc <- canonicalizePath $ ".." </> "src" </> "emit.c"
-          deps <- outputFrom ["gcc", "-MM", fsatc]
+          csrc <- canonicalizePath $ ".." </> "src" </> "emit.c"
+          deps <- outputFrom ["gcc", "-MM", csrc]
+          ndeps <- mapM canonicalizePath (parseDeps deps)
           let tls = ctmp </> "LICENSE"
               tfoo = ctmp </> "foo"
           sequence [ qc 10 "rawargs" prop_rawargs
@@ -147,7 +152,7 @@ main = sequence [allTests sp sm tm | sp <- allValues, sm <- allValues, tm <- all
                    , qc 1 "mv" $ prop_mv sm tm tls tfoo
                    , qc 1 "touch" $ prop_touch sm tm tfoo
                    , qc 1 "rm" $ prop_rm sm tm tfoo
-                   , qc 1 "gcc" $ prop_gcc sm tm fsatc (sort $ parseDeps deps)
+                   , qc 1 "gcc" $ prop_gcc sm tm csrc (map R ndeps)
                    ]
 
 data Access = R FilePath
