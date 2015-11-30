@@ -2,6 +2,7 @@ module Main where
 
 import           Control.Monad
 import           Data.List
+import           Data.Char
 import           Data.Maybe
 import           System.Directory
 import           System.Exit
@@ -21,6 +22,17 @@ instance Arbitrary Arg where
   arbitrary = liftM Arg $ listOf1 validChars
     where validChars = arbitrary `suchThat` (`notElem` "\0")
 
+newtype Path = Path { unpath :: FilePath }
+
+instance Eq Path where
+  (==) (Path a) (Path b) = equalFilePath a b
+
+instance Show Path where
+  show (Path p) = show p
+
+instance Ord Path where
+  compare (Path x) (Path y) = compare (cased x) (cased y)
+
 
 isWindows :: Bool
 isWindows = os == "mingw32"
@@ -35,24 +47,23 @@ prop_args :: [Arg] -> Property
 prop_args args = monadicIO $ run (outputFrom $ fsatrace "x" ++ "dumpargs" : map unarg args) >>= chkargs args
 
 outputFrom :: [String] -> IO String
-outputFrom (cmd:args) = readProcess cmd args ""
+outputFrom (cmd:args) = do
+  (_,out,_) <- readProcessWithExitCode cmd args ""
+  return out
 outputFrom _ = undefined
+
+errorFrom :: [String] -> IO String
+errorFrom (cmd:args) = do
+  (_,_,err) <- readProcessWithExitCode cmd args ""
+  return err
+errorFrom _ = undefined
+
 
 fsatrace :: String -> [String]
 fsatrace flags = [cd </> ".." </> "fsatrace", flags, "-", "--"]
-  where cd = unsafePerformIO getCurrentDirectory
 
 parsedOutputFrom :: [String] -> IO [Access]
-parsedOutputFrom x = do
-  cd <- getCurrentDirectory
-  let valid (R p) = inParent p
-      valid (Q p) = inParent p
-      valid (W p) = not $ "/dev/" `isPrefixOf` p
-      valid _ = True
-      inParent = isPrefixOf pdir
-      pdir = takeDirectory cd
-  o <- outputFrom x
-  return $ filter valid $ parse o
+parsedOutputFrom x = outputFrom x >>= return . filter valid . parse
 
 toStandard :: FilePath -> FilePath
 toStandard = if isWindows then map (\x -> if x == '\\' then '/' else x) else id
@@ -60,11 +71,17 @@ toStandard = if isWindows then map (\x -> if x == '\\' then '/' else x) else id
 parseDeps :: String -> [FilePath]
 parseDeps = filter (/= "\\") . words . drop 1 . dropWhile (/= ':')
 
+parseClDeps :: String -> [FilePath]
+parseClDeps = mapMaybe parseLine . lines
+  where parseLine ('N':xs) = Just $ dropWhile (== ' ') $ skip ':' $ skip ':' xs
+        parseLine _ = Nothing
+        skip c = drop 1 . dropWhile (/= c)
+
 yields :: [String] -> [Access] -> Property
 yields args res = monadicIO $ do
   r <- run $ parsedOutputFrom args
   let sr = nub $ sort r
-      ok = sr == sr
+      ok = sr == res
   unless ok $ do
     run $ putStrLn $ "Expecting " ++ show res
     run $ putStrLn $ "Got       " ++ show sr
@@ -102,23 +119,26 @@ whenTracing :: TraceMode -> [a] -> [a]
 whenTracing Traced x = x
 whenTracing _ _ = []
 
-prop_echo :: ShellMode -> TraceMode -> FilePath -> Property
-prop_echo sm tm src = command sm tm "rwmd" ["echo", src] `yields` []
+prop_echo :: ShellMode -> TraceMode -> Path -> Property
+prop_echo sm tm src = command sm tm "rwmd" ["echo", unpath src] `yields` []
 
-prop_cp :: ShellMode -> TraceMode -> FilePath -> FilePath -> Property
-prop_cp sm tm src dst = command sm tm "rwmd" ["cp", src, dst] `yields` whenTracing tm [R src, W dst]
+prop_cp :: ShellMode -> TraceMode -> Path -> Path -> Property
+prop_cp sm tm src dst = command sm tm "rwmd" ["cp", unpath src, unpath dst] `yields` whenTracing tm [R src, W dst]
 
-prop_mv :: ShellMode -> TraceMode -> FilePath -> FilePath -> Property
-prop_mv sm tm src dst = command sm tm "rwmd" ["mv", src, dst] `yields` whenTracing tm [M dst src]
+prop_mv :: ShellMode -> TraceMode -> Path -> Path -> Property
+prop_mv sm tm src dst = command sm tm "rwmd" ["mv", unpath src, unpath dst] `yields` whenTracing tm [M dst src]
 
-prop_touch :: ShellMode -> TraceMode -> FilePath -> Property
-prop_touch sm tm dst = command sm tm "t" ["touch", dst] `yields` whenTracing tm [T dst]
+prop_touch :: ShellMode -> TraceMode -> Path -> Property
+prop_touch sm tm dst = command sm tm "t" ["touch", unpath dst] `yields` whenTracing tm [T dst]
 
-prop_rm :: ShellMode -> TraceMode -> FilePath -> Property
-prop_rm sm tm dst = command sm tm "rwmd" ["rm", dst] `yields` whenTracing tm [D dst]
+prop_rm :: ShellMode -> TraceMode -> Path -> Property
+prop_rm sm tm dst = command sm tm "vrwmd" [rm sm, unpath dst] `yields` whenTracing tm [D dst]
 
-prop_gcc :: ShellMode -> TraceMode -> FilePath -> [Access] -> Property
-prop_gcc sm tm src deps = command sm tm "rwmd" ["gcc", "-E", src] `yields` whenTracing tm deps
+prop_gcc :: ShellMode -> TraceMode -> Path -> [Access] -> Property
+prop_gcc sm tm src deps = command sm tm "r" ["gcc", "-E", unpath src] `yields` whenTracing tm deps
+
+prop_cl :: ShellMode -> TraceMode -> Path -> [Access] -> Property
+prop_cl sm tm src deps = command sm tm "r" ["cl", "/nologo", "/E", unpath src] `yields` whenTracing tm deps
 
 shelled :: [String] -> [String]
 shelled args | isWindows = "cmd.exe" : "/c" : args
@@ -143,44 +163,65 @@ main = sequence [allTests sp sm tm | sp <- allValues, sm <- allValues, tm <- all
           csrc <- canonicalizePath $ ".." </> "src" </> "emit.c"
           deps <- outputFrom ["gcc", "-MM", csrc]
           ndeps <- mapM canonicalizePath (parseDeps deps)
-          let tls = ctmp </> "LICENSE"
-              tfoo = ctmp </> "foo"
+          clcsrc <- canonicalizePath $ ".." </> "src" </> "win" </> "handle.c"
+          cldeps <- errorFrom ["cl", "/nologo", "/showIncludes", "/E", "/DPATH_MAX=4096", clcsrc]
+          ncldeps <- mapM canonicalizePath (clcsrc : parseClDeps cldeps)
+          let tls = Path $ ctmp </> "LICENSE"
+              tfoo = Path $ ctmp </> "foo"
+              rvalid = sort . filter valid . map (R . Path)
           sequence [ qc 10 "rawargs" prop_rawargs
                    , qc 10 "args" prop_args
                    , qc 1 "echo" $ prop_echo sm tm tls
-                   , qc 1 "cp" $ prop_cp sm tm lic tls
+                   , qc 1 "cp" $ prop_cp sm tm (Path lic) tls
                    , qc 1 "mv" $ prop_mv sm tm tls tfoo
                    , qc 1 "touch" $ prop_touch sm tm tfoo
                    , qc 1 "rm" $ prop_rm sm tm tfoo
-                   , qc 1 "gcc" $ prop_gcc sm tm csrc (map R ndeps)
+                   , qc 1 "gcc" $ prop_gcc sm tm (Path csrc) (rvalid ndeps)
+                   , qc 1 "cl" $ prop_cl sm tm (Path clcsrc) (rvalid ncldeps)
                    ]
 
-data Access = R FilePath
-            | W FilePath
-            | D FilePath
-            | Q FilePath
-            | T FilePath
-            | M FilePath FilePath
-            | RR FilePath
-            | RW FilePath
-            | RD FilePath
-            | RQ FilePath
-            | RT FilePath
-            | RM FilePath FilePath
+data Access = R Path
+            | W Path
+            | D Path
+            | Q Path
+            | T Path
+            | M Path Path
+            | RR Path
+            | RW Path
+            | RD Path
+            | RQ Path
+            | RT Path
+            | RM Path Path
             deriving (Show, Eq, Ord)
 
 parse :: String -> [Access]
 parse = mapMaybe f . lines
-    where f ('w':'|':xs) = Just $ W xs
-          f ('r':'|':xs) = Just $ R xs
-          f ('d':'|':xs) = Just $ D xs
-          f ('q':'|':xs) = Just $ Q xs
-          f ('t':'|':xs) = Just $ T xs
-          f ('m':'|':xs) | (xs','|':ys) <- break (== '|') xs = Just $ M xs' ys
-          f ('W':'|':xs) = Just $ RW xs
-          f ('R':'|':xs) = Just $ RR xs
-          f ('D':'|':xs) = Just $ RD xs
-          f ('Q':'|':xs) = Just $ RQ xs
-          f ('T':'|':xs) = Just $ RT xs
-          f ('M':'|':xs) | (xs','|':ys) <- break (== '|') xs = Just $ RM xs' ys
+    where f ('w':'|':xs) = Just $ W $ Path xs
+          f ('r':'|':xs) = Just $ R $ Path xs
+          f ('d':'|':xs) = Just $ D $ Path xs
+          f ('q':'|':xs) = Just $ Q $ Path xs
+          f ('t':'|':xs) = Just $ T $ Path xs
+          f ('m':'|':xs) | (xs','|':ys) <- break (== '|') xs = Just $ M (Path xs') (Path ys)
+          f ('W':'|':xs) = Just $ RW $ Path xs
+          f ('R':'|':xs) = Just $ RR $ Path xs
+          f ('D':'|':xs) = Just $ RD $ Path xs
+          f ('Q':'|':xs) = Just $ RQ $ Path xs
+          f ('T':'|':xs) = Just $ RT $ Path xs
+          f ('M':'|':xs) | (xs','|':ys) <- break (== '|') xs = Just $ RM (Path xs') (Path ys)
           f _ = Nothing
+
+valid :: Access -> Bool
+valid (R p) = inParent p
+valid (Q p) = inParent p
+valid (W p) = not $ "/dev/" `isPrefixOf` (unpath p)
+valid _ = True
+
+inParent :: Path -> Bool
+inParent = isPrefixOf (takeDirectory $ cased cd) . cased . unpath
+
+cased :: String -> String
+cased | isWindows = map toLower
+      | otherwise = id
+
+cd :: FilePath
+cd = unsafePerformIO $ (getCurrentDirectory >>= canonicalizePath)

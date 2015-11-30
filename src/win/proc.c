@@ -25,6 +25,7 @@ argvToCommandLine(LPWSTR dst, unsigned n, LPWSTR * args) {
 //			quoted = 0;
 //			continue;
 			nextquoted = 0;
+			cmdexe = 0;
 			}
 		if (quoted)
 			EMIT('"');
@@ -62,7 +63,7 @@ argvToCommandLine(LPWSTR dst, unsigned n, LPWSTR * args) {
 		}
 		if (quoted)
 			EMIT('"');
-		quoted = nextquoted; //!cmdexe;
+		quoted = nextquoted;
 		nextquoted = 1;
 	}
 	EMIT(0);
