@@ -53,6 +53,9 @@ parsedOutputFrom x = do
   o <- outputFrom x
   return $ filter valid $ parse o
 
+parseDeps :: String -> [Access]
+parseDeps = map R . filter (/= "\\") . words . drop 1 . dropWhile (/= ':')
+
 yields :: [String] -> [Access] -> Property
 yields args res = monadicIO $ do
   r <- run $ parsedOutputFrom args
@@ -110,6 +113,9 @@ prop_touch sm tm dst = command sm tm "t" ["touch", dst] `yields` whenTracing tm 
 prop_rm :: ShellMode -> TraceMode -> FilePath -> Property
 prop_rm sm tm dst = command sm tm "rwmd" ["rm", dst] `yields` whenTracing tm [D dst]
 
+prop_gcc :: ShellMode -> TraceMode -> FilePath -> [Access] -> Property
+prop_gcc sm tm src deps = command sm tm "rwmd" ["gcc", "-E", src] `yields` whenTracing tm deps
+
 shelled :: [String] -> [String]
 shelled args | inWin = "cmd.exe" : "/c" : args
              | otherwise = ["sh", "-c", unwords args]
@@ -130,6 +136,8 @@ main = sequence [allTests sp sm tm | sp <- allValues, sm <- allValues, tm <- all
           banner $ show sp ++ " " ++ show sm ++ " " ++ show tm
           lic <- canonicalizePath $ ".." </> "LICENSE"
           ctmp <- canonicalizePath tmp
+          fsatc <- canonicalizePath $ ".." </> "src" </> "emit.c"
+          deps <- outputFrom ["gcc", "-MM", fsatc]
           let tls = ctmp </> "LICENSE"
               tfoo = ctmp </> "foo"
           sequence [ qc 10 "rawargs" prop_rawargs
@@ -139,6 +147,7 @@ main = sequence [allTests sp sm tm | sp <- allValues, sm <- allValues, tm <- all
                    , qc 1 "mv" $ prop_mv sm tm tls tfoo
                    , qc 1 "touch" $ prop_touch sm tm tfoo
                    , qc 1 "rm" $ prop_rm sm tm tfoo
+                   , qc 1 "gcc" $ prop_gcc sm tm fsatc (sort $ parseDeps deps)
                    ]
 
 data Access = R FilePath
