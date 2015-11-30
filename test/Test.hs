@@ -163,22 +163,23 @@ main = sequence [allTests sp sm tm | sp <- allValues, sm <- allValues, tm <- all
           csrc <- canonicalizePath $ ".." </> "src" </> "emit.c"
           deps <- outputFrom ["gcc", "-MM", csrc]
           ndeps <- mapM canonicalizePath (parseDeps deps)
-          clcsrc <- canonicalizePath $ ".." </> "src" </> "win" </> "handle.c"
-          cldeps <- errorFrom ["cl", "/nologo", "/showIncludes", "/E", "/DPATH_MAX=4096", clcsrc]
+          clcsrc <- if isWindows then canonicalizePath $ ".." </> "src" </> "win" </> "handle.c" else return ""
+          cldeps <- if isWindows then errorFrom ["cl", "/nologo", "/showIncludes", "/E", "/DPATH_MAX=4096", clcsrc] else return []
           ncldeps <- mapM canonicalizePath (clcsrc : parseClDeps cldeps)
           let tls = Path $ ctmp </> "LICENSE"
               tfoo = Path $ ctmp </> "foo"
               rvalid = sort . filter valid . map (R . Path)
-          sequence [ qc 10 "rawargs" prop_rawargs
-                   , qc 10 "args" prop_args
-                   , qc 1 "echo" $ prop_echo sm tm tls
-                   , qc 1 "cp" $ prop_cp sm tm (Path lic) tls
-                   , qc 1 "mv" $ prop_mv sm tm tls tfoo
-                   , qc 1 "touch" $ prop_touch sm tm tfoo
-                   , qc 1 "rm" $ prop_rm sm tm tfoo
-                   , qc 1 "gcc" $ prop_gcc sm tm (Path csrc) (rvalid ndeps)
-                   , qc 1 "cl" $ prop_cl sm tm (Path clcsrc) (rvalid ncldeps)
-                   ]
+          sequence $
+            [ qc 10 "rawargs" prop_rawargs
+            , qc 10 "args" prop_args
+            , qc 1 "echo" $ prop_echo sm tm tls
+            , qc 1 "cp" $ prop_cp sm tm (Path lic) tls
+            , qc 1 "mv" $ prop_mv sm tm tls tfoo
+            , qc 1 "touch" $ prop_touch sm tm tfoo
+            , qc 1 "rm" $ prop_rm sm tm tfoo
+            , qc 1 "gcc" $ prop_gcc sm tm (Path csrc) (rvalid ndeps)
+            ] ++ if isWindows then [ qc 1 "cl" $ prop_cl sm tm (Path clcsrc) (rvalid ncldeps) ] else []
+
 
 data Access = R Path
             | W Path
