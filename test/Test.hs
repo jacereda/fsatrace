@@ -163,10 +163,10 @@ parse = mapMaybe f . lines
           f ('q':'|':xs) = Just $ Q xs
           f ('t':'|':xs) = Just $ T xs
           f ('m':'|':xs) | (xs','|':ys) <- break (== '|') xs = Just $ M xs' ys
-          f ('W':'|':xs) = Just $ W xs
-          f ('R':'|':xs) = Just $ R xs
-          f ('D':'|':xs) = Just $ D xs
-          f ('Q':'|':xs) = Just $ Q xs
-          f ('T':'|':xs) = Just $ T xs
-          f ('M':'|':xs) | (xs','|':ys) <- break (== '|') xs = Just $ M xs' ys
+          f ('W':'|':xs) = Just $ RW xs
+          f ('R':'|':xs) = Just $ RR xs
+          f ('D':'|':xs) = Just $ RD xs
+          f ('Q':'|':xs) = Just $ RQ xs
+          f ('T':'|':xs) = Just $ RT xs
+          f ('M':'|':xs) | (xs','|':ys) <- break (== '|') xs = Just $ RM xs' ys
           f _ = Nothing
