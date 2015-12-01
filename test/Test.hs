@@ -99,12 +99,6 @@ rm :: ShellMode -> String
 rm Shelled | isWindows = "del"
 rm _ = "rm"
 
-mv :: ShellMode -> String
-mv _ = "mv"
-
-touch :: ShellMode -> String
-touch _ = "touch"
-
 quoted :: String -> String
 quoted x = "\"" ++ x ++ "\""
 
@@ -123,7 +117,7 @@ prop_echo :: ShellMode -> TraceMode -> Path -> Property
 prop_echo sm tm src = command sm tm "rwmd" ["echo", unpath src] `yields` []
 
 prop_cp :: ShellMode -> TraceMode -> Path -> Path -> Property
-prop_cp sm tm src dst = command sm tm "rwmd" ["cp", unpath src, unpath dst] `yields` whenTracing tm [R src, W dst]
+prop_cp sm tm src dst = command sm tm "rwmd" [cp sm, unpath src, unpath dst] `yields` whenTracing tm [R src, W dst]
 
 prop_mv :: ShellMode -> TraceMode -> Path -> Path -> Property
 prop_mv sm tm src dst = command sm tm "rwmd" ["mv", unpath src, unpath dst] `yields` whenTracing tm [M dst src]
@@ -132,7 +126,7 @@ prop_touch :: ShellMode -> TraceMode -> Path -> Property
 prop_touch sm tm dst = command sm tm "t" ["touch", unpath dst] `yields` whenTracing tm [T dst]
 
 prop_rm :: ShellMode -> TraceMode -> Path -> Property
-prop_rm sm tm dst = command sm tm "vrwmd" [rm sm, unpath dst] `yields` whenTracing tm [D dst]
+prop_rm sm tm dst = command sm tm "rwmd" [rm sm, unpath dst] `yields` whenTracing tm [D dst]
 
 prop_gcc :: ShellMode -> TraceMode -> Path -> [Access] -> Property
 prop_gcc sm tm src deps = command sm tm "r" ["gcc", "-E", unpath src] `yields` whenTracing tm deps
@@ -163,8 +157,10 @@ main = sequence [allTests sp sm tm | sp <- allValues, sm <- allValues, tm <- all
           csrc <- canonicalizePath $ ".." </> "src" </> "emit.c"
           deps <- outputFrom ["gcc", "-MM", csrc]
           ndeps <- mapM canonicalizePath (parseDeps deps)
-          clcsrc <- if isWindows then canonicalizePath $ ".." </> "src" </> "win" </> "handle.c" else return ""
-          cldeps <- if isWindows then errorFrom ["cl", "/nologo", "/showIncludes", "/E", "/DPATH_MAX=4096", clcsrc] else return []
+          cl <- findExecutable "cl"
+          let hascl = isJust cl
+          clcsrc <- if hascl then canonicalizePath $ ".." </> "src" </> "win" </> "handle.c" else return ""
+          cldeps <- if hascl then errorFrom ["cl", "/nologo", "/showIncludes", "/E", "/DPATH_MAX=4096", clcsrc] else return []
           ncldeps <- mapM canonicalizePath (clcsrc : parseClDeps cldeps)
           let tls = Path $ ctmp </> "LICENSE"
               tfoo = Path $ ctmp </> "foo"
@@ -178,8 +174,7 @@ main = sequence [allTests sp sm tm | sp <- allValues, sm <- allValues, tm <- all
             , qc 1 "touch" $ prop_touch sm tm tfoo
             , qc 1 "rm" $ prop_rm sm tm tfoo
             , qc 1 "gcc" $ prop_gcc sm tm (Path csrc) (rvalid ndeps)
-            ] ++ if isWindows then [ qc 1 "cl" $ prop_cl sm tm (Path clcsrc) (rvalid ncldeps) ] else []
-
+            ] ++ if hascl then [ qc 1 "cl" $ prop_cl sm tm (Path clcsrc) (rvalid ncldeps) ] else []
 
 data Access = R Path
             | W Path

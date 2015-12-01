@@ -20,10 +20,11 @@ argvToCommandLine(LPWSTR dst, unsigned n, LPWSTR * args) {
 		unsigned i = 0;
 		if (j)
 			EMIT(' ');
-		if (cmdexe && arg[0] == '/') {
+		if ((cmdexe || !quoted) && arg[0] == '/') {
 //			EMITALL;
 //			quoted = 0;
 //			continue;
+			quoted = 0;
 			nextquoted = 0;
 			cmdexe = 0;
 			}
