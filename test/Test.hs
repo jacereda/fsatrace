@@ -141,13 +141,7 @@ prop_echo :: Path -> Prop
 prop_echo src = command "rwmd" ["echo", unpath src] `yields` return []
 
 prop_cp :: Path -> Path -> Prop
-prop_cp src dst = do
-  cmd <- cp
-  command "rwmd" [cmd, unpath src, unpath dst] `yields` whenTracing [R src, W dst]
-  where cp :: Reader Env String
-        cp = do
-          s <- isShelled
-          return $ if isWindows && s then "copy" else "cp"
+prop_cp src dst = command "rwmd" ["cp", unpath src, unpath dst] `yields` whenTracing [R src, W dst]
 
 prop_mv :: Path -> Path -> Prop
 prop_mv src dst = command "rwmd" ["mv", unpath src, unpath dst] `yields` whenTracing [M dst src]
@@ -156,13 +150,7 @@ prop_touch :: Path -> Prop
 prop_touch dst = command "t" ["touch", unpath dst] `yields` whenTracing [T dst]
 
 prop_rm :: Path -> Prop
-prop_rm dst = do
-  cmd <- rm
-  command "rwmd" [cmd, unpath dst] `yields` whenTracing [D dst]
-  where rm :: Reader Env String
-        rm = do
-          s <- isShelled
-          return $ if isWindows && s then "del" else "rm"
+prop_rm dst = command "rwmd" ["rm", unpath dst] `yields` whenTracing [D dst]
 
 prop_gcc :: Path -> [Access] -> Prop
 prop_gcc src deps = command "r" ["gcc", "-E", unpath src] `yields` whenTracing deps
