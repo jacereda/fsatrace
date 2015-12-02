@@ -160,8 +160,7 @@ prop_cl :: Path -> [Access] -> Prop
 prop_cl src deps = command "r" ["cl", "/nologo", "/E", unpath src] `yields` whenTracing deps
 
 main :: IO ()
-main = do
-  sequence [allTests sp sm tm | sp <- allValues, sm <- allValues, tm <- allValues]
+main = sequence [allTests sp sm tm | sp <- allValues, sm <- allValues, tm <- allValues]
        >>= mapM_ (mapM_ chk)
   where chk x = unless (isSuccess x) exitFailure
         noisy s = putStrLn ("Testing " ++ s)
@@ -197,7 +196,7 @@ main = do
             , qc "touch" $ prop_touch srcc
             , qc "rm" $ prop_rm srcc
             , qc "mv" $ prop_mv emitc srcc
-            ] ++ if hascl then [ qc "cl" $ prop_cl clcsrc (rvalid ncldeps) ] else []
+            ] ++ [qc "cl" $ prop_cl clcsrc (rvalid ncldeps) | hascl]
 
 data Access = R Path
             | W Path
@@ -234,13 +233,14 @@ cased | isWindows = map toLower
       | otherwise = id
 
 cd :: FilePath
+{-# NOINLINE cd #-}
 cd = unsafePerformIO (getCurrentDirectory >>= canonicalizePath)
 
 valid :: FilePath -> Access -> Bool
 valid t (R p) = inTmp t p
 valid t (Q p) = inTmp t p
 valid t (W p) | isWindows = inTmp t p
-              | otherwise = not $ "/dev/" `isPrefixOf` (unpath p)
+              | otherwise = not $ "/dev/" `isPrefixOf` unpath p
 valid t (D p) = inTmp t p
 valid t (T p) = inTmp t p
 valid t (M p _) = inTmp t p
