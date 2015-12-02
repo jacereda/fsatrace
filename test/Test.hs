@@ -46,22 +46,20 @@ instance Ord Path where
 isWindows :: Bool
 isWindows = os == "mingw32"
 
-chkargs :: [Arg] -> IO String -> Property
-chkargs args kout = monadicIO $ do
-  out <- run kout
-  assert $ args == (Arg <$> read (head $ lines out))
+prop_args :: [Arg] -> Prop
+prop_args args = do
+  c <- command "x" $ "dumpargs" : map unarg args
+  return $ monadicIO $ do
+    mout <- run $ outputFrom c
+    assert $ case mout of
+              Just out -> args == (Arg <$> read (head $ lines out))
+              Nothing -> False
 
-prop_rawargs :: [Arg] -> Property
-prop_rawargs args = chkargs args $ readProcess "dumpargs" (map unarg args) ""
-
-prop_args :: [Arg] -> Property
-prop_args args = chkargs args $ outputFrom $ fsatrace "x" ++ "dumpargs" : map unarg args
-
-outputFrom :: [String] -> IO String
+outputFrom :: [String] -> IO (Maybe String)
 outputFrom (cmd:args) = do
-  (_,out,err) <- readProcessWithExitCode cmd args ""
+  (rc,out,err) <- readProcessWithExitCode cmd args ""
   when (err /= "") $ putStrLn err
-  return out
+  return $ if rc == ExitSuccess then Just out else Nothing
 outputFrom _ = undefined
 
 errorFrom :: [String] -> IO String
@@ -74,15 +72,19 @@ errorFrom _ = undefined
 fsatrace :: String -> [String]
 fsatrace flags = [cd </> ".." </> "fsatrace", flags, "-", "--"]
 
-parsedOutputFrom :: [String] -> IO [Access]
-parsedOutputFrom x = outputFrom x >>= return . parse
+parsedOutputFrom :: [String] -> IO (Maybe [Access])
+parsedOutputFrom x = do
+  mout <- outputFrom x
+  return $ case mout of
+                Just out -> Just $ parse out
+                Nothing -> Nothing
 
 toStandard :: FilePath -> FilePath
 toStandard = if isWindows then map (\x -> if x == '\\' then '/' else x) else id
 
-parseDeps :: String -> [FilePath]
-parseDeps = filter (/= " ") . map unhack . words . hack . drop 1 . dropWhile (/= ':')
-  where hack ('\\':_:xs) = '^':hack xs
+parseDeps :: Maybe String -> [FilePath]
+parseDeps = filter (/= " ") . map unhack . words . hack . drop 1 . dropWhile (/= ':') . fromMaybe ""
+  where hack ('\\':' ':xs) = '^':hack xs
         hack (x:xs) = x:hack xs
         hack [] = []
         unhack = map (\x -> if x == '^' then ' ' else x)
@@ -100,8 +102,9 @@ yields eargs eres = do
     let args = runReader eargs e
         res = runReader eres e
     r <- run $ parsedOutputFrom args
-    let sr = nub $ sort $ filter (valid $ tmpDir e) r
-        ok = sr == res
+    let sr | isJust r = Just $ nub $ sort $ filter (valid $ tmpDir e) $ fromJust r
+           | otherwise = Nothing
+        ok = sr == Just res
     unless ok $ run $ do
       putStrLn $ "Expecting " ++ show res
       putStrLn $ "Got       " ++ show sr
@@ -116,8 +119,6 @@ isShelled = do
   sm <- ask
   return $ shellMode sm == Shelled
 
-quoted :: String -> String
-quoted x = "\"" ++ x ++ "\""
 
 command :: String -> [String] -> Reader Env [String]
 command flags args = do
@@ -126,8 +127,10 @@ command flags args = do
   where cmd :: ShellMode -> TraceMode -> [String]
         cmd sm Traced = fsatrace flags ++ cmd sm Untraced 
         cmd Unshelled _ = args
-        cmd Shelled _ | isWindows = "cmd.exe" : "/c" : args
+        cmd Shelled _ | isWindows = "cmd.exe" : "/C" : args
                       | otherwise = ["sh", "-c", unwords (map quoted args)]
+        quoted :: String -> String
+        quoted x = "\"" ++ x ++ "\""
 
 whenTracing :: [a] -> Reader Env [a]
 whenTracing x = do
@@ -167,10 +170,6 @@ prop_gcc src deps = command "r" ["gcc", "-E", unpath src] `yields` whenTracing d
 prop_cl :: Path -> [Access] -> Prop 
 prop_cl src deps = command "r" ["cl", "/nologo", "/E", unpath src] `yields` whenTracing deps
 
-shelled :: [String] -> [String]
-shelled args | isWindows = "cmd.exe" : "/c" : args
-             | otherwise = ["sh", "-c", unwords args]
-
 main :: IO ()
 main = do
   sequence [allTests sp sm tm | sp <- allValues, sm <- allValues, tm <- allValues]
@@ -195,23 +194,21 @@ main = do
               clcsrc = Path $ tsrc </> "win" </> "handle.c"
               rvalid = sort . filter (valid t) . map (R . Path)
               e = Env {shellMode = sm, traceMode = tm, spaceMode = sp, tmpDir = t}
-              qc1 s p = noisy s >> quickCheckWithResult (stdArgs {maxSuccess=1}) (runReader p e)
-              qc n s p = noisy s >> quickCheckWithResult (stdArgs {maxSuccess=n}) p
+              qc s p = noisy s >> quickCheckWithResult (stdArgs {maxSuccess=1}) (runReader p e)
           _ <- outputFrom ["cp", "-R", src, tsrc]
           deps <- outputFrom ["gcc", "-MM", unpath emitc]
           ndeps <- mapM canonicalizePath (parseDeps deps)
           cldeps <- if hascl then errorFrom ["cl", "/nologo", "/showIncludes", "/E", "/DPATH_MAX=4096", unpath clcsrc] else return []
           ncldeps <- if hascl then mapM canonicalizePath (unpath clcsrc : parseClDeps cldeps) else return []
           sequence $
-            [ qc 10 "rawargs" prop_rawargs
-            , qc 10 "args" prop_args
-            , qc1 "echo" $ prop_echo emitc
-            , qc1 "cp" $ prop_cp emitc srcc
-            , qc1 "touch" $ prop_touch srcc
-            , qc1 "gcc" $ prop_gcc emitc (rvalid ndeps)
-            , qc1 "mv" $ prop_mv emitc srcc
-            , qc1 "rm" $ prop_rm srcc
-            ] ++ if hascl then [ qc1 "cl" $ prop_cl clcsrc (rvalid ncldeps) ] else []
+            [ noisy "args" >> quickCheckWithResult (stdArgs {maxSuccess=1}) (\x -> runReader (prop_args x) e) -- qc 10 "args" prop_args
+            , qc "echo" $ prop_echo emitc
+            , qc "gcc" $ prop_gcc emitc (rvalid ndeps)
+            , qc "cp" $ prop_cp emitc srcc
+            , qc "touch" $ prop_touch srcc
+            , qc "rm" $ prop_rm srcc
+            , qc "mv" $ prop_mv emitc srcc
+            ] ++ if hascl then [ qc "cl" $ prop_cl clcsrc (rvalid ncldeps) ] else []
 
 data Access = R Path
             | W Path
@@ -253,7 +250,11 @@ cd = unsafePerformIO (getCurrentDirectory >>= canonicalizePath)
 valid :: FilePath -> Access -> Bool
 valid t (R p) = inTmp t p
 valid t (Q p) = inTmp t p
-valid _ (W p) = not $ "/dev/" `isPrefixOf` (unpath p)
+valid t (W p) | isWindows = inTmp t p
+              | otherwise = not $ "/dev/" `isPrefixOf` (unpath p)
+valid t (D p) = inTmp t p
+valid t (T p) = inTmp t p
+valid t (M p _) = inTmp t p
 valid _ _ = True
 
 inTmp :: FilePath -> Path -> Bool
