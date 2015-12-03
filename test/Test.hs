@@ -131,6 +131,8 @@ command flags args = do
         cmd Shelled _ | isWindows = "cmd.exe" : "/C" : args
                       | otherwise = ["sh", "-c", unwords (map quoted args)]
         quoted :: String -> String
+        quoted "|" = "|"
+        quoted ">" = ">"
         quoted x = "\"" ++ x ++ "\""
 
 whenTracing :: [a] -> Reader Env [a]
