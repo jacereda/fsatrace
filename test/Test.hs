@@ -85,8 +85,7 @@ toStandard = if isWindows then map (\x -> if x == '\\' then '/' else x) else id
 parseDeps :: Maybe String -> [FilePath]
 parseDeps = filter (/= " ") . map unhack . words . hack . drop 1 . dropWhile (/= ':') . fromMaybe ""
   where hack ('\\':' ':xs) = '^':hack xs
-        hack ('\\':'n':xs) = ' ':hack xs
-        hack ('\\':'\\':xs) = ' ':hack xs        
+        hack ('\\':'\n':xs) = ' ':hack xs
         hack (x:xs) = x:hack xs
         hack [] = []
         unhack = map (\x -> if x == '^' then ' ' else x)
