@@ -139,8 +139,8 @@ whenTracing x = do
   e <- ask
   return $ if traceMode e == Traced then x else []
 
-prop_echo :: Path -> Prop
-prop_echo src = command "rwmd" ["echo", unpath src] `yields` return []
+prop_echo :: Path -> Path -> Prop
+prop_echo src dst = command "rwmd" ["echo", unpath src, "|", "sort" , ">", unpath dst] `yields` return [W dst]
 
 prop_cp :: Path -> Path -> Prop
 prop_cp src dst = command "rwmd" ["cp", unpath src, unpath dst] `yields` whenTracing [R src, W dst]
@@ -191,13 +191,15 @@ main = sequence [allTests sp sm tm | sp <- allValues, sm <- allValues, tm <- all
           ncldeps <- if hascl then mapM canonicalizePath (unpath clcsrc : parseClDeps cldeps) else return []
           sequence $
             [ noisy "args" >> quickCheckWithResult (stdArgs {maxSuccess=1}) (\x -> runReader (prop_args x) e) -- qc 10 "args" prop_args
-            , qc "echo" $ prop_echo emitc
             , qc "gcc" $ prop_gcc emitc (rvalid ndeps)
             , qc "cp" $ prop_cp emitc srcc
             , qc "touch" $ prop_touch srcc
             , qc "rm" $ prop_rm srcc
             , qc "mv" $ prop_mv emitc srcc
-            ] ++ [qc "cl" $ prop_cl clcsrc (rvalid ncldeps) | hascl]
+            ]
+            ++ [qc "cl" $ prop_cl clcsrc (rvalid ncldeps) | hascl]
+            ++ [qc "echo" $ prop_echo emitc srcc | sm == Shelled && tm == Traced]
+            
 
 data Access = R Path
             | W Path
@@ -245,6 +247,7 @@ valid t (W p) | isWindows = inTmp t p
 valid t (D p) = inTmp t p
 valid t (T p) = inTmp t p
 valid t (M p _) = inTmp t p
+valid _ (RW _) = False -- sort on Windows produces this
 valid _ _ = True
 
 inTmp :: FilePath -> Path -> Bool

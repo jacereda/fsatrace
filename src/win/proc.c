@@ -28,6 +28,8 @@ argvToCommandLine(LPWSTR dst, unsigned n, LPWSTR * args) {
 			nextquoted = 0;
 			cmdexe = 0;
 			}
+		if (arg[0] == '>' || arg[0] == '|')
+			quoted = 0;
 		if (quoted)
 			EMIT('"');
         while (arg[i]) {
