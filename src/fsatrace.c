@@ -60,20 +60,6 @@ aerror(unsigned n, char *const *l, const char *fmt,...)
 }
 
 static void
-slurp(char *p, size_t sz, const char *path)
-{
-	int		fd;
-	ssize_t		r = 0;
-	fd = open(path, O_RDONLY);
-	if (fd >= 0)
-		r = read(fd, p, sz);
-	if (r)
-		p[r] = 0;
-	if (fd >= 0)
-		close(fd);
-}
-
-static void
 dump(const char *path, char *p, size_t sz)
 {
 	int		fd;
@@ -106,21 +92,6 @@ uniq(char *d, size_t * tot, const char *s, const char *last, size_t lastsz)
 		uniq(d + sz + 1, tot, end + 1, s, sz);
 	} else
 		uniq(d, tot, end + 1, last, lastsz);
-}
-
-static unsigned
-lines(char *s, char **args)
-{
-	unsigned	nargs = 0;
-	int		c;
-	char           *start = s;
-	while ((c = *s++))
-		if (c == '\n') {
-			args[nargs++] = start;
-			s[-1] = 0;
-			start = s;
-		}
-	return nargs;
 }
 
 int
@@ -158,13 +129,6 @@ main(int argc, char *const argv[])
 	while (*opts)
 		bopts[*opts++] = 1;
 
-	if (argv[4][0] == '@') {
-		const int	MAXARGS = 0x8000;
-		size_t		bsz = sizeof(buf) - MAXARGS * sizeof(char *);
-		slurp(buf, bsz, argv[4] + 1);
-		args = (char *const *)(buf + bsz);
-		nargs = lines(buf, (char **)(buf + bsz));
-	}
 	if (bopts['v'])
 		procDumpArgs(nargs, args);
 
