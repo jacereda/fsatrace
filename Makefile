@@ -34,10 +34,10 @@ SRCS=src/fsatrace.c src/$(PLAT)/proc.c src/$(PLAT)/shm.c $(OSSRCS)
 all: fsatrace$(EXE) lib
 
 fsatrace$(EXE): $(patsubst %.c,%.o,$(SRCS))
-	$(CC) $(LDLAGS) $(LDOBJS) $^ $(LDLIBS) -o $@
+	$(CC) $(LDFLAGS) $(LDOBJS) $^ $(LDLIBS) -o $@
 
 dumpargs$(EXE): dumpargs.o
-	$(CC) $(LDLAGS) $^ $(LDLIBS) -o $@
+	$(CC) $(LDFLAGS) $^ $(LDLIBS) -o $@
 
 install: fsatrace$(EXE) libinstall
 	cp $< $(INSTALLDIR)
