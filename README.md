@@ -27,8 +27,8 @@ After that, invoke `make`. That should generate `fsatrace.exe`,
 
 ## Usage
 
-Make sure the .dll or .so files are in the same path as the executable
-and run:
+Make sure the .dll or .so files are in the same path as the `fsatrace`
+executable and run:
 
 	fsatrace <options> <output-file> -- <command>
 
@@ -46,9 +46,9 @@ Options is a combination of the following characters:
 
 Newline-separated sequence with the following possibilities:
 
-* r|`path-to-file-opened-for-write`
-* w|`path-to-file-opened-for-read`
-* m|`path-to-destination-of-move`|`path-to-source-of-move`
-* d|`path-to-deleted-file`
-* q|`path-to-queried-file`
-* t|`path-to-touched-file`
+* `r`|`path-to-file-opened-for-write`
+* `w`|`path-to-file-opened-for-read`
+* `m`|`path-to-destination-of-move`|`path-to-source-of-move`
+* `d`|`path-to-deleted-file`
+* `q`|`path-to-queried-file`
+* `t`|`path-to-touched-file`
