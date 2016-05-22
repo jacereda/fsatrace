@@ -1,8 +1,12 @@
+# Make dependency files
+*.d
+
 # Object files
 *.o
 *.ko
 *.obj
 *.elf
+*.os
 
 # Precompiled Headers
 *.gch
@@ -27,6 +31,7 @@
 *.i*86
 *.x86_64
 *.hex
+fsatrace
 
 # Debug files
 *.dSYM/
