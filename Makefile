@@ -11,25 +11,28 @@ CPPFLAGS32=-D_WIN32_WINNT=0x600 -isystem$(ROOT32)\include\ddk
 OSSRCS=src/win/inject.c src/win/dbg.c
 LDOBJS=$(ROOT64)\x86_64-w64-mingw32\lib\CRT_noglob.o
 INSTALLDIR=$(APPDATA)\local\bin
-
-else
-
-PLAT=unix
-CPPFLAGS=-D_GNU_SOURCE -D_BSD_SOURCE=1
+endif
 
 OS=$(shell uname -s)
 
-ifeq ($(OS),Linux)
-LDLIBS=-ldl -lrt
+ifeq ($(OS), Darwin)
+PLAT=darwin
+CPPFLAGS= -D_GNU_SOURCE -D_BSD_SOURCE=1 -D_DARWIN_NO_64_BIT_INODE=1
+LDLIBS=
+INSTALLDIR=$(HOME)/.local/bin
+OSSRCS=src/unix/proc.c src/unix/shm.c
 endif
 
+ifeq ($(OS), Linux)
+PLAT=unix
+CPPFLAGS= #-D_GNU_SOURCE -D_BSD_SOURCE=1
+LDLIBS=-ldl -lrt
 INSTALLDIR=$(HOME)/.local/bin
-
 endif
 
 CFLAGS+= -g -std=c99 -Wall -O2 -fomit-frame-pointer -fno-stack-protector -MMD
 
-SRCS=src/fsatrace.c src/$(PLAT)/proc.c src/$(PLAT)/shm.c $(OSSRCS)
+SRCS=src/fsatrace.c $(OSSRCS)
 
 all: fsatrace$(EXE) lib
 
