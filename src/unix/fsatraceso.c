@@ -436,6 +436,14 @@ __fxstatat(int v, int fd, const char *path, struct stat *buf, int flag)
 	return r;
 }
 
+
+static void
+ts2tv(struct timeval * tv, const struct timespec * ts) 
+{ 
+		tv->tv_sec = ts->tv_sec;
+		tv->tv_usec = ts->tv_nsec / 1000;
+}
+
 int 
 utimensat(int fd, const char *path, const struct timespec ts[2], int flags)
 {
@@ -447,8 +455,12 @@ utimensat(int fd, const char *path, const struct timespec ts[2], int flags)
 		r = outimensat(fd, path, ts, flags);
 		if (!r)
 			emit('T', path);
-	} else
-		r = futimens(fd, ts);
+	} else {
+		struct timeval tv[2];
+		ts2tv(tv + 0, ts + 0);
+		ts2tv(tv + 1, ts + 1);
+		r = utimes(path, tv);
+	}
 	DD;
 	return r;
 
