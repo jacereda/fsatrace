@@ -450,7 +450,13 @@ utimensat(int fd, const char *path, const struct timespec ts[2], int flags)
 	int		r;
 	static int      (*outimensat) (int, const char *, const struct timespec[2], int);
 	D;
-	if (fd != AT_FDCWD || flags == AT_SYMLINK_NOFOLLOW) {
+	if (fd != AT_FDCWD
+	    || flags == AT_SYMLINK_NOFOLLOW
+	    || ts[0].tv_nsec == UTIME_NOW
+	    || ts[0].tv_nsec == UTIME_OMIT
+	    || ts[1].tv_nsec == UTIME_NOW
+	    || ts[1].tv_nsec == UTIME_OMIT
+		) {
 		R(utimensat);
 		r = outimensat(fd, path, ts, flags);
 		if (!r)
