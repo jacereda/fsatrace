@@ -72,7 +72,7 @@ procRun(unsigned nargs, char *const args[], int *rc)
 	else 
 		ret = waitchild(child, rc);
 #else
-	child = vfork();
+	child = fork();
 	switch (child) {
 	case -1: 
 		ret = ERR_PROC_FORK; 

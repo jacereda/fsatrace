@@ -15,7 +15,7 @@ INSTALLDIR=$(APPDATA)\local\bin
 else
 
 PLAT=unix
-CPPFLAGS=-D_GNU_SOURCE -D_BSD_SOURCE=1
+CPPFLAGS=-D_GNU_SOURCE -D_DEFAULT_SOURCE=1
 
 OS=$(shell uname -s)
 
@@ -34,10 +34,10 @@ SRCS=src/fsatrace.c src/$(PLAT)/proc.c src/$(PLAT)/shm.c $(OSSRCS)
 all: fsatrace$(EXE) lib
 
 fsatrace$(EXE): $(patsubst %.c,%.o,$(SRCS))
-	$(CC) $(LDLAGS) $(LDOBJS) $^ $(LDLIBS) -o $@
+	$(CC) $(LDFLAGS) $(LDOBJS) $^ $(LDLIBS) -o $@
 
 dumpargs$(EXE): dumpargs.o
-	$(CC) $(LDLAGS) $^ $(LDLIBS) -o $@
+	$(CC) $(LDFLAGS) $^ $(LDLIBS) -o $@
 
 install: fsatrace$(EXE) libinstall
 	cp $< $(INSTALLDIR)

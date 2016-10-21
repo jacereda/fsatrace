@@ -32,7 +32,7 @@ argvToCommandLine(LPWSTR dst, unsigned n, LPWSTR * args) {
 			quoted = 0;
 		if (quoted)
 			EMIT('"');
-        while (arg[i]) {
+		while (arg[i]) {
 			unsigned ns = 0;
 			switch (arg[i]) {
 			case '"':
@@ -40,14 +40,14 @@ argvToCommandLine(LPWSTR dst, unsigned n, LPWSTR * args) {
 				EMIT('"');
 				break;
 			case '\\':
-                while (arg[i] == '\\')
-                {
-                    ns++;
+				while (arg[i] == '\\')
+				{
+					ns++;
 					i++;
-                }
+				}
 				switch (arg[i]) {
 				case 0:
-                    EMITN('\\', 2*ns);
+					EMITN('\\', 2*ns);
 					break;
 				case '"':
 					EMITN('\\', 2*ns+1);
@@ -62,7 +62,6 @@ argvToCommandLine(LPWSTR dst, unsigned n, LPWSTR * args) {
 				EMIT(arg[i]);
 			}
 			i += arg[i] != 0;
-
 		}
 		if (quoted)
 			EMIT('"');
@@ -76,7 +75,7 @@ argvToCommandLine(LPWSTR dst, unsigned n, LPWSTR * args) {
 void
 procPath(char *fullpath)
 {
-    extern IMAGE_DOS_HEADER __ImageBase;
+	extern IMAGE_DOS_HEADER __ImageBase;
 	GetModuleFileNameA((HMODULE)&__ImageBase, fullpath, PATH_MAX);
 }
 
@@ -100,8 +99,8 @@ procDumpArgs(unsigned xnargs, char * const xaargs[]) {
 enum procerr
 procRun(unsigned xnargs, char * const xargs[], int * rc)
 {
-    STARTUPINFOW si;
-    PROCESS_INFORMATION pi;
+	STARTUPINFOW si;
+	PROCESS_INFORMATION pi;
 	enum procerr err = ERR_PROC_OK;
 	DWORD drc;
 	WCHAR args[MAXCMD];
@@ -111,8 +110,8 @@ procRun(unsigned xnargs, char * const xargs[], int * rc)
 	argvToCommandLine(args, argc-4, wargv+4);
 	LocalFree(wargv);
 	memset(&si, 0, sizeof(si));
-    si.cb = sizeof(si);
-    CHK(ERR_PROC_FORK, !CreateProcessW(0, args, 0, 0, 0, CREATE_SUSPENDED, 0, 0, &si, &pi));
+	si.cb = sizeof(si);
+	CHK(ERR_PROC_FORK, !CreateProcessW(0, args, 0, 0, 0, CREATE_SUSPENDED, 0, 0, &si, &pi));
 	if (err == ERR_PROC_OK)
 		injectProcess(pi.hProcess);
 	CHK(ERR_PROC_EXEC, -1 == ResumeThread(pi.hThread));
