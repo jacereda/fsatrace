@@ -22,6 +22,7 @@
 
 #include "../emit.h"
 #include "../fsatrace.h"
+#include "../proc.h"
 
 #undef open
 #undef open64
@@ -33,22 +34,24 @@
 #undef fopen64
 
 static const int wmode = O_RDWR | O_WRONLY | O_APPEND | O_CREAT | O_TRUNC;
+static const int debug = 0;
 
-#define D // do { char b[PATH_MAX]; procPath(b); fprintf(stderr, "%s:%d %s\n", b, getpid(), __FUNCTION__); fflush(stderr); } while (0)
-#define DD // do { char b[PATH_MAX]; procPath(b); fprintf(stderr, "%s:%d /%s\n", b, getpid(), __FUNCTION__); fflush(stderr); } while (0)
+#define D do { char b[PATH_MAX]; if (!debug) break; procPath(b); fprintf(stderr, "%s:%d %s\n", b, getpid(), __FUNCTION__); fflush(stderr); } while (0)
+#define DD do { char b[PATH_MAX]; if (!debug) break; procPath(b); fprintf(stderr, "%s:%d /%s ->%lld\n", b, getpid(), __FUNCTION__, (long long)r); fflush(stderr); } while (0)
+#define DP do { char b[PATH_MAX]; if (!debug) break; procPath(b); fprintf(stderr, "%s:%d %s %s\n", b, getpid(), __FUNCTION__, p); fflush(stderr); } while (0)
 
-#define SE //int _oerrno = errno
-#define RE //errno = _oerrno
+#define SE int _oerrno = errno
+#define RE errno = _oerrno
 
 static void
 __attribute((constructor(101)))
 init()
 {
-	int		err;
+	int		r;
 	D;
-	err = emitInit();
-	if (err)
-		fprintf(stderr, "init err: %x\n", err);
+	r = emitInit();
+	if (r)
+		fprintf(stderr, "init err: %x\n", r);
 	DD;
 }
 
@@ -56,11 +59,11 @@ static void
 __attribute((destructor(101)))
 term()
 {
-	int		err;
-	err = emitTerm();
+	int		r;
+	r = emitTerm();
 	D;
-	if (err)
-		fprintf(stderr, "term err: %x\n", err);
+	if (r)
+		fprintf(stderr, "term err: %x\n", r);
 	DD;
 }
 
@@ -79,14 +82,12 @@ fdemit(int c, int fd)
 	char		ap        [PATH_MAX];
 	int		ok;
 	SE;
-	D;
 #ifdef F_GETPATH
 	ok = -1 != fcntl(fd, F_GETPATH, ap);
 #else
 	{
 	ssize_t written;
 	char		fdpath    [100];
-	D;
 	snprintf(fdpath, sizeof(fdpath), "/proc/self/fd/%d", fd);
 	written = readlink(fdpath, ap, sizeof(ap));
 	ok = written >= 0 && written < sizeof(ap);
@@ -95,7 +96,6 @@ fdemit(int c, int fd)
 	}
 #endif
 	emitOp(c, ok? ap : 0, 0);
-	DD;
 	RE;
 }
 
@@ -117,7 +117,7 @@ fopen(const char *p, const char *m)
 {
 	FILE           *r;
 	static FILE    *(*ofopen) (const char *, const char *)= 0;
-	D;
+	DP;
 	R(fopen);
 	r = ofopen(p, m);
 	if (r)
@@ -131,7 +131,7 @@ fopen64(const char *p, const char *m)
 {
 	FILE           *r;
 	static FILE    *(*ofopen64) (const char *, const char *)= 0;
-	D;
+	DP;
 	R(fopen64);
 	r = ofopen64(p, m);
 	if (r)
@@ -145,7 +145,7 @@ open(const char *p, int f, mode_t m)
 {
 	int		r;
 	static int      (*oopen) (const char *, int, mode_t)= 0;
-	D;
+	DP;
 	R(open);
 	r = oopen(p, f, m);
 	if (r >= 0)
@@ -159,7 +159,7 @@ open64(const char *p, int f, mode_t m)
 {
 	int		r;
 	static int      (*oopen64) (const char *, int, mode_t)= 0;
-	D;
+	DP;
 	R(open64);
 	r = oopen64(p, f, m);
 	if (r >= 0)
@@ -172,7 +172,7 @@ int
 openat(int fd, const char *p, int f, mode_t m)
 {
 	int		r;
-	D;
+	DP;
 	if (fd != AT_FDCWD) {
 		static int      (*oopenat) (int, const char *, int, mode_t)= 0;
 		R(openat);
@@ -189,7 +189,7 @@ int
 openat64(int fd, const char *p, int f, mode_t m)
 {
 	int		r;
-	D;
+	DP;
 	if (fd != AT_FDCWD) {
 		static int      (*oopenat64) (int, const char *, int, mode_t)= 0;
 		R(openat64);
@@ -245,7 +245,7 @@ unlink(const char *p)
 	char		b         [PATH_MAX];
 	char           *rp;
 	static int      (*ounlink) (const char *)= 0;
-	D;
+	DP;
 	R(unlink);
 	rp = realpath(p, b);
 	r = ounlink(p);
@@ -259,7 +259,7 @@ int
 unlinkat(int fd, const char *p, int f)
 {
 	int		r;
-	D;
+	DP;
 	if (fd != AT_FDCWD) {
 		static int      (*ounlinkat) (int fd, const char *p, int f);
 		R(unlinkat);
@@ -294,7 +294,7 @@ utimes(const char *p, const struct timeval t[2])
 {
 	int		r;
 	static int      (*outimes) (const char *, const struct timeval[2]);
-	D;
+	DP;
 	R(utimes);
 	r = outimes(p, t);
 	if (!r)
@@ -305,16 +305,19 @@ utimes(const char *p, const struct timeval t[2])
 
 #ifdef __APPLE__
 #define SUF "$INODE64"
+
+static volatile int __thread nested = 0;
+
 int
 fstat(int fd, struct stat *buf)
 {
 	int		r;
 	static int      (*ofstat) (int, struct stat *)= 0;
-	static int __thread nested = 0;
 	D;
 	resolv((void **)&ofstat, "fstat" SUF);
+	nested++;
 	r = ofstat(fd, buf);
-	if (!nested++ && !r)
+	if (!r && nested==1)
 		fdemit('q', fd);
 	nested--;
 	DD;
@@ -322,52 +325,68 @@ fstat(int fd, struct stat *buf)
 }
 
 int
-stat(const char *path, struct stat *buf)
+stat(const char *p, struct stat *buf)
 {
 	int		r;
 	static int      (*ostat) (const char *restrict, struct stat *restrict)= 0;
-	static int __thread nested = 0;
-	D;
+	DP;
 	resolv((void **)&ostat, "stat" SUF);
-	r = ostat(path, buf);
-	if (!nested++ && !r)
-		emit('q', path);
+	nested++;
+	r = ostat(p, buf);
+	if (!r && nested==1)
+		emit('q', p);
 	nested--;
 	DD;
 	return r;
 }
 
 int
-lstat(const char *restrict path, struct stat *buf)
+access(const char *p, int m)
+{
+	int		r;
+	static int      (*oaccess) (const char *, int)= 0;
+	DP;
+	R(access);
+	nested++;
+	r = oaccess(p, m);
+	if (!r && nested==1)
+		emit('q', p);
+	nested--;
+	DD;
+	return r;
+}
+
+int
+lstat(const char *restrict p, struct stat *buf)
 {
 	int		r;
 	static int      (*olstat) (const char *restrict, struct stat *restrict)= 0;
-	static int __thread nested = 0;
-	D;
+	DP;
 	resolv((void **)&olstat, "lstat" SUF);
-	r = olstat(path, buf);
-	if (!nested++ && !r)
-		emit('q', path);
+	nested++;
+	r = olstat(p, buf);
+	if (!r && nested==1)
+		emit('q', p);
 	nested--;
 	DD;
 	return r;
 }
 
 int
-fstatat(int fd, const char *path, struct stat *buf, int flag)
+fstatat(int fd, const char *p, struct stat *buf, int flag)
 {
 	int		r;
-	D;
+	DP;
 	if (fd != AT_FDCWD) {
 		static int      (*ofstatat) (int, const char *, struct stat *, int)= 0;
 		resolv((void **)&ofstatat, "fstatat" SUF);
-		r = ofstatat(fd, path, buf, flag);
+		r = ofstatat(fd, p, buf, flag);
 		if (!r)
-			emit('Q', path);
+			emit('Q', p);
 	} else if (flag & AT_SYMLINK_NOFOLLOW)
-		r = stat(path, buf);
+		r = stat(p, buf);
 	else
-		r = lstat(path, buf);
+		r = lstat(p, buf);
 	DD;
 	return r;
 
@@ -390,48 +409,48 @@ __fxstat(int v, int fd, struct stat *restrict buf)
 }
 
 int
-__xstat(int v, const char *restrict path, struct stat *restrict buf)
+__xstat(int v, const char *restrict p, struct stat *restrict buf)
 {
 	int		r;
 	static int      (*o__xstat) (int, const char *restrict, struct stat *restrict)= 0;
-	D;
+	DP;
 	R(__xstat);
-	r = o__xstat(v, path, buf);
+	r = o__xstat(v, p, buf);
 	if (!r)
-		emit('q', path);
+		emit('q', p);
 	DD;
 	return r;
 }
 
 int
-__xlstat(int v, const char *restrict path, struct stat *restrict buf)
+__xlstat(int v, const char *restrict p, struct stat *restrict buf)
 {
 	int		r;
 	static int      (*o__xlstat) (int, const char *restrict, struct stat *restrict)= 0;
-	D;
+	DP;
 	R(__xlstat);
-	r = o__xlstat(v, path, buf);
+	r = o__xlstat(v, p, buf);
 	if (!r)
-		emit('q', path);
+		emit('q', p);
 	DD;
 	return r;
 }
 
 int
-__fxstatat(int v, int fd, const char *path, struct stat *buf, int flag)
+__fxstatat(int v, int fd, const char *p, struct stat *buf, int flag)
 {
 	int		r;
-	D;
+	DP;
 	if (fd != AT_FDCWD) {
 		static int      (*o__fxstatat) (int, int, const char *, struct stat *restrict, int)= 0;
 		R(__fxstatat);
-		r = o__fxstatat(v, fd, path, buf, flag);
+		r = o__fxstatat(v, fd, p, buf, flag);
 		if (!r)
-			emit('Q', path);
+			emit('Q', p);
 	} else if (flag & AT_SYMLINK_NOFOLLOW)
-		r = __xstat(v, path, buf);
+		r = __xstat(v, p, buf);
 	else
-		r = __xlstat(v, path, buf);
+		r = __xlstat(v, p, buf);
 	DD;
 	return r;
 }
@@ -445,11 +464,11 @@ ts2tv(struct timeval * tv, const struct timespec * ts)
 }
 
 int 
-utimensat(int fd, const char *path, const struct timespec ts[2], int flags)
+utimensat(int fd, const char *p, const struct timespec ts[2], int flags)
 {
 	int		r;
 	static int      (*outimensat) (int, const char *, const struct timespec[2], int);
-	D;
+	DP;
 	if (fd != AT_FDCWD
 	    || flags == AT_SYMLINK_NOFOLLOW
 	    || ts[0].tv_nsec == UTIME_NOW
@@ -458,14 +477,14 @@ utimensat(int fd, const char *path, const struct timespec ts[2], int flags)
 	    || ts[1].tv_nsec == UTIME_OMIT
 		) {
 		R(utimensat);
-		r = outimensat(fd, path, ts, flags);
+		r = outimensat(fd, p, ts, flags);
 		if (!r)
-			emit('T', path);
+			emit('T', p);
 	} else {
 		struct timeval tv[2];
 		ts2tv(tv + 0, ts + 0);
 		ts2tv(tv + 1, ts + 1);
-		r = utimes(path, tv);
+		r = utimes(p, tv);
 	}
 	DD;
 	return r;
