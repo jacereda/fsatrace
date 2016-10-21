@@ -137,10 +137,12 @@ main(int argc, char *const argv[])
 	unsigned	nargs = argc - 4;
 	const unsigned char *opts;
 	char           *bopts;
+	int verr;
 	if (argc < 5 || (strcmp(argv[3], "--") && strcmp(argv[3], "---")))
 		fatal(" usage: %s <options> <output> -- <cmdline>\n"
 		      "  where <options> is a combination of the following characters:\n"
 		      "   v: print args vector\n"
+			  "   e: print verbose errors\n"
 		      "   r: dump read operations\n"
 		      "   w: dump write operations\n"
 		      "   m: dump file move operations\n"
@@ -167,20 +169,25 @@ main(int argc, char *const argv[])
 	}
 	if (bopts['v'])
 		procDumpArgs(nargs, args);
-
+	verr = bopts['e'];
 	switch (procRun(nargs, args, &rc)) {
 	case ERR_PROC_FORK:
-		aerror(nargs, args, "forking process");
+		if (verr)
+			aerror(nargs, args, "forking process");
 		break;
 	case ERR_PROC_EXEC:
-		aerror(nargs, args, "executing command");
+		if (verr)
+			aerror(nargs, args, "executing command");
 		break;
 	case ERR_PROC_WAIT:
-		aerror(nargs, args, "waiting for command completion:");
+		if (verr)
+			aerror(nargs, args, "waiting for command completion:");
 		break;
 	default:
-		if (rc)
-			aerror(nargs, args, "command failed with code %d", rc);
+		if (rc) {
+			if (verr)
+				aerror(nargs, args, "command failed with code %d", rc);
+		}			
 		else if (strcmp(argv[3], "---")) {
 			uniq(buf, &sz, shm.buf + 4 + 256, "", 0);
 			dump(out, buf, sz);
