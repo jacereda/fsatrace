@@ -102,7 +102,7 @@ procRun(unsigned xnargs, char * const xargs[], int * rc)
 	STARTUPINFOW si;
 	PROCESS_INFORMATION pi;
 	enum procerr err = ERR_PROC_OK;
-	DWORD drc;
+	DWORD drc = 0;
 	WCHAR args[MAXCMD];
 	LPWSTR cl = GetCommandLineW();
 	int argc;
@@ -116,6 +116,7 @@ procRun(unsigned xnargs, char * const xargs[], int * rc)
 		injectProcess(pi.hProcess);
 	CHK(ERR_PROC_EXEC, -1 == ResumeThread(pi.hThread));
 	CHK(ERR_PROC_WAIT, WAIT_OBJECT_0 != WaitForSingleObject(pi.hThread, INFINITE));
+	CHK(ERR_PROC_WAIT, WAIT_OBJECT_0 != WaitForSingleObject(pi.hProcess, INFINITE));	
 	CHK(ERR_PROC_WAIT, !GetExitCodeProcess(pi.hProcess, &drc));
 	CHK(ERR_PROC_FORK, !CloseHandle(pi.hThread));	
 	CHK(ERR_PROC_FORK, !CloseHandle(pi.hProcess));
