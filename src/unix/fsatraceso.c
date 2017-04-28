@@ -43,6 +43,12 @@ static const int debug = 0;
 #define SE int _oerrno = errno
 #define RE errno = _oerrno
 
+static void err(const char * msg, int err) {
+	extern const char * __progname;
+	if (debug)
+		fprintf(stderr, "%s %s error: %x\n", __progname, msg, err);
+}
+
 static void
 __attribute((constructor(101)))
 init()
@@ -51,7 +57,7 @@ init()
 	D;
 	r = emitInit();
 	if (r)
-		fprintf(stderr, "init err: %x\n", r);
+		err("init", r);
 	DD;
 }
 
@@ -63,7 +69,7 @@ term()
 	r = emitTerm();
 	D;
 	if (r)
-		fprintf(stderr, "term err: %x\n", r);
+		err("term", r);
 	DD;
 }
 
