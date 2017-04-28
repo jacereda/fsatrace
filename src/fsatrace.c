@@ -141,11 +141,23 @@ main(int argc, char *const argv[])
 		break;
 	case ERR_PROC_EXEC:
 		if (verr)
-			aerror(nargs, args, "executing command");
+			aerror(nargs, args, "executing command: %d", rc);
+		break;
+	case ERR_PROC_SIGNALED:
+		if (verr)
+			aerror(nargs, args, "process signaled: %d", rc);
+		break;
+	case ERR_PROC_STOPPED:
+		if (verr)
+			aerror(nargs, args, "process stopped: %d", rc);
+		break;
+	case ERR_PROC_UNKNOWN:
+		if (verr)
+			aerror(nargs, args, "unknow process error");
 		break;
 	case ERR_PROC_WAIT:
 		if (verr)
-			aerror(nargs, args, "waiting for command completion:");
+			aerror(nargs, args, "waiting for command completion");
 		break;
 	default:
 		if (rc) {
