@@ -13,13 +13,13 @@
 static struct shm shm;
 
 int emitInit() {
+	const char * out = getenv(ENVOUT);
 	assert(!shm.buf);
-	return shmInit(&shm, getenv(ENVOUT), LOGSZ, 0);
+	return out? shmInit(&shm, out, LOGSZ, 0) : 1;
 }
 
 int emitTerm() {
-	assert(shm.buf);
-	return shmTerm(&shm, 0);
+	return shm.buf? shmTerm(&shm, 0) : 1;
 }
 
 void emitOp(int oc, const char *op1, const char *p2)
