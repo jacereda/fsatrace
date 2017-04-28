@@ -31,6 +31,7 @@ shmInit(struct shm *shm, const char *key, size_t sz, int root)
 	int		err = 0;
 	struct priv    *p = (struct priv *)shm->storage;
 	char           *shname = shm->name;
+	assert(key);
 	assert(sizeof(shm->storage) > sizeof(*p));
 	snprintf(shname, sizeof(shm->storage), "/fsatrace%ld", hash((unsigned char *)key));
 	for (size_t i = 0, l = strlen(shname); i < l; i++)

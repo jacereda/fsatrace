@@ -38,11 +38,19 @@ waitchild(int child, int *rc)
 {
 	enum procerr ret;
 	if (-1 != waitpid(child, rc, 0)) {
-		if (WIFEXITED(*rc)) {
+		int st = *rc;
+		if (WIFEXITED(st)) {
 			ret = ERR_PROC_OK;
-			*rc = WEXITSTATUS(*rc);
-		} else
-			ret = ERR_PROC_EXEC;
+			*rc = WEXITSTATUS(st);
+		} else if (WIFSIGNALED(st)) {
+			ret = ERR_PROC_SIGNALED;
+			*rc = WTERMSIG(st);
+		} else if (WIFSTOPPED(st)) {
+			ret = ERR_PROC_STOPPED;
+			*rc = WSTOPSIG(st);
+		} else {
+			ret = ERR_PROC_UNKNOWN;
+		}
 	} else
 		ret = ERR_PROC_WAIT;
 	return ret;
@@ -74,7 +82,7 @@ procRun(unsigned nargs, char *const args[], int *rc)
 #else
 	child = fork();
 	switch (child) {
-	case -1: 
+	case -1:
 		ret = ERR_PROC_FORK; 
 		break;
 	case 0:
