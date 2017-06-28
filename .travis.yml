@@ -12,6 +12,10 @@ before_install:
 - mkdir -p ~/.local/bin
 - export PATH=$HOME/.local/bin:$PATH
 - curl -sSL https://get.haskellstack.org/ | sh
+- if [ "$TRAVIS_OS_NAME" == "linux" ]; then curl -sSL -o stack.tgz https://www.stackage.org/stack/linux-x86_64-static; fi
+- if [ "$TRAVIS_OS_NAME" == "osx" ]; then curl -sSL -o stack.tgz https://www.stackage.org/stack/osx-x86_64; fi
+- tar xvfz stack.tgz
+- cp stack-*/stack ~/.local/bin
 
 script:
 - make
