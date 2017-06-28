@@ -1,10 +1,7 @@
 #if defined _MSC_VER
 #include <windows.h>
-#include <winternl.h>
-#else
-#include <ntifs.h>
-#include <ntddk.h>
 #endif
+#include <winternl.h>
 #include <limits.h>
 
 #undef ASSERT

@@ -19,11 +19,16 @@ compilers or, alternatively, install
 https://github.com/commercialhaskell/stack and run the following
 sequence to get the required compilers:
 
-    stack setup 7.10.2 --arch=i386
-    stack setup 7.10.2 --arch=x86_64
+    stack setup 8.0.2 --arch=i386
+    stack setup 8.0.2 --arch=x86_64
+    stack exec -- pacman -S make
 
-After that, invoke `make`. That should generate `fsatrace.exe`,
-`fsatracehelper.exe`, `fsatrace32.dll` and `fsatrace64.dll`.
+After that, invoke:
+
+    stack exec -- make
+
+That should generate `fsatrace.exe`, `fsatracehelper.exe`,
+`fsatrace32.dll` and `fsatrace64.dll`.
 
 ## Usage
 
