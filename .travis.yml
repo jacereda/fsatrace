@@ -11,10 +11,7 @@ addons:
 before_install:
 - mkdir -p ~/.local/bin
 - export PATH=$HOME/.local/bin:$PATH
-- if [ "$TRAVIS_OS_NAME" == "linux" ]; then curl -O -L https://github.com/commercialhaskell/stack/releases/download/v0.1.8.0/stack-0.1.8.0-linux-x86_64.tar.gz; fi
-- if [ "$TRAVIS_OS_NAME" == "osx" ]; then curl -O -L https://github.com/commercialhaskell/stack/releases/download/v0.1.8.0/stack-0.1.8.0-osx-x86_64.tar.gz; fi
-- tar xvfz stack*
-- cp stack-*/stack ~/.local/bin
+- curl -sSL https://get.haskellstack.org/ | sh
 
 script:
 - make
