@@ -1,7 +1,7 @@
 os:
  - linux
  - osx
-osx_image: xcode8.3
+osx_image: xcode6.4
 sudo: false
 language: c
 addons:
