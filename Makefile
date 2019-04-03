@@ -2,8 +2,8 @@ ifeq ($(OS), Windows_NT)
 
 PLAT=win
 EXE=.exe
-ROOT64=$(LOCALAPPDATA)\Programs\stack\x86_64-windows\ghc-8.0.2\mingw
-ROOT32=$(LOCALAPPDATA)\Programs\stack\i386-windows\ghc-8.0.2\mingw
+ROOT64=$(LOCALAPPDATA)\Programs\stack\x86_64-windows\ghc-8.6.3\mingw
+ROOT32=$(LOCALAPPDATA)\Programs\stack\i386-windows\ghc-8.6.3\mingw
 CC=$(ROOT64)\bin\gcc
 CC32=$(ROOT32)\bin\gcc
 CPPFLAGS=-D_WIN32_WINNT=0x600 -isystem$(ROOT64)\x86_64-w64-mingw32\include\ddk
