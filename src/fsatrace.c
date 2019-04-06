@@ -164,7 +164,7 @@ main(int argc, char *const argv[])
 			if (verr)
 				aerror(nargs, args, "command failed with code %d", rc);
 		}			
-		else if (strcmp(argv[3], "---")) {
+		if (strcmp(argv[3], "---")) {
 			uniq(buf, &sz, shm.buf + 4 + 256, "", 0);
 			dump(out, buf, sz);
 		} else
