@@ -3,6 +3,7 @@
 #endif
 #include <winternl.h>
 #include <limits.h>
+#include <processthreadsapi.h>
 
 #undef ASSERT
 #include "dbg.h"
@@ -212,9 +213,11 @@ static NTSTATUS NTAPI hNtQueryFullAttributesFile(POBJECT_ATTRIBUTES oa, PFILE_NE
 
 static NTSTATUS NTAPI hNtResumeThread(HANDLE th, PULONG sc) {
 	NTSTATUS r;
+	DWORD pid;
 	D;
-	if (!patchInstalled())
-		injectThread(th);
+	pid = GetProcessIdOfThread(th);
+	if (!patchInstalled(pid))
+		injectPID(pid);
 	r = oNtResumeThread(th, sc);
 	return r;
 }

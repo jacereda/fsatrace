@@ -1,2 +1,2 @@
 void injectProcess(HANDLE);
-void injectThread(HANDLE);
+void injectPID(DWORD);

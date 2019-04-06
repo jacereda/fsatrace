@@ -5,7 +5,7 @@
 #include "dbg.h"
 #include "patch.h"
 
-static DWORD s_hooked;
+static CRITICAL_SECTION s_cs;
 
 static IMAGE_IMPORT_DESCRIPTOR *imports(IMAGE_DOS_HEADER *dh) {
 	char *base = (char *)dh;
@@ -95,18 +95,23 @@ void patchInstall(void *orig, void *hook, void **preal, const char *nm) {
 	dbg("modules patched\n");
 }
 
-int patchInstalled() {
+int patchInstalled(DWORD pid) {
+	static uint8_t pids[0x1000] = {0};
+	unsigned index = pid >> 2;
+	unsigned byte = (index >> 3) & 0xfff;
+	unsigned mask = 1 << (index & 7);
 	int ret;
-	ASSERT(s_hooked);
-	ret = (int)(intptr_t)TlsGetValue(s_hooked);
-	CHK(TlsSetValue(s_hooked, (void *)1));
+	EnterCriticalSection(&s_cs);
+	ret = pids[byte] & mask;
+	pids[byte] |= mask;
+	LeaveCriticalSection(&s_cs);	
 	return ret;
 }
 
 void patchInit() {
-	CHK(0 != (s_hooked = TlsAlloc()));
+	InitializeCriticalSection(&s_cs);
 }
 
 void patchTerm() {
-	CHK(TlsFree(s_hooked));
+	DeleteCriticalSection(&s_cs);
 }
