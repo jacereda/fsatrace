@@ -99,7 +99,7 @@ int patchInstalled(DWORD pid) {
 	static uint8_t pids[0x1000] = {0};
 	unsigned index = pid >> 2;
 	unsigned byte = (index >> 3) & 0xfff;
-	unsigned mask = index & 7;
+	unsigned mask = 1 << (index & 7);
 	int ret;
 	EnterCriticalSection(&s_cs);
 	ret = pids[byte] & mask;
