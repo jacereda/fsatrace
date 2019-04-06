@@ -14,7 +14,6 @@ import           System.IO.Unsafe
 import           System.Process
 import           Test.QuickCheck
 import           Test.QuickCheck.Monadic
-import           Test.QuickCheck.Test
 --import           Debug.Trace
 
 data Env = Env { shellMode :: ShellMode
@@ -126,7 +125,7 @@ command flags args = do
   e <- ask
   return $ cmd (shellMode e) (traceMode e)
   where cmd :: ShellMode -> TraceMode -> [String]
-        cmd sm Traced = fsatrace flags ++ cmd sm Untraced 
+        cmd sm Traced = fsatrace flags ++ cmd sm Untraced
         cmd Unshelled _ = args
         cmd Shelled _ | isWindows = "cmd.exe" : "/C" : args
                       | otherwise = ["sh", "-c", unwords (map quoted args)]
@@ -158,7 +157,7 @@ prop_rm dst = command "rwmd" ["rm", unpath dst] `yields` whenTracing [D dst]
 prop_gcc :: Path -> [Access] -> Prop
 prop_gcc src deps = command "r" ["gcc", "-E", unpath src] `yields` whenTracing deps
 
-prop_cl :: Path -> [Access] -> Prop 
+prop_cl :: Path -> [Access] -> Prop
 prop_cl src deps = command "r" ["cl", "/nologo", "/E", unpath src] `yields` whenTracing deps
 
 main :: IO ()
@@ -200,7 +199,7 @@ main = sequence [allTests sp sm tm | sp <- allValues, sm <- allValues, tm <- all
             ]
             ++ [qc "cl" $ prop_cl clcsrc (rvalid ncldeps) | hascl]
             ++ [qc "echo" $ prop_echo emitc srcc | sm == Shelled && tm == Traced]
-            
+
 
 data Access = R Path
             | W Path
