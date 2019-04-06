@@ -6,8 +6,6 @@
 #include "dbg.h"
 #include "fsatrace.h"
 
-WINBASEAPI DWORD WINAPI GetProcessIdOfThread(HANDLE Thread);
-
 void injectProcess(HANDLE proc) {
 	HANDLE tid;
 	BOOL is32;
@@ -59,10 +57,9 @@ void injectProcess(HANDLE proc) {
 	CHK(CloseHandle(tid));
 }
 
-void injectThread(HANDLE th) {
+void injectPID(DWORD pid) {
 	HANDLE h;
-	CHK(0 != (h = OpenProcess(PROCESS_ALL_ACCESS, TRUE,
-				  GetProcessIdOfThread(th))));
+	CHK(0 != (h = OpenProcess(PROCESS_ALL_ACCESS, TRUE, pid)));
 	injectProcess(h);
 	CHK(CloseHandle(h));
 }
