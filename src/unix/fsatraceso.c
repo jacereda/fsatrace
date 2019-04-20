@@ -43,34 +43,12 @@ static const int debug = 0;
 #define SE int _oerrno = errno
 #define RE errno = _oerrno
 
-static void err(const char * msg, int err) {
-	extern const char * __progname;
+static void
+err(const char *msg, int err)
+{
+	extern const char *__progname;
 	if (debug)
 		fprintf(stderr, "%s %s error: %x\n", __progname, msg, err);
-}
-
-static void
-__attribute((constructor(101)))
-init()
-{
-	int		r;
-	D;
-	r = emitInit();
-	if (r)
-		err("init", r);
-	DD;
-}
-
-static void
-__attribute((destructor(101)))
-term()
-{
-	int		r;
-	r = emitTerm();
-	D;
-	if (r)
-		err("term", r);
-	DD;
 }
 
 static void
@@ -92,17 +70,46 @@ fdemit(int c, int fd)
 	ok = -1 != fcntl(fd, F_GETPATH, ap);
 #else
 	{
-	ssize_t written;
-	char		fdpath    [100];
-	snprintf(fdpath, sizeof(fdpath), "/proc/self/fd/%d", fd);
-	written = readlink(fdpath, ap, sizeof(ap));
-	ok = written >= 0 && written < sizeof(ap);
-	if (ok)
-		ap[written] = 0;
+		ssize_t		written;
+		char		fdpath    [100];
+		snprintf(fdpath, sizeof(fdpath), "/proc/self/fd/%d", fd);
+		written = readlink(fdpath, ap, sizeof(ap));
+		ok = written >= 0 && written < sizeof(ap);
+		if (ok)
+			ap[written] = 0;
 	}
 #endif
-	emitOp(c, ok? ap : 0, 0);
+	emitOp(c, ok ? ap : 0, 0);
 	RE;
+}
+
+static void
+__attribute((constructor(101)))
+init()
+{
+	int		r;
+	D;
+	r = emitInit();
+	if (r)
+		err("init", r);
+	else {
+		char		b         [PATH_MAX];
+		procPath(b);
+		emit('r', b);
+	}
+	DD;
+}
+
+static void
+__attribute((destructor(101)))
+term()
+{
+	int		r;
+	r = emitTerm();
+	D;
+	if (r)
+		err("term", r);
+	DD;
 }
 
 static void
@@ -221,7 +228,7 @@ rename(const char *p1, const char *p2)
 	if (!r) {
 		char		b2        [PATH_MAX];
 		char           *rp2 = realpath(p2, b2);
-		emitOp(rp1? 'm' : 'M', rp2, rp1);
+		emitOp(rp1 ? 'm' : 'M', rp2, rp1);
 	}
 	DD;
 	return r;
@@ -323,7 +330,7 @@ fstat(int fd, struct stat *buf)
 	resolv((void **)&ofstat, "fstat" SUF);
 	nested++;
 	r = ofstat(fd, buf);
-	if (!r && nested==1)
+	if (!r && nested == 1)
 		fdemit('q', fd);
 	nested--;
 	DD;
@@ -339,7 +346,7 @@ stat(const char *p, struct stat *buf)
 	resolv((void **)&ostat, "stat" SUF);
 	nested++;
 	r = ostat(p, buf);
-	if (!r && nested==1)
+	if (!r && nested == 1)
 		emit('q', p);
 	nested--;
 	DD;
@@ -355,7 +362,7 @@ access(const char *p, int m)
 	R(access);
 	nested++;
 	r = oaccess(p, m);
-	if (!r && nested==1)
+	if (!r && nested == 1)
 		emit('q', p);
 	nested--;
 	DD;
@@ -371,7 +378,7 @@ lstat(const char *restrict p, struct stat *buf)
 	resolv((void **)&olstat, "lstat" SUF);
 	nested++;
 	r = olstat(p, buf);
-	if (!r && nested==1)
+	if (!r && nested == 1)
 		emit('q', p);
 	nested--;
 	DD;
@@ -463,13 +470,13 @@ __fxstatat(int v, int fd, const char *p, struct stat *buf, int flag)
 
 
 static void
-ts2tv(struct timeval * tv, const struct timespec * ts) 
-{ 
-		tv->tv_sec = ts->tv_sec;
-		tv->tv_usec = ts->tv_nsec / 1000;
+ts2tv(struct timeval *tv, const struct timespec *ts)
+{
+	tv->tv_sec = ts->tv_sec;
+	tv->tv_usec = ts->tv_nsec / 1000;
 }
 
-int 
+int
 utimensat(int fd, const char *p, const struct timespec ts[2], int flags)
 {
 	int		r;
@@ -487,7 +494,7 @@ utimensat(int fd, const char *p, const struct timespec ts[2], int flags)
 		if (!r)
 			emit('T', p);
 	} else {
-		struct timeval tv[2];
+		struct timeval	tv[2];
 		ts2tv(tv + 0, ts + 0);
 		ts2tv(tv + 1, ts + 1);
 		r = utimes(p, tv);
@@ -497,7 +504,7 @@ utimensat(int fd, const char *p, const struct timespec ts[2], int flags)
 
 }
 
-int 
+int
 futimens(int fd, const struct timespec ts[2])
 {
 	int		r;
