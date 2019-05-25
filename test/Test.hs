@@ -138,18 +138,3 @@ main = do
             ]
             ++ [qc "cl" $ prop_cl clcsrc (rvalid ncldeps) | hascl]
             ++ [qc "echo" $ prop_echo emitc srcc | sm == Shelled]
-
-
-valid :: FilePath -> Access Path -> Bool
-valid t (R p) = inTmp t p
-valid t (Q p) = inTmp t p
-valid t (W p) | isWindows = inTmp t p
-              | otherwise = not $ "/dev/" `isPrefixOf` unpath p
-valid t (D p) = inTmp t p
-valid t (T p) = inTmp t p
-valid t (M p _) = inTmp t p
-valid _ (RW _) = False -- sort on Windows produces this
-valid _ _ = True
-
-inTmp :: FilePath -> Path -> Bool
-inTmp t = isPrefixOf (cased t) . cased . unpath
