@@ -3,6 +3,7 @@
 module Test(main) where
 
 import           Utils
+import           Parse
 
 import           Control.Monad
 import           Control.Monad.Trans.Reader
@@ -47,20 +48,6 @@ parsedOutputFrom x = do
   return $ case mout of
                 Just out -> Just $ parse out
                 Nothing -> Nothing
-
-parseDeps :: Maybe String -> [FilePath]
-parseDeps = filter (/= " ") . map unhack . words . hack . drop 1 . dropWhile (/= ':') . fromMaybe ""
-  where hack ('\\':' ':xs) = '^':hack xs
-        hack ('\\':'\n':xs) = ' ':hack xs
-        hack (x:xs) = x:hack xs
-        hack [] = []
-        unhack = map (\x -> if x == '^' then ' ' else x)
-
-parseClDeps :: String -> [FilePath]
-parseClDeps = mapMaybe parseLine . lines
-  where parseLine ('N':xs) = Just $ dropWhile (== ' ') $ skip ':' $ skip ':' xs
-        parseLine _ = Nothing
-        skip c = drop 1 . dropWhile (/= c)
 
 yields :: Reader Env [String] -> [Access] -> Prop
 yields eargs res = do
@@ -151,3 +138,18 @@ main = do
             ]
             ++ [qc "cl" $ prop_cl clcsrc (rvalid ncldeps) | hascl]
             ++ [qc "echo" $ prop_echo emitc srcc | sm == Shelled]
+
+
+valid :: FilePath -> Access -> Bool
+valid t (R p) = inTmp t p
+valid t (Q p) = inTmp t p
+valid t (W p) | isWindows = inTmp t p
+              | otherwise = not $ "/dev/" `isPrefixOf` unpath p
+valid t (D p) = inTmp t p
+valid t (T p) = inTmp t p
+valid t (M p _) = inTmp t p
+valid _ (RW _) = False -- sort on Windows produces this
+valid _ _ = True
+
+inTmp :: FilePath -> Path -> Bool
+inTmp t = isPrefixOf (cased t) . cased . unpath
