@@ -6,21 +6,22 @@ build-type:          Simple
 cabal-version:       >=1.10
 
 executable dumpargs
-  main-is: DumpArgs.hs
-  build-depends: base
-  hs-source-dirs: .
-  default-language:    Haskell2010
+    main-is: DumpArgs.hs
+    ghc-options: -main-is=DumpArgs.main
+    build-depends: base
+    hs-source-dirs: .
+    default-language:    Haskell2010
 
 test-suite fsatrace-test
-  main-is: Test.hs
-  type: exitcode-stdio-1.0
-  ghc-options: -Wall
-  build-depends: base
-               , QuickCheck
-               , filepath
-               , directory
-               , temporary
-               , process
-               , mtl
-  hs-source-dirs: .
-  default-language:    Haskell2010
+    main-is: Test.hs
+    ghc-options: -main-is=Test.main
+    type: exitcode-stdio-1.0
+    ghc-options: -Wall
+    build-depends: base
+                  , QuickCheck
+                  , filepath
+                  , directory
+                  , temporary
+                  , process
+    hs-source-dirs: .
+    default-language:    Haskell2010
