@@ -61,30 +61,26 @@ main = do
 noisy :: String -> IO ()
 noisy s = putStrLn ("Testing " ++ s)
 
-banner :: String -> IO ()
-banner x = putStrLn $ "================ " ++ x ++ " ================"
-
-dirname :: SpaceMode -> String
-dirname Unspaced = "fsatrace"
-dirname Spaced = "fsatrace with spaces"
 
 allValues :: (Enum a, Bounded a) => [a]
 allValues = enumFrom minBound
 
 allTests :: SpaceMode -> ShellMode -> IO [Result]
-allTests sp sm = withSystemTempDirectory (dirname sp) $ \utmp -> do
-  t <- canonicalizePath utmp
-  banner $ show sp ++ " " ++ show sm
+allTests sp sm = withSystemTempDirectory (if sp == Spaced then "fsatrace with spaces" else "fsatrace") $ \utmp -> do
+  putStrLn $ "================ " ++ show sp ++ " " ++ show sm ++ " ================"
+
+  tmp <- canonicalizePath utmp
   src <- canonicalizePath $ ".." </> "src"
-  cl <- findExecutable "cl.exe"
   pwd <- canonicalizePath =<< getCurrentDirectory
+
+  cl <- findExecutable "cl.exe"
   let hascl = isJust cl
-      tsrc = t </> "src"
+      tsrc = tmp </> "src"
       emitc = Path $ tsrc </> "emit.c"
       srcc = Path $ tsrc </> "src.c"
       clcsrc = Path $ tsrc </> "win" </> "handle.c"
-      rvalid = sort . filter (valid t) . map (R . Path)
-      e = Env {shellMode = sm, tmpDir = t, pwdDir = pwd}
+      rvalid = sort . filter (valid tmp) . map (R . Path)
+      e = Env {shellMode = sm, tmpDir = tmp, pwdDir = pwd}
       qc s p = noisy s >> quickCheckWithResult (stdArgs {maxSuccess=1}) (runReader p e)
   _ <- systemStdout ["cp", "-R", src, tsrc]
   deps <- systemStdout ["gcc", "-MM", unpath emitc]
