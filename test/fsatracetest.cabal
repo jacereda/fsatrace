@@ -7,14 +7,14 @@ cabal-version:       >=1.10
 
 executable dumpargs
     main-is: DumpArgs.hs
-    ghc-options: -main-is=DumpArgs.main
+    ghc-options: -main-is DumpArgs.main
     build-depends: base
     hs-source-dirs: .
     default-language:    Haskell2010
 
 test-suite fsatrace-test
     main-is: Test.hs
-    ghc-options: -main-is=Test.main
+    ghc-options: -main-is Test.main
     type: exitcode-stdio-1.0
     ghc-options: -Wall
     build-depends: base
@@ -23,5 +23,6 @@ test-suite fsatrace-test
                   , directory
                   , temporary
                   , process
+                  , mtl
     hs-source-dirs: .
     default-language:    Haskell2010
