@@ -1,41 +1,42 @@
+{-# LANGUAGE DeriveFunctor #-}
 
 -- | A test of the FSATrace program
 module Parse(
     Access(..), parseFSATrace, parseClDeps, parseMakefileDeps
 ) where
 
-import           Utils
 import           Data.Maybe
 
 
-data Access = R Path
-            | W Path
-            | D Path
-            | Q Path
-            | T Path
-            | M Path Path
-            | RR Path
-            | RW Path
-            | RD Path
-            | RQ Path
-            | RT Path
-            | RM Path Path
-            deriving (Show, Eq, Ord)
+data Access a
+    = R a
+    | W a
+    | D a
+    | Q a
+    | T a
+    | M a a
+    | RR a
+    | RW a
+    | RD a
+    | RQ a
+    | RT a
+    | RM a a
+      deriving (Show, Eq, Ord, Functor)
 
-parseFSATrace :: String -> [Access]
+parseFSATrace :: String -> [Access FilePath]
 parseFSATrace = mapMaybe f . lines
-    where f ('w':'|':xs) = Just $ W $ Path xs
-          f ('r':'|':xs) = Just $ R $ Path xs
-          f ('d':'|':xs) = Just $ D $ Path xs
-          f ('q':'|':xs) = Just $ Q $ Path xs
-          f ('t':'|':xs) = Just $ T $ Path xs
-          f ('m':'|':xs) | (xs','|':ys) <- break (== '|') xs = Just $ M (Path xs') (Path ys)
-          f ('W':'|':xs) = Just $ RW $ Path xs
-          f ('R':'|':xs) = Just $ RR $ Path xs
-          f ('D':'|':xs) = Just $ RD $ Path xs
-          f ('Q':'|':xs) = Just $ RQ $ Path xs
-          f ('T':'|':xs) = Just $ RT $ Path xs
-          f ('M':'|':xs) | (xs','|':ys) <- break (== '|') xs = Just $ RM (Path xs') (Path ys)
+    where f ('w':'|':xs) = Just $ W xs
+          f ('r':'|':xs) = Just $ R xs
+          f ('d':'|':xs) = Just $ D xs
+          f ('q':'|':xs) = Just $ Q xs
+          f ('t':'|':xs) = Just $ T xs
+          f ('m':'|':xs) | (xs','|':ys) <- break (== '|') xs = Just $ M xs' ys
+          f ('W':'|':xs) = Just $ RW xs
+          f ('R':'|':xs) = Just $ RR xs
+          f ('D':'|':xs) = Just $ RD xs
+          f ('Q':'|':xs) = Just $ RQ xs
+          f ('T':'|':xs) = Just $ RT xs
+          f ('M':'|':xs) | (xs','|':ys) <- break (== '|') xs = Just $ RM xs' ys
           f _ = Nothing
 
 
