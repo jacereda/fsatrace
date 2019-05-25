@@ -34,7 +34,7 @@ prop_ArgsRoundtrip args = do
 prop_Tester :: (FSATest, [Act]) -> Prop
 prop_Tester (p, actLong) = do
   e <- ask
-  act <- return $ limitCmdLine 1500 e actLong
+  act <- return $ limitCmdLine 1500 e $ map (no32to64 p) actLong
   let ans = concatMap (predict e) act
   yieldsPrepare False
       (sequence_ [writeFile x "" | R (Path x) <- ans])

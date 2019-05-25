@@ -9,6 +9,7 @@ module Utils(
     cased, valid,
     command, yields, yieldsPrepare,
     systemStdout, systemStderr,
+    no32to64,
     fixme
   ) where
 
@@ -172,6 +173,10 @@ showAct e = map f
       ' ' -> "#"
       x   -> [x]
 
+no32to64 :: FSATest -> Act -> Act
+no32to64 FSATest32 (ActE _ xs) = ActE FSATest32 $ map (no32to64 FSATest32) xs
+no32to64 _ (ActE p xs) = ActE p $ map (no32to64 p) xs
+no32to64 _ x = x
 
 -- second value is desirable, first is necessary
 fixme :: a -> a -> a
