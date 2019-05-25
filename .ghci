@@ -1,4 +1,3 @@
 :set -Wunused-binds -Wunused-imports -Worphans
-:cd test
-:load Test.hs DumpArgs.hs
-:def test \x -> return ":!stack test"
+:load test/Test.hs test/DumpArgs.hs
+:def test \x -> return ":!stack exec make htest"
