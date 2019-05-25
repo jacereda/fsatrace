@@ -106,12 +106,12 @@ command flags args = do
 
 
 systemStderr :: [String] -> IO (Maybe String)
-systemStderr (cmd:args) = do
-    (res,out,err) <- readProcessWithExitCode cmd args ""
+systemStderr ~(cmd:args) = do
+    (res,_out,err) <- readProcessWithExitCode cmd args ""
     return $ if res == ExitSuccess then Just err else Nothing
 
 systemStdout :: [String] -> IO (Maybe String)
-systemStdout (cmd:args) = do
+systemStdout ~(cmd:args) = do
     (res,out,err) <- readProcessWithExitCode cmd args ""
     when (err /= "") $ hPutStrLn stderr err
     return $ if res == ExitSuccess then Just out else Nothing
