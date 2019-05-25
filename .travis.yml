@@ -17,8 +17,5 @@ before_install:
 - cp stack-*/stack ~/.local/bin
 
 script:
-- make
-- cd test
 - stack setup
-- stack test
-
+- make htest
