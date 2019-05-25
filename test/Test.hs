@@ -55,15 +55,12 @@ prop_cl src deps = command "r" ["cl", "/nologo", "/E", unpath src] `yields` deps
 
 main :: IO ()
 main = do
-    results <- sequence [allTests sp sm | sp <- allValues, sm <- allValues]
+    results <- sequence [allTests sp sm | sp <- [minBound..], sm <- [minBound..]]
     when (any (not . isSuccess) $ concat results) exitFailure
 
 noisy :: String -> IO ()
 noisy s = putStrLn ("Testing " ++ s)
 
-
-allValues :: (Enum a, Bounded a) => [a]
-allValues = enumFrom minBound
 
 allTests :: SpaceMode -> ShellMode -> IO [Result]
 allTests sp sm = withSystemTempDirectory (if sp == Spaced then "fsatrace with spaces" else "fsatrace") $ \utmp -> do
