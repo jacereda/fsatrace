@@ -5,6 +5,7 @@ module Utils(
     Env(..), ShellMode(..), SpaceMode(..),
     Prop,
     Path(..), Arg(..),
+    Act(..), FSATest, showAct,
     cased, valid,
     command, yields, yieldsPrepare,
     systemStdout, systemStderr
@@ -129,3 +130,44 @@ systemStdoutPass ~(cmd:args) = do
     when (err /= "") $ hPutStrLn stderr err
     return out
 
+data FSATest = FSATest | FSATest32
+    deriving Eq
+
+instance Show FSATest where
+  show FSATest = "fsatest"
+  show FSATest32 = "fsatest32"
+
+instance Arbitrary FSATest where
+  arbitrary = elements [FSATest, FSATest32]
+  shrink x = [FSATest | x /= FSATest]
+
+data Act = ActR FilePath
+         | ActW FilePath
+         | ActE FSATest [Act]
+         | ActF
+           deriving Show
+
+instance Arbitrary Act where
+  arbitrary = sized $ \sz -> frequency
+      [(8, ActR <$> name)
+      ,(8, ActW <$> name)
+      ,(1, return ActF)
+      -- FIXME: The second 0 should be 1 - at the moment we avoid spawning children
+      ,(if sz > 10 then 0 else 0, resize (min 20 $ sz-10) $ ActE <$> arbitrary <*> arbitrary)]
+    where name = vectorOf 2 $ choose ('a', 'z')
+
+  shrink (ActE a b) = (flip ActE b <$> (shrink a)) ++ (ActE a <$> shrink b)
+  shrink _ = []
+
+showAct :: Env -> [Act] -> [String]
+showAct e = map f
+  where
+    f (ActR x) = "r" ++ tmpDir e </> x
+    f (ActW x) = "w" ++ tmpDir e </> x
+    f ActF = "f"
+    f (ActE p xs) = "e" ++ escape (unwords $ (pwdDir e </> ".." </> show p) : showAct e xs)
+
+    escape = concatMap $ \case
+      '#' -> "##"
+      ' ' -> "#"
+      x   -> [x]
