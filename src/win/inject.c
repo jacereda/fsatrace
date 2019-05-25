@@ -49,7 +49,7 @@ void injectProcess(HANDLE proc) {
 		p = strrchr(helper, '\\');
 		memcpy(p+1, helpername, strlen(helpername)+1);
 		injecting = 1;
-		CHK(CreateProcessA(0, helper, 0, 0, 0, 0, "FSATRACEHELPER=1\0", 0, &si, &pi));
+		CHK(CreateProcessA(0, helper, 0, 0, 0, 0, 0, 0, &si, &pi));
 		CHK(WAIT_OBJECT_0 == WaitForSingleObject(pi.hProcess, INFINITE));
 		CHK(GetExitCodeProcess(pi.hProcess, &rc));
 		addr = (FARPROC)(uintptr_t)rc;
