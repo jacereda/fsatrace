@@ -18,11 +18,12 @@ import           Test.QuickCheck
 import           Test.QuickCheck.Monadic
 --import           Debug.Trace
 
-data Env = Env { shellMode :: ShellMode
-               , traceMode :: TraceMode
-               , spaceMode :: SpaceMode
-               , tmpDir :: FilePath
-               }
+data Env = Env
+    { shellMode :: ShellMode
+    , traceMode :: TraceMode
+    , spaceMode :: SpaceMode
+    , tmpDir :: FilePath
+    }
 
 type Prop = Reader Env Property
 
