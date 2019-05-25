@@ -5,7 +5,7 @@ module Test(main) where
 import           Utils
 import           Parse
 
-import           Control.Monad
+import           Control.Monad.Extra
 import           Control.Monad.IO.Class
 import           Control.Monad.Trans.Reader
 import           Data.List.Extra
@@ -73,27 +73,33 @@ allTests sp sm = withSystemTempDirectory (if sp == Spaced then "fsatrace with sp
   src <- canonicalizePath $ ".." </> "src"
   pwd <- canonicalizePath =<< getCurrentDirectory
 
-  cl <- findExecutable "cl.exe"
-  let hascl = isJust cl
-      tsrc = tmp </> "src"
-      emitc = Path $ tsrc </> "emit.c"
+  let tsrc = tmp </> "src"
+  void $ systemStdout ["cp", "-R", src, tsrc]
+
+  let emitc = Path $ tsrc </> "emit.c"
       srcc = Path $ tsrc </> "src.c"
-      clcsrc = Path $ tsrc </> "win" </> "handle.c"
       rvalid = sort . filter (valid tmp) . map (R . Path)
       e = Env {shellMode = sm, tmpDir = tmp, pwdDir = pwd}
       qc s p = noisy s >> quickCheckWithResult (stdArgs {maxSuccess=1}) (runReader p e)
-  _ <- systemStdout ["cp", "-R", src, tsrc]
-  deps <- systemStdout ["gcc", "-MM", unpath emitc]
-  ndeps <- mapM canonicalizePath (parseMakefileDeps deps)
-  cldeps <- if hascl then fromMaybe [] <$> systemStderr ["cl", "/nologo", "/showIncludes", "/E", "/DPATH_MAX=4096", unpath clcsrc] else return []
-  ncldeps <- if hascl then mapM canonicalizePath (unpath clcsrc : parseClDeps cldeps) else return []
+
+  gccTests <- do
+    deps <- systemStdout ["gcc", "-MM", unpath emitc]
+    ndeps <- mapM canonicalizePath (parseMakefileDeps deps)
+    return [qc "gcc" $ prop_gcc emitc (rvalid ndeps)]
+
+  clTests <- ifM (isNothing <$> findExecutable "cl.exe") (return []) $ do
+    let clcsrc = Path $ tsrc </> "win" </> "handle.c"
+    cldeps <- fromMaybe [] <$> systemStderr ["cl", "/nologo", "/showIncludes", "/E", "/DPATH_MAX=4096", unpath clcsrc]
+    ncldeps <- mapM canonicalizePath (unpath clcsrc : parseClDeps cldeps)
+    return [qc "cl" $ prop_cl clcsrc (rvalid ncldeps)]
+
   sequence $
     [ noisy "args" >> quickCheckWithResult (stdArgs {maxSuccess=10}) (\x -> runReader (prop_ArgsRoundtrip x) e) -- qc 10 "args" prop_args
-    , qc "gcc" $ prop_gcc emitc (rvalid ndeps)
     , qc "cp" $ prop_cp emitc srcc
     , qc "touch" $ prop_touch srcc
     , qc "rm" $ prop_rm srcc
     , qc "mv" $ prop_mv emitc srcc
     ]
-    ++ [qc "cl" $ prop_cl clcsrc (rvalid ncldeps) | hascl]
+    ++ gccTests
+    ++ clTests
     ++ [qc "echo" $ prop_echo emitc srcc | sm == Shelled]
