@@ -85,7 +85,7 @@ yields eargs res = do
     let sr | isJust r = Just $ nubSort $ filter (valid $ tmpDir e) $ fromJust r
            | otherwise = Nothing
         ok = sr == Just res
-    unless ok $ run $ do
+    unless ok $ liftIO $ do
       putStrLn $ "Expecting " ++ show res
       putStrLn $ "Got       " ++ show sr
     assert ok
