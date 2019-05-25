@@ -152,7 +152,7 @@ instance Arbitrary Act where
       [(8, ActR <$> name)
       ,(8, ActW <$> name)
       ,(1, return ActF)
-      -- FIXME: The second 0 should be 1 - at the moment we avoid spawning children
+      -- FIXME: The first 0 should be 1 - at the moment we avoid spawning children
       ,(if sz > 10 then 0 else 0, resize (min 20 $ sz-10) $ ActE <$> arbitrary <*> arbitrary)]
     where name = vectorOf 2 $ choose ('a', 'z')
 
