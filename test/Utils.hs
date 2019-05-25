@@ -8,8 +8,9 @@ module Utils(
     Act(..), FSATest, showAct,
     cased, valid,
     command, yields, yieldsPrepare,
-    systemStdout, systemStderr
-) where
+    systemStdout, systemStderr,
+    fixme
+  ) where
 
 import           Parse
 
@@ -138,7 +139,7 @@ instance Show FSATest where
   show FSATest32 = "fsatest32"
 
 instance Arbitrary FSATest where
-  arbitrary = elements [FSATest, FSATest32]
+  arbitrary = elements $ FSATest : [FSATest32 | fixme False True]
   shrink x = [FSATest | x /= FSATest]
 
 data Act = ActR FilePath
@@ -153,7 +154,7 @@ instance Arbitrary Act where
       ,(8, ActW <$> name)
       ,(1, return ActF)
       -- FIXME: The first 0 should be 1 - at the moment we avoid spawning children
-      ,(if sz > 10 then 0 else 0, resize (min 20 $ sz-10) $ ActE <$> arbitrary <*> arbitrary)]
+      ,(if sz > 10 then fixme 0 1 else 0, resize (min 20 $ sz-10) $ ActE <$> arbitrary <*> arbitrary)]
     where name = vectorOf 2 $ choose ('a', 'z')
 
   shrink (ActE a b) = (flip ActE b <$> (shrink a)) ++ (ActE a <$> shrink b)
@@ -171,3 +172,8 @@ showAct e = map f
       '#' -> "##"
       ' ' -> "#"
       x   -> [x]
+
+
+-- second value is desirable, first is necessary
+fixme :: a -> a -> a
+fixme a _ = a
