@@ -5,7 +5,7 @@ module Utils(
     Env(..), ShellMode(..), SpaceMode(..),
     Prop,
     Path(..), Arg(..),
-    Act(..), FSATest, showAct,
+    Act(..), FSATest(..), showAct,
     cased, valid,
     command, yields, yieldsPrepare,
     systemStdout, systemStderr,
