@@ -10,7 +10,7 @@ import           Data.Maybe
 import           System.Directory
 import           System.Exit
 import           System.FilePath
-import           System.Info
+import           System.Info.Extra
 import           System.IO.Temp
 import           System.IO.Unsafe
 import           System.Process
@@ -43,9 +43,6 @@ instance Show Path where
 instance Ord Path where
   compare (Path x) (Path y) = compare (cased x) (cased y)
 
-
-isWindows :: Bool
-isWindows = os == "mingw32"
 
 prop_args :: [Arg] -> Prop
 prop_args args = do
