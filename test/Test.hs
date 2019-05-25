@@ -57,39 +57,47 @@ main :: IO ()
 main = do
     results <- sequence [allTests sp sm | sp <- allValues, sm <- allValues]
     when (any (not . isSuccess) $ concat results) exitFailure
-  where noisy s = putStrLn ("Testing " ++ s)
-        banner x = putStrLn $ "================ " ++ x ++ " ================"
-        dirname Unspaced = "fsatrace"
-        dirname Spaced = "fsatrace with spaces"
-        allValues :: (Enum a, Bounded a) => [a]
-        allValues = enumFrom minBound
-        allTests :: SpaceMode -> ShellMode -> IO [Result]
-        allTests sp sm = withSystemTempDirectory (dirname sp) $ \utmp -> do
-          t <- canonicalizePath utmp
-          banner $ show sp ++ " " ++ show sm
-          src <- canonicalizePath $ ".." </> "src"
-          cl <- findExecutable "cl.exe"
-          pwd <- canonicalizePath =<< getCurrentDirectory
-          let hascl = isJust cl
-              tsrc = t </> "src"
-              emitc = Path $ tsrc </> "emit.c"
-              srcc = Path $ tsrc </> "src.c"
-              clcsrc = Path $ tsrc </> "win" </> "handle.c"
-              rvalid = sort . filter (valid t) . map (R . Path)
-              e = Env {shellMode = sm, tmpDir = t, pwdDir = pwd}
-              qc s p = noisy s >> quickCheckWithResult (stdArgs {maxSuccess=1}) (runReader p e)
-          _ <- systemStdout ["cp", "-R", src, tsrc]
-          deps <- systemStdout ["gcc", "-MM", unpath emitc]
-          ndeps <- mapM canonicalizePath (parseMakefileDeps deps)
-          cldeps <- if hascl then fromMaybe [] <$> systemStderr ["cl", "/nologo", "/showIncludes", "/E", "/DPATH_MAX=4096", unpath clcsrc] else return []
-          ncldeps <- if hascl then mapM canonicalizePath (unpath clcsrc : parseClDeps cldeps) else return []
-          sequence $
-            [ noisy "args" >> quickCheckWithResult (stdArgs {maxSuccess=10}) (\x -> runReader (prop_ArgsRoundtrip x) e) -- qc 10 "args" prop_args
-            , qc "gcc" $ prop_gcc emitc (rvalid ndeps)
-            , qc "cp" $ prop_cp emitc srcc
-            , qc "touch" $ prop_touch srcc
-            , qc "rm" $ prop_rm srcc
-            , qc "mv" $ prop_mv emitc srcc
-            ]
-            ++ [qc "cl" $ prop_cl clcsrc (rvalid ncldeps) | hascl]
-            ++ [qc "echo" $ prop_echo emitc srcc | sm == Shelled]
+
+noisy :: String -> IO ()
+noisy s = putStrLn ("Testing " ++ s)
+
+banner :: String -> IO ()
+banner x = putStrLn $ "================ " ++ x ++ " ================"
+
+dirname :: SpaceMode -> String
+dirname Unspaced = "fsatrace"
+dirname Spaced = "fsatrace with spaces"
+
+allValues :: (Enum a, Bounded a) => [a]
+allValues = enumFrom minBound
+
+allTests :: SpaceMode -> ShellMode -> IO [Result]
+allTests sp sm = withSystemTempDirectory (dirname sp) $ \utmp -> do
+  t <- canonicalizePath utmp
+  banner $ show sp ++ " " ++ show sm
+  src <- canonicalizePath $ ".." </> "src"
+  cl <- findExecutable "cl.exe"
+  pwd <- canonicalizePath =<< getCurrentDirectory
+  let hascl = isJust cl
+      tsrc = t </> "src"
+      emitc = Path $ tsrc </> "emit.c"
+      srcc = Path $ tsrc </> "src.c"
+      clcsrc = Path $ tsrc </> "win" </> "handle.c"
+      rvalid = sort . filter (valid t) . map (R . Path)
+      e = Env {shellMode = sm, tmpDir = t, pwdDir = pwd}
+      qc s p = noisy s >> quickCheckWithResult (stdArgs {maxSuccess=1}) (runReader p e)
+  _ <- systemStdout ["cp", "-R", src, tsrc]
+  deps <- systemStdout ["gcc", "-MM", unpath emitc]
+  ndeps <- mapM canonicalizePath (parseMakefileDeps deps)
+  cldeps <- if hascl then fromMaybe [] <$> systemStderr ["cl", "/nologo", "/showIncludes", "/E", "/DPATH_MAX=4096", unpath clcsrc] else return []
+  ncldeps <- if hascl then mapM canonicalizePath (unpath clcsrc : parseClDeps cldeps) else return []
+  sequence $
+    [ noisy "args" >> quickCheckWithResult (stdArgs {maxSuccess=10}) (\x -> runReader (prop_ArgsRoundtrip x) e) -- qc 10 "args" prop_args
+    , qc "gcc" $ prop_gcc emitc (rvalid ndeps)
+    , qc "cp" $ prop_cp emitc srcc
+    , qc "touch" $ prop_touch srcc
+    , qc "rm" $ prop_rm srcc
+    , qc "mv" $ prop_mv emitc srcc
+    ]
+    ++ [qc "cl" $ prop_cl clcsrc (rvalid ncldeps) | hascl]
+    ++ [qc "echo" $ prop_echo emitc srcc | sm == Shelled]
