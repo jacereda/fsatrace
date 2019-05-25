@@ -11,6 +11,7 @@
 #include <string.h>
 #include <malloc.h>
 #include <stdlib.h>
+#include <unistd.h>
 
 
 void unescape(char* s)
@@ -26,6 +27,20 @@ void unescape(char* s)
             s[w++] = s[++r];
     }
     s[w] = 0;
+}
+
+void exec(char* s)
+{
+    char* cmd;
+    char* args[1000];
+    cmd = strtok (s, " ");
+    args[0] = cmd;
+    for (int i = 1; i < 1000; i++) {
+        args[i] = strtok(NULL, " ");
+        if (args[i] == NULL)
+            break;
+    }
+    execv(cmd, args);
 }
 
 int main(int argc, const char* argv[])
@@ -62,7 +77,7 @@ int main(int argc, const char* argv[])
                 cmdline = strdup(&s[1]);
                 unescape(cmdline);
                 if (trace) printf("Running command: %s\n", cmdline);
-                system(cmdline);
+                exec(cmdline);
                 free(cmdline);
                 break;
 
