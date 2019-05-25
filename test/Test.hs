@@ -12,7 +12,6 @@ import           System.Exit
 import           System.FilePath
 import           System.Info.Extra
 import           System.IO.Temp
-import           System.IO.Unsafe
 import           System.Process
 import           Test.QuickCheck
 import           Test.QuickCheck.Monadic
@@ -21,6 +20,7 @@ import           Test.QuickCheck.Monadic
 data Env = Env
     { shellMode :: ShellMode
     , tmpDir :: FilePath
+    , pwdDir :: FilePath
     }
 
 type Prop = Reader Env Property
@@ -66,9 +66,6 @@ errorFrom (cmd:args) = do
 errorFrom _ = undefined
 
 
-fsatrace :: String -> [String]
-fsatrace flags = [pwd </> ".." </> "fsatrace", flags, "-", "--"]
-
 parsedOutputFrom :: [String] -> IO (Maybe [Access])
 parsedOutputFrom x = do
   mout <- outputFrom x
@@ -111,7 +108,7 @@ data SpaceMode = Unspaced | Spaced deriving (Show, Eq, Enum, Bounded)
 command :: String -> [String] -> Reader Env [String]
 command flags args = do
   e <- ask
-  return $ fsatrace flags ++ cmd (shellMode e)
+  return $ [pwdDir e </> ".." </> "fsatrace", flags, "-", "--"] ++ cmd (shellMode e)
   where cmd :: ShellMode -> [String]
         cmd Unshelled = args
         cmd Shelled | isWindows = "cmd.exe" : "/C" : args
@@ -158,13 +155,14 @@ main = do
           banner $ show sp ++ " " ++ show sm
           src <- canonicalizePath $ ".." </> "src"
           cl <- findExecutable "cl.exe"
+          pwd <- canonicalizePath =<< getCurrentDirectory
           let hascl = isJust cl
               tsrc = t </> "src"
               emitc = Path $ tsrc </> "emit.c"
               srcc = Path $ tsrc </> "src.c"
               clcsrc = Path $ tsrc </> "win" </> "handle.c"
               rvalid = sort . filter (valid t) . map (R . Path)
-              e = Env {shellMode = sm, tmpDir = t}
+              e = Env {shellMode = sm, tmpDir = t, pwdDir = pwd}
               qc s p = noisy s >> quickCheckWithResult (stdArgs {maxSuccess=1}) (runReader p e)
           _ <- outputFrom ["cp", "-R", src, tsrc]
           deps <- outputFrom ["gcc", "-MM", unpath emitc]
@@ -216,10 +214,6 @@ parse = mapMaybe f . lines
 cased :: String -> String
 cased | isWindows = map toLower
       | otherwise = id
-
-pwd :: FilePath
-{-# NOINLINE pwd #-}
-pwd = unsafePerformIO (getCurrentDirectory >>= canonicalizePath)
 
 valid :: FilePath -> Access -> Bool
 valid t (R p) = inTmp t p
