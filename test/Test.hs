@@ -12,7 +12,6 @@ import           Data.Maybe
 import           System.Directory
 import           System.Exit
 import           System.FilePath
-import           System.Info.Extra
 import           System.IO.Temp
 import           System.Process
 import           Test.QuickCheck
@@ -28,13 +27,6 @@ prop_args args = do
               Just out -> args == (Arg <$> read (head $ lines out))
               Nothing -> False
 
-outputFrom :: [String] -> IO (Maybe String)
-outputFrom (cmd:args) = do
-  (rc,out,err) <- readProcessWithExitCode cmd args ""
-  when (err /= "") $ putStrLn err
-  return $ if rc == ExitSuccess then Just out else Nothing
-outputFrom _ = undefined
-
 errorFrom :: [String] -> IO String
 errorFrom (cmd:args) = do
   (_,_,err) <- readProcessWithExitCode cmd args ""
@@ -42,40 +34,6 @@ errorFrom (cmd:args) = do
 errorFrom _ = undefined
 
 
-parsedOutputFrom :: [String] -> IO (Maybe [Access Path])
-parsedOutputFrom x = do
-  mout <- outputFrom x
-  return $ case mout of
-                Just out -> Just $ map (fmap Path) $ parseFSATrace out
-                Nothing -> Nothing
-
-yields :: Reader Env [String] -> [Access Path] -> Prop
-yields eargs res = do
-  e <- ask
-  return $ monadicIO $ do
-    let args = runReader eargs e
-    r <- run $ parsedOutputFrom args
-    let sr | isJust r = Just $ nubSort $ filter (valid $ tmpDir e) $ fromJust r
-           | otherwise = Nothing
-        ok = sr == Just res
-    unless ok $ run $ do
-      putStrLn $ "Expecting " ++ show res
-      putStrLn $ "Got       " ++ show sr
-    assert ok
-
-
-command :: String -> [String] -> Reader Env [String]
-command flags args = do
-  e <- ask
-  return $ [pwdDir e </> ".." </> "fsatrace", flags, "-", "--"] ++ cmd (shellMode e)
-  where cmd :: ShellMode -> [String]
-        cmd Unshelled = args
-        cmd Shelled | isWindows = "cmd.exe" : "/C" : args
-                    | otherwise = ["sh", "-c", unwords (map quoted args)]
-        quoted :: String -> String
-        quoted "|" = "|"
-        quoted ">" = ">"
-        quoted x = "\"" ++ x ++ "\""
 
 prop_echo :: Path -> Path -> Prop
 prop_echo src dst = command "rwmd" ["echo", unpath src, "|", "sort" , ">", unpath dst] `yields` [W dst]
