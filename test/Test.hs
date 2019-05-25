@@ -22,7 +22,7 @@ import           Test.QuickCheck.Monadic
 prop_ArgsRoundtrip :: [Arg] -> Prop
 prop_ArgsRoundtrip args = do
   isShell <- asks shellMode
-  let safe = if isShell == Shelled then filter (`notElem` "\n\r\"%$\\") else id
+  let safe = if isShell == Shelled then filter (`notElem` "\n\r\"%$\\`") else id
   c <- command "x" $ "dumpargs" : map (safe . unarg) args
   return $ monadicIO $ do
     mout <- liftIO $ systemStdout c
