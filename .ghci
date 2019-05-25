@@ -1,4 +1,5 @@
 :set -Wunused-binds -Wunused-imports -Worphans
+:set -Wall
 :set -itest
 :load test/Test.hs test/DumpArgs.hs
 :def test \x -> return ":!stack exec make htest"
