@@ -15,16 +15,17 @@
 
 void unescape(char* s)
 {
-    for (int i = 0; s[i]; i++) {
-        if (s[i] != '#') continue;
-
-        if (s[i+1] != '#') {
-            s[i] = ' ';
-        } else {
-            memmove(&s[i], &s[i+1], strlen(&s[i+1]));
-            i++;
-        }
+    // w = write index, r = read index
+    int w = 0;
+    for (int r = 0; s[r]; r++) {
+        if (s[r] != '#')
+            s[w++] = s[r];
+        else if (s[r+1] != '#')
+            s[w++] = ' ';
+        else
+            s[w++] = s[++r];
     }
+    s[w] = 0;
 }
 
 int main(int argc, const char* argv[])
