@@ -1,0 +1,3 @@
+:cd test
+:load Test.hs DumpArgs.hs Harness.hs
+:def test \x -> return ":!stack test"
