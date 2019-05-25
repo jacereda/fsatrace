@@ -22,6 +22,7 @@ test-suite fsatrace-test
                   , filepath
                   , directory
                   , temporary
+                  , extra
                   , process
                   , mtl
     hs-source-dirs: .
