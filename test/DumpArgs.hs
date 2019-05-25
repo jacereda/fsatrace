@@ -1,6 +1,6 @@
 
 -- | Dump the arguments returned by Haskell
-module Main(main) where
+module DumpArgs(main) where
 
 import System.Environment
 

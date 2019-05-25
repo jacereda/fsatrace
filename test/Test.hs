@@ -1,6 +1,6 @@
 
 -- | A test of the FSATrace program
-module Main(main) where
+module Test(main) where
 
 import           Control.Monad
 import           Control.Monad.Reader
