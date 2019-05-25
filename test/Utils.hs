@@ -1,3 +1,4 @@
+{-# LANGUAGE LambdaCase #-}
 
 -- | A test of the FSATrace program
 module Utils(
@@ -5,7 +6,7 @@ module Utils(
     Prop,
     Path(..), Arg(..),
     cased, valid,
-    command, yields,
+    command, yields, yieldsPrepare,
     systemStdout, systemStderr
 ) where
 
@@ -16,7 +17,6 @@ import           Control.Monad.IO.Class
 import           Control.Monad.Trans.Reader
 import           Data.Char
 import           Data.List.Extra
-import           Data.Maybe
 import           System.Exit
 import           System.IO
 import           System.Process
@@ -76,20 +76,26 @@ valid _ _ = True
 inTmp :: FilePath -> Path -> Bool
 inTmp t = isPrefixOf (cased t) . cased . unpath
 
-
 yields :: Reader Env [String] -> [Access Path] -> Prop
-yields eargs res = do
+yields = yieldsPrepare True $ return ()
+
+yieldsPrepare :: Bool -> IO () -> Reader Env [String] -> [Access Path] -> Prop
+yieldsPrepare fatal prepare eargs res = do
   e <- ask
   return $ monadicIO $ do
-    out <- liftIO $ systemStdout $ runReader eargs e
-    let r = fmap (map (fmap Path) . parseFSATrace) out
-    let sr | isJust r = Just $ nubSort $ filter (valid $ tmpDir e) $ fromJust r
-           | otherwise = Nothing
-        ok = sr == Just res
-    unless ok $ liftIO $ do
-      putStrLn $ "Expecting " ++ show res
-      putStrLn $ "Got       " ++ show sr
-    assert ok
+    liftIO prepare
+    let cmd = runReader eargs e
+    if length (unwords cmd) > 2000 then
+      fail "Excessively long command line"
+    else do
+      out <- liftIO $ if fatal then systemStdout cmd else Just <$> systemStdoutPass cmd
+      let cleanup = nubSort . filter (valid $ tmpDir e)
+      let r = fmap (cleanup . map (fmap Path) . parseFSATrace) out
+      let ok = fmap cleanup r == Just (cleanup res)
+      unless ok $ liftIO $ do
+        putStrLn $ "Expecting " ++ show (cleanup res)
+        putStrLn $ "Got       " ++ show r
+      assert ok
 
 
 command :: String -> [String] -> Reader Env [String]
