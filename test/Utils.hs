@@ -6,17 +6,19 @@ module Utils(
     Path(..), Arg(..),
     cased, valid,
     command, yields,
-    outputFrom
+    systemStdout, systemStderr
 ) where
 
 import           Parse
 
 import           Control.Monad
+import           Control.Monad.IO.Class
 import           Control.Monad.Trans.Reader
 import           Data.Char
 import           Data.List.Extra
 import           Data.Maybe
 import           System.Exit
+import           System.IO
 import           System.Process
 import           System.FilePath
 import           System.Info.Extra
@@ -74,19 +76,12 @@ inTmp :: FilePath -> Path -> Bool
 inTmp t = isPrefixOf (cased t) . cased . unpath
 
 
-parsedOutputFrom :: [String] -> IO (Maybe [Access Path])
-parsedOutputFrom x = do
-  mout <- outputFrom x
-  return $ case mout of
-                Just out -> Just $ map (fmap Path) $ parseFSATrace out
-                Nothing -> Nothing
-
 yields :: Reader Env [String] -> [Access Path] -> Prop
 yields eargs res = do
   e <- ask
   return $ monadicIO $ do
-    let args = runReader eargs e
-    r <- run $ parsedOutputFrom args
+    out <- liftIO $ systemStdout $ runReader eargs e
+    let r = fmap (map (fmap Path) . parseFSATrace) out
     let sr | isJust r = Just $ nubSort $ filter (valid $ tmpDir e) $ fromJust r
            | otherwise = Nothing
         ok = sr == Just res
@@ -109,9 +104,14 @@ command flags args = do
         quoted ">" = ">"
         quoted x = "\"" ++ x ++ "\""
 
-outputFrom :: [String] -> IO (Maybe String)
-outputFrom (cmd:args) = do
-  (rc,out,err) <- readProcessWithExitCode cmd args ""
-  when (err /= "") $ putStrLn err
-  return $ if rc == ExitSuccess then Just out else Nothing
-outputFrom _ = undefined
+
+systemStderr :: [String] -> IO (Maybe String)
+systemStderr (cmd:args) = do
+    (res,out,err) <- readProcessWithExitCode cmd args ""
+    return $ if res == ExitSuccess then Just err else Nothing
+
+systemStdout :: [String] -> IO (Maybe String)
+systemStdout (cmd:args) = do
+    (res,out,err) <- readProcessWithExitCode cmd args ""
+    when (err /= "") $ hPutStrLn stderr err
+    return $ if res == ExitSuccess then Just out else Nothing

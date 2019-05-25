@@ -22,7 +22,7 @@ prop_args :: [Arg] -> Prop
 prop_args args = do
   c <- command "x" $ "dumpargs" : map unarg args
   return $ monadicIO $ do
-    mout <- run $ outputFrom c
+    mout <- run $ systemStdout c
     assert $ case mout of
               Just out -> args == (Arg <$> read (head $ lines out))
               Nothing -> False
@@ -81,8 +81,8 @@ main = do
               rvalid = sort . filter (valid t) . map (R . Path)
               e = Env {shellMode = sm, tmpDir = t, pwdDir = pwd}
               qc s p = noisy s >> quickCheckWithResult (stdArgs {maxSuccess=1}) (runReader p e)
-          _ <- outputFrom ["cp", "-R", src, tsrc]
-          deps <- outputFrom ["gcc", "-MM", unpath emitc]
+          _ <- systemStdout ["cp", "-R", src, tsrc]
+          deps <- systemStdout ["gcc", "-MM", unpath emitc]
           ndeps <- mapM canonicalizePath (parseMakefileDeps deps)
           cldeps <- if hascl then errorFrom ["cl", "/nologo", "/showIncludes", "/E", "/DPATH_MAX=4096", unpath clcsrc] else return []
           ncldeps <- if hascl then mapM canonicalizePath (unpath clcsrc : parseClDeps cldeps) else return []
