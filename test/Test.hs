@@ -20,7 +20,6 @@ import           Test.QuickCheck.Monadic
 
 data Env = Env
     { shellMode :: ShellMode
-    , spaceMode :: SpaceMode
     , tmpDir :: FilePath
     }
 
@@ -165,7 +164,7 @@ main = do
               srcc = Path $ tsrc </> "src.c"
               clcsrc = Path $ tsrc </> "win" </> "handle.c"
               rvalid = sort . filter (valid t) . map (R . Path)
-              e = Env {shellMode = sm, spaceMode = sp, tmpDir = t}
+              e = Env {shellMode = sm, tmpDir = t}
               qc s p = noisy s >> quickCheckWithResult (stdArgs {maxSuccess=1}) (runReader p e)
           _ <- outputFrom ["cp", "-R", src, tsrc]
           deps <- outputFrom ["gcc", "-MM", unpath emitc]
