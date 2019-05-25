@@ -122,3 +122,10 @@ systemStdout ~(cmd:args) = do
     (res,out,err) <- readProcessWithExitCode cmd args ""
     when (err /= "") $ hPutStrLn stderr err
     return $ if res == ExitSuccess then Just out else Nothing
+
+systemStdoutPass :: [String] -> IO String
+systemStdoutPass ~(cmd:args) = do
+    (_,out,err) <- readProcessWithExitCode cmd args ""
+    when (err /= "") $ hPutStrLn stderr err
+    return out
+
