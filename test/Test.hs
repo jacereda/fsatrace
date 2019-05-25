@@ -80,9 +80,6 @@ parsedOutputFrom x = do
                 Just out -> Just $ parse out
                 Nothing -> Nothing
 
-toStandard :: FilePath -> FilePath
-toStandard = if isWindows then map (\x -> if x == '\\' then '/' else x) else id
-
 parseDeps :: Maybe String -> [FilePath]
 parseDeps = filter (/= " ") . map unhack . words . hack . drop 1 . dropWhile (/= ':') . fromMaybe ""
   where hack ('\\':' ':xs) = '^':hack xs
@@ -115,11 +112,6 @@ yields eargs eres = do
 data ShellMode = Unshelled | Shelled deriving (Show, Eq, Enum, Bounded)
 data TraceMode = Untraced | Traced deriving (Show, Eq, Enum, Bounded)
 data SpaceMode = Unspaced | Spaced deriving (Show, Eq, Enum, Bounded)
-
-isShelled :: Reader Env Bool
-isShelled = do
-  sm <- ask
-  return $ shellMode sm == Shelled
 
 
 command :: String -> [String] -> Reader Env [String]
