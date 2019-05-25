@@ -31,10 +31,13 @@ CFLAGS+= -g -std=c99 -Wall -O2 -fomit-frame-pointer -fno-stack-protector -MMD
 
 SRCS=src/fsatrace.c src/$(PLAT)/proc.c src/$(PLAT)/shm.c $(OSSRCS)
 
-all: fsatrace$(EXE) lib
+all: fsatrace$(EXE) lib fsatest$(EXE) fsatest32$(EXE)
 
 fsatrace$(EXE): $(patsubst %.c,%.o,$(SRCS))
 	$(CC) $(LDFLAGS) $(LDOBJS) $^ $(LDLIBS) -o $@
+
+fsatest$(EXE): src/fsatest.o
+	$(CC) $^ -o $@
 
 dumpargs$(EXE): dumpargs.o
 	$(CC) $(LDFLAGS) $^ $(LDLIBS) -o $@
