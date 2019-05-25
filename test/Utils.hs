@@ -153,8 +153,7 @@ instance Arbitrary Act where
       [(8, ActR <$> name)
       ,(8, ActW <$> name)
       ,(1, return ActF)
-      -- FIXME: The first 0 should be 1 - at the moment we avoid spawning children
-      ,(if sz > 10 then fixme 0 1 else 0, resize (min 20 $ sz-10) $ ActE <$> arbitrary <*> arbitrary)]
+      ,(if sz > 10 then 1 else 0, resize (min 20 $ sz-10) $ ActE <$> arbitrary <*> arbitrary)]
     where name = vectorOf 2 $ choose ('a', 'z')
 
   shrink (ActE a b) = (flip ActE b <$> (shrink a)) ++ (ActE a <$> shrink b)
