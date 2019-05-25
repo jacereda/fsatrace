@@ -3,7 +3,7 @@
 module Test(main) where
 
 import           Control.Monad
-import           Control.Monad.Reader
+import           Control.Monad.Trans.Reader
 import           Data.List
 import           Data.Char
 import           Data.Maybe
