@@ -42,14 +42,14 @@ errorFrom (cmd:args) = do
 errorFrom _ = undefined
 
 
-parsedOutputFrom :: [String] -> IO (Maybe [Access])
+parsedOutputFrom :: [String] -> IO (Maybe [Access Path])
 parsedOutputFrom x = do
   mout <- outputFrom x
   return $ case mout of
-                Just out -> Just $ parseFSATrace out
+                Just out -> Just $ map (fmap Path) $ parseFSATrace out
                 Nothing -> Nothing
 
-yields :: Reader Env [String] -> [Access] -> Prop
+yields :: Reader Env [String] -> [Access Path] -> Prop
 yields eargs res = do
   e <- ask
   return $ monadicIO $ do
@@ -92,10 +92,10 @@ prop_touch dst = command "t" ["touch", unpath dst] `yields` [T dst]
 prop_rm :: Path -> Prop
 prop_rm dst = command "rwmd" ["rm", unpath dst] `yields` [D dst]
 
-prop_gcc :: Path -> [Access] -> Prop
+prop_gcc :: Path -> [Access Path] -> Prop
 prop_gcc src deps = command "r" ["gcc", "-E", unpath src] `yields` deps
 
-prop_cl :: Path -> [Access] -> Prop
+prop_cl :: Path -> [Access Path] -> Prop
 prop_cl src deps = command "r" ["cl", "/nologo", "/E", unpath src] `yields` deps
 
 main :: IO ()
@@ -140,7 +140,7 @@ main = do
             ++ [qc "echo" $ prop_echo emitc srcc | sm == Shelled]
 
 
-valid :: FilePath -> Access -> Bool
+valid :: FilePath -> Access Path -> Bool
 valid t (R p) = inTmp t p
 valid t (Q p) = inTmp t p
 valid t (W p) | isWindows = inTmp t p
