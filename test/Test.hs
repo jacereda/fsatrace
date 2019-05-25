@@ -152,10 +152,10 @@ prop_cl :: Path -> [Access] -> Prop
 prop_cl src deps = command "r" ["cl", "/nologo", "/E", unpath src] `yields` whenTracing deps
 
 main :: IO ()
-main = sequence [allTests sp sm tm | sp <- allValues, sm <- allValues, tm <- allValues]
-       >>= mapM_ (mapM_ chk)
-  where chk x = unless (isSuccess x) exitFailure
-        noisy s = putStrLn ("Testing " ++ s)
+main = do
+    results <- sequence [allTests sp sm tm | sp <- allValues, sm <- allValues, tm <- allValues]
+    when (any (not . isSuccess) $ concat results) exitFailure
+  where noisy s = putStrLn ("Testing " ++ s)
         banner x = putStrLn $ "================ " ++ x ++ " ================"
         dirname Unspaced = "fsatrace"
         dirname Spaced = "fsatrace with spaces"
