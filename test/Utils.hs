@@ -38,7 +38,8 @@ newtype Arg = Arg { unarg :: String } deriving (Show, Eq)
 
 instance Arbitrary Arg where
   arbitrary = Arg <$> listOf1 validChars
-    where validChars = arbitrary `suchThat` (`notElem` "\0")
+    where validChars = arbitrary `suchThat` \x -> isLatin1 x && x `notElem` "\0>|"
+  shrink (Arg x) = map Arg $ shrink x
 
 newtype Path = Path { unpath :: FilePath }
 
