@@ -12,24 +12,31 @@ void injectProcess(HANDLE proc) {
 	FARPROC addr;
 	LPVOID arg;
 	char dll[PATH_MAX];
-	char *ext = 0;
+	int ndll;
 	DWORD rc;
+	static int injecting;
 	extern IMAGE_DOS_HEADER __ImageBase;
 	ASSERT(proc);
+
+	// On 32bit Windows when we spawn fsatracehelper it reenters
+	// and tries to run itself again, if we detect this we abort
+	if (injecting) return;
+
 	memset(dll, 0, sizeof(dll));
-	CHK(GetModuleFileNameA((HMODULE)&__ImageBase, dll, sizeof(dll)));
-	if (!ext)
-		ext = strstr(dll, ".exe");
-	if (!ext)
-		ext = strstr(dll, ".dll");
-	if (!ext)
-		ext = dll + strlen(dll);
+	CHK(ndll = GetModuleFileNameA((HMODULE)&__ImageBase, dll, sizeof(dll)));
+
+	// dll is one of mypath\fsatrace.exe, mypath\fsatrace64.dll or mypath\fsatrace32.dll
 	CHK(IsWow64Process(proc, &is32));
+	if (strcmp(&dll[ndll-4], ".exe") == 0)
+		ndll -= 4; // .exe
+	else
+		ndll -= 6; // 32.dll or 64.dll
+	memcpy(&dll[ndll], is32 ? "32.dll" : "64.dll", 6);
+
 	CHK(0 != (arg = VirtualAllocEx(proc, 0, strlen(dll) + 1,
 				       MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE)));
-	if (strcmp(ext, ".dll"))
-		memcpy(ext, is32 ? "32.dll" : "64.dll", 6);
-	if (is32) {
+
+	if (is32 && !IS32) {
 		STARTUPINFO si;
 		PROCESS_INFORMATION pi;
 		const char * helpername = "fsatracehelper.exe";
@@ -41,13 +48,15 @@ void injectProcess(HANDLE proc) {
 		memcpy(helper, dll, strlen(dll)+1);
 		p = strrchr(helper, '\\');
 		memcpy(p+1, helpername, strlen(helpername)+1);
-		CHK(CreateProcessA(0, helper, 0, 0, 0, 0, 0, 0, &si, &pi));
+		injecting = 1;
+		CHK(CreateProcessA(0, helper, 0, 0, 0, 0, "FSATRACEHELPER=1\0", 0, &si, &pi));
 		CHK(WAIT_OBJECT_0 == WaitForSingleObject(pi.hProcess, INFINITE));
 		CHK(GetExitCodeProcess(pi.hProcess, &rc));
 		addr = (FARPROC)(uintptr_t)rc;
 	}
 	else
 		addr = GetProcAddress(GetModuleHandle("kernel32.dll"), "LoadLibraryA");
+
 	CHK(addr);
 	CHK(WriteProcessMemory(proc, arg, dll, strlen(dll) + 1, NULL));
 	CHK(0 != (tid = CreateRemoteThread(proc, 0, 0,
