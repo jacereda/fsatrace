@@ -6,6 +6,7 @@ import           Utils
 import           Parse
 
 import           Control.Monad
+import           Control.Monad.IO.Class
 import           Control.Monad.Trans.Reader
 import           Data.List.Extra
 import           Data.Maybe
@@ -22,7 +23,7 @@ prop_args :: [Arg] -> Prop
 prop_args args = do
   c <- command "x" $ "dumpargs" : map unarg args
   return $ monadicIO $ do
-    mout <- run $ systemStdout c
+    mout <- liftIO $ systemStdout c
     assert $ case mout of
               Just out -> args == (Arg <$> read (head $ lines out))
               Nothing -> False
