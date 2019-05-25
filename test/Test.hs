@@ -75,20 +75,20 @@ allTests sp sm = withSystemTempDirectory (if sp == Spaced then "fsatrace with sp
 
   let emitc = Path $ tsrc </> "emit.c"
       srcc = Path $ tsrc </> "src.c"
-      rvalid = sort . filter (valid tmp) . map (R . Path)
+      rpaths = map (R . Path)
       e = Env {shellMode = sm, tmpDir = tmp, pwdDir = pwd}
       qc s p = noisy s >> quickCheckWithResult (stdArgs {maxSuccess=1}) (runReader p e)
 
   gccTests <- do
     deps <- systemStdout ["gcc", "-MM", unpath emitc]
     ndeps <- mapM canonicalizePath (parseMakefileDeps deps)
-    return [qc "gcc" $ prop_gcc emitc (rvalid ndeps)]
+    return [qc "gcc" $ prop_gcc emitc (rpaths ndeps)]
 
   clTests <- ifM (isNothing <$> findExecutable "cl.exe") (return []) $ do
     let clcsrc = Path $ tsrc </> "win" </> "handle.c"
     cldeps <- fromMaybe [] <$> systemStderr ["cl", "/nologo", "/showIncludes", "/E", "/DPATH_MAX=4096", unpath clcsrc]
     ncldeps <- mapM canonicalizePath (unpath clcsrc : parseClDeps cldeps)
-    return [qc "cl" $ prop_cl clcsrc (rvalid ncldeps)]
+    return [qc "cl" $ prop_cl clcsrc (rpaths ncldeps)]
 
   sequence $
     [ noisy "args" >> quickCheckWithResult (stdArgs {maxSuccess=10}) (\x -> runReader (prop_ArgsRoundtrip x) e) -- qc 10 "args" prop_args
