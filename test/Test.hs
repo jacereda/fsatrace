@@ -108,16 +108,15 @@ yields eargs eres = do
     assert ok
 
 data ShellMode = Unshelled | Shelled deriving (Show, Eq, Enum, Bounded)
-data TraceMode = Untraced | Traced deriving (Show, Eq, Enum, Bounded)
+data TraceMode = Traced deriving (Show, Eq, Enum, Bounded)
 data SpaceMode = Unspaced | Spaced deriving (Show, Eq, Enum, Bounded)
 
 
 command :: String -> [String] -> Reader Env [String]
 command flags args = do
   e <- ask
-  return $ cmd (shellMode e) (traceMode e)
+  return $ fsatrace flags ++ cmd (shellMode e) (traceMode e)
   where cmd :: ShellMode -> TraceMode -> [String]
-        cmd sm Traced = fsatrace flags ++ cmd sm Untraced
         cmd Unshelled _ = args
         cmd Shelled _ | isWindows = "cmd.exe" : "/C" : args
                       | otherwise = ["sh", "-c", unwords (map quoted args)]
