@@ -1,3 +1,4 @@
+:set -Wunused-binds -Wunused-imports -Worphans
 :cd test
 :load Test.hs DumpArgs.hs Harness.hs
 :def test \x -> return ":!stack test"
