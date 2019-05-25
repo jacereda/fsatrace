@@ -156,7 +156,7 @@ instance Arbitrary Act where
       ,(if sz > 10 then 1 else 0, resize (min 20 $ sz-10) $ ActE <$> arbitrary <*> arbitrary)]
     where name = vectorOf 2 $ choose ('a', 'z')
 
-  shrink (ActE a b) = (flip ActE b <$> (shrink a)) ++ (ActE a <$> shrink b)
+  shrink (ActE a b) = (flip ActE b <$> (shrink a)) ++ (ActE a <$> shrink b) ++ b
   shrink _ = []
 
 showAct :: Env -> [Act] -> [String]
