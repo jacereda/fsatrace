@@ -91,12 +91,11 @@ parseClDeps = mapMaybe parseLine . lines
         parseLine _ = Nothing
         skip c = drop 1 . dropWhile (/= c)
 
-yields :: Reader Env [String] -> Reader Env [Access] -> Prop
-yields eargs eres = do
+yields :: Reader Env [String] -> [Access] -> Prop
+yields eargs res = do
   e <- ask
   return $ monadicIO $ do
     let args = runReader eargs e
-        res = runReader eres e
     r <- run $ parsedOutputFrom args
     let sr | isJust r = Just $ nubSort $ filter (valid $ tmpDir e) $ fromJust r
            | otherwise = Nothing
@@ -124,25 +123,25 @@ command flags args = do
         quoted x = "\"" ++ x ++ "\""
 
 prop_echo :: Path -> Path -> Prop
-prop_echo src dst = command "rwmd" ["echo", unpath src, "|", "sort" , ">", unpath dst] `yields` return [W dst]
+prop_echo src dst = command "rwmd" ["echo", unpath src, "|", "sort" , ">", unpath dst] `yields` [W dst]
 
 prop_cp :: Path -> Path -> Prop
-prop_cp src dst = command "rwmd" ["cp", unpath src, unpath dst] `yields` return [R src, W dst]
+prop_cp src dst = command "rwmd" ["cp", unpath src, unpath dst] `yields` [R src, W dst]
 
 prop_mv :: Path -> Path -> Prop
-prop_mv src dst = command "rwmd" ["mv", unpath src, unpath dst] `yields` return [M dst src]
+prop_mv src dst = command "rwmd" ["mv", unpath src, unpath dst] `yields` [M dst src]
 
 prop_touch :: Path -> Prop
-prop_touch dst = command "t" ["touch", unpath dst] `yields` return [T dst]
+prop_touch dst = command "t" ["touch", unpath dst] `yields` [T dst]
 
 prop_rm :: Path -> Prop
-prop_rm dst = command "rwmd" ["rm", unpath dst] `yields` return [D dst]
+prop_rm dst = command "rwmd" ["rm", unpath dst] `yields` [D dst]
 
 prop_gcc :: Path -> [Access] -> Prop
-prop_gcc src deps = command "r" ["gcc", "-E", unpath src] `yields` return deps
+prop_gcc src deps = command "r" ["gcc", "-E", unpath src] `yields` deps
 
 prop_cl :: Path -> [Access] -> Prop
-prop_cl src deps = command "r" ["cl", "/nologo", "/E", unpath src] `yields` return deps
+prop_cl src deps = command "r" ["cl", "/nologo", "/E", unpath src] `yields` deps
 
 main :: IO ()
 main = do
