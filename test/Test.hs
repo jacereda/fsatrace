@@ -20,7 +20,6 @@ import           Test.QuickCheck.Monadic
 
 data Env = Env
     { shellMode :: ShellMode
-    , traceMode :: TraceMode
     , spaceMode :: SpaceMode
     , tmpDir :: FilePath
     }
@@ -108,27 +107,24 @@ yields eargs eres = do
     assert ok
 
 data ShellMode = Unshelled | Shelled deriving (Show, Eq, Enum, Bounded)
-data TraceMode = Traced deriving (Show, Eq, Enum, Bounded)
 data SpaceMode = Unspaced | Spaced deriving (Show, Eq, Enum, Bounded)
 
 
 command :: String -> [String] -> Reader Env [String]
 command flags args = do
   e <- ask
-  return $ fsatrace flags ++ cmd (shellMode e) (traceMode e)
-  where cmd :: ShellMode -> TraceMode -> [String]
-        cmd Unshelled _ = args
-        cmd Shelled _ | isWindows = "cmd.exe" : "/C" : args
-                      | otherwise = ["sh", "-c", unwords (map quoted args)]
+  return $ fsatrace flags ++ cmd (shellMode e)
+  where cmd :: ShellMode -> [String]
+        cmd Unshelled = args
+        cmd Shelled | isWindows = "cmd.exe" : "/C" : args
+                    | otherwise = ["sh", "-c", unwords (map quoted args)]
         quoted :: String -> String
         quoted "|" = "|"
         quoted ">" = ">"
         quoted x = "\"" ++ x ++ "\""
 
 whenTracing :: [a] -> Reader Env [a]
-whenTracing x = do
-  e <- ask
-  return $ if traceMode e == Traced then x else []
+whenTracing x = return x
 
 prop_echo :: Path -> Path -> Prop
 prop_echo src dst = command "rwmd" ["echo", unpath src, "|", "sort" , ">", unpath dst] `yields` return [W dst]
@@ -153,7 +149,7 @@ prop_cl src deps = command "r" ["cl", "/nologo", "/E", unpath src] `yields` when
 
 main :: IO ()
 main = do
-    results <- sequence [allTests sp sm tm | sp <- allValues, sm <- allValues, tm <- allValues]
+    results <- sequence [allTests sp sm | sp <- allValues, sm <- allValues]
     when (any (not . isSuccess) $ concat results) exitFailure
   where noisy s = putStrLn ("Testing " ++ s)
         banner x = putStrLn $ "================ " ++ x ++ " ================"
@@ -161,10 +157,10 @@ main = do
         dirname Spaced = "fsatrace with spaces"
         allValues :: (Enum a, Bounded a) => [a]
         allValues = enumFrom minBound
-        allTests :: SpaceMode -> ShellMode -> TraceMode -> IO [Result]
-        allTests sp sm tm = withSystemTempDirectory (dirname sp) $ \utmp -> do
+        allTests :: SpaceMode -> ShellMode -> IO [Result]
+        allTests sp sm = withSystemTempDirectory (dirname sp) $ \utmp -> do
           t <- canonicalizePath utmp
-          banner $ show sp ++ " " ++ show sm ++ " " ++ show tm
+          banner $ show sp ++ " " ++ show sm
           src <- canonicalizePath $ ".." </> "src"
           cl <- findExecutable "cl.exe"
           let hascl = isJust cl
@@ -173,7 +169,7 @@ main = do
               srcc = Path $ tsrc </> "src.c"
               clcsrc = Path $ tsrc </> "win" </> "handle.c"
               rvalid = sort . filter (valid t) . map (R . Path)
-              e = Env {shellMode = sm, traceMode = tm, spaceMode = sp, tmpDir = t}
+              e = Env {shellMode = sm, spaceMode = sp, tmpDir = t}
               qc s p = noisy s >> quickCheckWithResult (stdArgs {maxSuccess=1}) (runReader p e)
           _ <- outputFrom ["cp", "-R", src, tsrc]
           deps <- outputFrom ["gcc", "-MM", unpath emitc]
@@ -189,7 +185,7 @@ main = do
             , qc "mv" $ prop_mv emitc srcc
             ]
             ++ [qc "cl" $ prop_cl clcsrc (rvalid ncldeps) | hascl]
-            ++ [qc "echo" $ prop_echo emitc srcc | sm == Shelled && tm == Traced]
+            ++ [qc "echo" $ prop_echo emitc srcc | sm == Shelled]
 
 
 data Access = R Path
