@@ -14,7 +14,6 @@ import           System.Directory
 import           System.Exit
 import           System.FilePath
 import           System.IO.Temp
-import           System.Process
 import           Test.QuickCheck
 import           Test.QuickCheck.Monadic
 --import           Debug.Trace
@@ -31,14 +30,6 @@ prop_args args = do
     assert $ case mout of
               Just out -> map (safe . unarg) args == read (head $ lines out)
               Nothing -> False
-
-errorFrom :: [String] -> IO String
-errorFrom (cmd:args) = do
-  (_,_,err) <- readProcessWithExitCode cmd args ""
-  return err
-errorFrom _ = undefined
-
-
 
 prop_echo :: Path -> Path -> Prop
 prop_echo src dst = command "rwmd" ["echo", unpath src, "|", "sort" , ">", unpath dst] `yields` [W dst]
@@ -89,7 +80,7 @@ main = do
           _ <- systemStdout ["cp", "-R", src, tsrc]
           deps <- systemStdout ["gcc", "-MM", unpath emitc]
           ndeps <- mapM canonicalizePath (parseMakefileDeps deps)
-          cldeps <- if hascl then errorFrom ["cl", "/nologo", "/showIncludes", "/E", "/DPATH_MAX=4096", unpath clcsrc] else return []
+          cldeps <- if hascl then fromMaybe [] <$> systemStderr ["cl", "/nologo", "/showIncludes", "/E", "/DPATH_MAX=4096", unpath clcsrc] else return []
           ncldeps <- if hascl then mapM canonicalizePath (unpath clcsrc : parseClDeps cldeps) else return []
           sequence $
             [ noisy "args" >> quickCheckWithResult (stdArgs {maxSuccess=10}) (\x -> runReader (prop_args x) e) -- qc 10 "args" prop_args
