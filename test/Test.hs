@@ -92,11 +92,11 @@ allTests sp sm = withSystemTempDirectory (if sp == Spaced then "fsatrace with sp
 
   sequence $
     [ noisy "args" >> quickCheckWithResult (stdArgs {maxSuccess=10}) (\x -> runReader (prop_ArgsRoundtrip x) e) -- qc 10 "args" prop_args
-    , qc "cp" $ prop_cp emitc srcc
+    ] ++ gccTests ++
+    [ qc "cp" $ prop_cp emitc srcc
     , qc "touch" $ prop_touch srcc
     , qc "rm" $ prop_rm srcc
     , qc "mv" $ prop_mv emitc srcc
     ]
-    ++ gccTests
     ++ clTests
     ++ [qc "echo" $ prop_echo emitc srcc | sm == Shelled]
