@@ -19,13 +19,17 @@ import           Test.QuickCheck
 import           Test.QuickCheck.Monadic
 --import           Debug.Trace
 
+-- Confirm that we pass the arguments through properly
+-- using the helper executable @dumpargs@.
 prop_args :: [Arg] -> Prop
 prop_args args = do
-  c <- command "x" $ "dumpargs" : map unarg args
+  isShell <- asks shellMode
+  let safe = if isShell == Shelled then filter (`notElem` "\n\r\"%$\\") else id
+  c <- command "x" $ "dumpargs" : map (safe . unarg) args
   return $ monadicIO $ do
     mout <- liftIO $ systemStdout c
     assert $ case mout of
-              Just out -> args == (Arg <$> read (head $ lines out))
+              Just out -> map (safe . unarg) args == read (head $ lines out)
               Nothing -> False
 
 errorFrom :: [String] -> IO String
@@ -88,7 +92,7 @@ main = do
           cldeps <- if hascl then errorFrom ["cl", "/nologo", "/showIncludes", "/E", "/DPATH_MAX=4096", unpath clcsrc] else return []
           ncldeps <- if hascl then mapM canonicalizePath (unpath clcsrc : parseClDeps cldeps) else return []
           sequence $
-            [ noisy "args" >> quickCheckWithResult (stdArgs {maxSuccess=1}) (\x -> runReader (prop_args x) e) -- qc 10 "args" prop_args
+            [ noisy "args" >> quickCheckWithResult (stdArgs {maxSuccess=10}) (\x -> runReader (prop_args x) e) -- qc 10 "args" prop_args
             , qc "gcc" $ prop_gcc emitc (rvalid ndeps)
             , qc "cp" $ prop_cp emitc srcc
             , qc "touch" $ prop_touch srcc
