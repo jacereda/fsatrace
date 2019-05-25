@@ -4,7 +4,7 @@ module Test(main) where
 
 import           Control.Monad
 import           Control.Monad.Trans.Reader
-import           Data.List
+import           Data.List.Extra
 import           Data.Char
 import           Data.Maybe
 import           System.Directory
@@ -98,7 +98,7 @@ yields eargs eres = do
     let args = runReader eargs e
         res = runReader eres e
     r <- run $ parsedOutputFrom args
-    let sr | isJust r = Just $ nub $ sort $ filter (valid $ tmpDir e) $ fromJust r
+    let sr | isJust r = Just $ nubSort $ filter (valid $ tmpDir e) $ fromJust r
            | otherwise = Nothing
         ok = sr == Just res
     unless ok $ run $ do
