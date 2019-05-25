@@ -20,8 +20,8 @@ import           Test.QuickCheck.Monadic
 
 -- Confirm that we pass the arguments through properly
 -- using the helper executable @dumpargs@.
-prop_args :: [Arg] -> Prop
-prop_args args = do
+prop_ArgsRoundtrip :: [Arg] -> Prop
+prop_ArgsRoundtrip args = do
   isShell <- asks shellMode
   let safe = if isShell == Shelled then filter (`notElem` "\n\r\"%$\\") else id
   c <- command "x" $ "dumpargs" : map (safe . unarg) args
@@ -30,6 +30,7 @@ prop_args args = do
     assert $ case mout of
               Just out -> map (safe . unarg) args == read (head $ lines out)
               Nothing -> False
+
 
 prop_echo :: Path -> Path -> Prop
 prop_echo src dst = command "rwmd" ["echo", unpath src, "|", "sort" , ">", unpath dst] `yields` [W dst]
@@ -83,7 +84,7 @@ main = do
           cldeps <- if hascl then fromMaybe [] <$> systemStderr ["cl", "/nologo", "/showIncludes", "/E", "/DPATH_MAX=4096", unpath clcsrc] else return []
           ncldeps <- if hascl then mapM canonicalizePath (unpath clcsrc : parseClDeps cldeps) else return []
           sequence $
-            [ noisy "args" >> quickCheckWithResult (stdArgs {maxSuccess=10}) (\x -> runReader (prop_args x) e) -- qc 10 "args" prop_args
+            [ noisy "args" >> quickCheckWithResult (stdArgs {maxSuccess=10}) (\x -> runReader (prop_ArgsRoundtrip x) e) -- qc 10 "args" prop_args
             , qc "gcc" $ prop_gcc emitc (rvalid ndeps)
             , qc "cp" $ prop_cp emitc srcc
             , qc "touch" $ prop_touch srcc
