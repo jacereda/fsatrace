@@ -123,29 +123,26 @@ command flags args = do
         quoted ">" = ">"
         quoted x = "\"" ++ x ++ "\""
 
-whenTracing :: [a] -> Reader Env [a]
-whenTracing x = return x
-
 prop_echo :: Path -> Path -> Prop
 prop_echo src dst = command "rwmd" ["echo", unpath src, "|", "sort" , ">", unpath dst] `yields` return [W dst]
 
 prop_cp :: Path -> Path -> Prop
-prop_cp src dst = command "rwmd" ["cp", unpath src, unpath dst] `yields` whenTracing [R src, W dst]
+prop_cp src dst = command "rwmd" ["cp", unpath src, unpath dst] `yields` return [R src, W dst]
 
 prop_mv :: Path -> Path -> Prop
-prop_mv src dst = command "rwmd" ["mv", unpath src, unpath dst] `yields` whenTracing [M dst src]
+prop_mv src dst = command "rwmd" ["mv", unpath src, unpath dst] `yields` return [M dst src]
 
 prop_touch :: Path -> Prop
-prop_touch dst = command "t" ["touch", unpath dst] `yields` whenTracing [T dst]
+prop_touch dst = command "t" ["touch", unpath dst] `yields` return [T dst]
 
 prop_rm :: Path -> Prop
-prop_rm dst = command "rwmd" ["rm", unpath dst] `yields` whenTracing [D dst]
+prop_rm dst = command "rwmd" ["rm", unpath dst] `yields` return [D dst]
 
 prop_gcc :: Path -> [Access] -> Prop
-prop_gcc src deps = command "r" ["gcc", "-E", unpath src] `yields` whenTracing deps
+prop_gcc src deps = command "r" ["gcc", "-E", unpath src] `yields` return deps
 
 prop_cl :: Path -> [Access] -> Prop
-prop_cl src deps = command "r" ["cl", "/nologo", "/E", unpath src] `yields` whenTracing deps
+prop_cl src deps = command "r" ["cl", "/nologo", "/E", unpath src] `yields` return deps
 
 main :: IO ()
 main = do
