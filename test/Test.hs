@@ -29,7 +29,7 @@ type Prop = Reader Env Property
 newtype Arg = Arg { unarg :: String } deriving (Show, Eq)
 
 instance Arbitrary Arg where
-  arbitrary = liftM Arg $ listOf1 validChars
+  arbitrary = Arg <$> listOf1 validChars
     where validChars = arbitrary `suchThat` (`notElem` "\0")
 
 newtype Path = Path { unpath :: FilePath }
