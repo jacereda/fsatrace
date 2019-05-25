@@ -8,7 +8,6 @@ import           Parse
 import           Control.Monad.Extra
 import           Control.Monad.IO.Class
 import           Control.Monad.Trans.Reader
-import           Data.List.Extra
 import           Data.Maybe
 import           System.Directory
 import           System.Exit
@@ -30,6 +29,27 @@ prop_ArgsRoundtrip args = do
     assert $ case mout of
               Just out -> map (safe . unarg) args == read (head $ lines out)
               Nothing -> False
+
+
+prop_Tester :: (FSATest, [Act]) -> Prop
+prop_Tester (p, actLong) = do
+  e <- ask
+  act <- return $ limitCmdLine 1500 e actLong
+  let ans = concatMap (predict e) act
+  yieldsPrepare False
+      (sequence_ [writeFile x "" | R (Path x) <- ans])
+      (command "rwx" ((pwdDir e </> ".." </> show p) : showAct e act))
+      ans
+  where
+    predict e (ActR x) = [R $ Path $ tmpDir e </> x]
+    predict e (ActW x) = [W $ Path $ tmpDir e </> x]
+    predict e (ActE _ x) = concatMap (predict e) x
+    predict _ ActF = []
+
+    limitCmdLine :: Int -> Env -> [Act] -> [Act]
+    limitCmdLine n e (x:xs) | n2 > 0 = x : limitCmdLine n2 e xs
+      where n2 = n - (length (unwords $ showAct e [x]) + 1)
+    limitCmdLine _ _ _ = []
 
 
 prop_echo :: Path -> Path -> Prop
@@ -100,3 +120,5 @@ allTests sp sm = withSystemTempDirectory (if sp == Spaced then "fsatrace with sp
     ]
     ++ clTests
     ++ [qc "echo" $ prop_echo emitc srcc | sm == Shelled]
+    -- FIXME: Remove the restriction on sm == Unshelled
+    ++ [ noisy "random" >> quickCheckWithResult (stdArgs {maxSuccess=100}) (\x -> runReader (prop_Tester x) e) | sp == Unspaced, sm == Unshelled]
