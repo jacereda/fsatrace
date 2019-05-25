@@ -46,7 +46,7 @@ parsedOutputFrom :: [String] -> IO (Maybe [Access])
 parsedOutputFrom x = do
   mout <- outputFrom x
   return $ case mout of
-                Just out -> Just $ parse out
+                Just out -> Just $ parseFSATrace out
                 Nothing -> Nothing
 
 yields :: Reader Env [String] -> [Access] -> Prop
@@ -125,7 +125,7 @@ main = do
               qc s p = noisy s >> quickCheckWithResult (stdArgs {maxSuccess=1}) (runReader p e)
           _ <- outputFrom ["cp", "-R", src, tsrc]
           deps <- outputFrom ["gcc", "-MM", unpath emitc]
-          ndeps <- mapM canonicalizePath (parseDeps deps)
+          ndeps <- mapM canonicalizePath (parseMakefileDeps deps)
           cldeps <- if hascl then errorFrom ["cl", "/nologo", "/showIncludes", "/E", "/DPATH_MAX=4096", unpath clcsrc] else return []
           ncldeps <- if hascl then mapM canonicalizePath (unpath clcsrc : parseClDeps cldeps) else return []
           sequence $

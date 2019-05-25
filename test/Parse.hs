@@ -1,7 +1,7 @@
 
 -- | A test of the FSATrace program
 module Parse(
-    Access(..), parse, parseClDeps, parseDeps
+    Access(..), parseFSATrace, parseClDeps, parseMakefileDeps
 ) where
 
 import           Utils
@@ -22,8 +22,8 @@ data Access = R Path
             | RM Path Path
             deriving (Show, Eq, Ord)
 
-parse :: String -> [Access]
-parse = mapMaybe f . lines
+parseFSATrace :: String -> [Access]
+parseFSATrace = mapMaybe f . lines
     where f ('w':'|':xs) = Just $ W $ Path xs
           f ('r':'|':xs) = Just $ R $ Path xs
           f ('d':'|':xs) = Just $ D $ Path xs
@@ -39,8 +39,8 @@ parse = mapMaybe f . lines
           f _ = Nothing
 
 
-parseDeps :: Maybe String -> [FilePath]
-parseDeps = filter (/= " ") . map unhack . words . hack . drop 1 . dropWhile (/= ':') . fromMaybe ""
+parseMakefileDeps :: Maybe String -> [FilePath]
+parseMakefileDeps = filter (/= " ") . map unhack . words . hack . drop 1 . dropWhile (/= ':') . fromMaybe ""
   where hack ('\\':' ':xs) = '^':hack xs
         hack ('\\':'\n':xs) = ' ':hack xs
         hack (x:xs) = x:hack xs
