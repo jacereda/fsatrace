@@ -4,17 +4,24 @@ module Utils(
     Env(..), ShellMode(..), SpaceMode(..),
     Prop,
     Path(..), Arg(..),
-    cased, valid
-
+    cased, valid,
+    command, yields,
+    outputFrom
 ) where
 
 import           Parse
+
+import           Control.Monad
 import           Control.Monad.Trans.Reader
 import           Data.Char
-import           Data.List
+import           Data.List.Extra
+import           Data.Maybe
+import           System.Exit
+import           System.Process
 import           System.FilePath
 import           System.Info.Extra
 import           Test.QuickCheck
+import           Test.QuickCheck.Monadic
 --import           Debug.Trace
 
 data Env = Env
@@ -65,3 +72,46 @@ valid _ _ = True
 
 inTmp :: FilePath -> Path -> Bool
 inTmp t = isPrefixOf (cased t) . cased . unpath
+
+
+parsedOutputFrom :: [String] -> IO (Maybe [Access Path])
+parsedOutputFrom x = do
+  mout <- outputFrom x
+  return $ case mout of
+                Just out -> Just $ map (fmap Path) $ parseFSATrace out
+                Nothing -> Nothing
+
+yields :: Reader Env [String] -> [Access Path] -> Prop
+yields eargs res = do
+  e <- ask
+  return $ monadicIO $ do
+    let args = runReader eargs e
+    r <- run $ parsedOutputFrom args
+    let sr | isJust r = Just $ nubSort $ filter (valid $ tmpDir e) $ fromJust r
+           | otherwise = Nothing
+        ok = sr == Just res
+    unless ok $ run $ do
+      putStrLn $ "Expecting " ++ show res
+      putStrLn $ "Got       " ++ show sr
+    assert ok
+
+
+command :: String -> [String] -> Reader Env [String]
+command flags args = do
+  e <- ask
+  return $ [pwdDir e </> ".." </> "fsatrace", flags, "-", "--"] ++ cmd (shellMode e)
+  where cmd :: ShellMode -> [String]
+        cmd Unshelled = args
+        cmd Shelled | isWindows = "cmd.exe" : "/C" : args
+                    | otherwise = ["sh", "-c", unwords (map quoted args)]
+        quoted :: String -> String
+        quoted "|" = "|"
+        quoted ">" = ">"
+        quoted x = "\"" ++ x ++ "\""
+
+outputFrom :: [String] -> IO (Maybe String)
+outputFrom (cmd:args) = do
+  (rc,out,err) <- readProcessWithExitCode cmd args ""
+  when (err /= "") $ putStrLn err
+  return $ if rc == ExitSuccess then Just out else Nothing
+outputFrom _ = undefined
