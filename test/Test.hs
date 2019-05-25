@@ -69,7 +69,7 @@ errorFrom _ = undefined
 
 
 fsatrace :: String -> [String]
-fsatrace flags = [cd </> ".." </> "fsatrace", flags, "-", "--"]
+fsatrace flags = [pwd </> ".." </> "fsatrace", flags, "-", "--"]
 
 parsedOutputFrom :: [String] -> IO (Maybe [Access])
 parsedOutputFrom x = do
@@ -226,9 +226,9 @@ cased :: String -> String
 cased | isWindows = map toLower
       | otherwise = id
 
-cd :: FilePath
-{-# NOINLINE cd #-}
-cd = unsafePerformIO (getCurrentDirectory >>= canonicalizePath)
+pwd :: FilePath
+{-# NOINLINE pwd #-}
+pwd = unsafePerformIO (getCurrentDirectory >>= canonicalizePath)
 
 valid :: FilePath -> Access -> Bool
 valid t (R p) = inTmp t p
