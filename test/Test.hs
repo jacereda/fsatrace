@@ -1,3 +1,5 @@
+
+-- | A test of the FSATrace program
 module Main(main) where
 
 import           Control.Monad
