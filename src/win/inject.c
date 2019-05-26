@@ -18,10 +18,6 @@ void injectProcess(HANDLE proc) {
 	extern IMAGE_DOS_HEADER __ImageBase;
 	ASSERT(proc);
 
-	// On 32bit Windows when we spawn fsatracehelper it reenters
-	// and tries to run itself again, if we detect this we abort
-	if (injecting) return;
-
 	memset(dll, 0, sizeof(dll));
 	CHK(ndll = GetModuleFileNameA((HMODULE)&__ImageBase, dll, sizeof(dll)));
 
@@ -42,6 +38,12 @@ void injectProcess(HANDLE proc) {
 		const char * helpername = "fsatracehelper.exe";
 		char helper[PATH_MAX];
 		char * p;
+
+		// On 32bit Windows when we spawn fsatracehelper it reenters
+		// and tries to run itself again, if we detect this we abort
+		// since we don't need to trace the command fsatracehelper itself
+		if (injecting) return;
+
 		memset(&si, 0, sizeof(si));
 		memset(&pi, 0, sizeof(pi));
 		si.cb = sizeof(si);
@@ -50,6 +52,7 @@ void injectProcess(HANDLE proc) {
 		memcpy(p+1, helpername, strlen(helpername)+1);
 		injecting = 1;
 		CHK(CreateProcessA(0, helper, 0, 0, 0, 0, 0, 0, &si, &pi));
+		injecting = 0;
 		CHK(WAIT_OBJECT_0 == WaitForSingleObject(pi.hProcess, INFINITE));
 		CHK(GetExitCodeProcess(pi.hProcess, &rc));
 		addr = (FARPROC)(uintptr_t)rc;
