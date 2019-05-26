@@ -13,9 +13,6 @@
 #include <stdlib.h>
 #include <unistd.h>
 
-#ifndef _WIN32_WINNT
-#include <spawn.h>
-#endif
 
 void unescape(char* s)
 {
@@ -32,18 +29,30 @@ void unescape(char* s)
     s[w] = 0;
 }
 
+
 void exec(char* s)
 {
-    char* cmd;
+#ifndef _WIN32_WINNT
+	int child;
+    int rc;
+#endif
+
     char* args[1000];
-    cmd = strtok (s, " ");
-    args[0] = cmd;
+    args[0] = strtok (s, " ");
     for (int i = 1; i < 1000; i++) {
         args[i] = strtok(NULL, " ");
         if (args[i] == NULL)
             break;
     }
-    spawnv(P_WAIT, cmd, args);
+
+#ifdef _WIN32_WINNT
+    spawnv(P_WAIT, args[0], args);
+#else
+	child = fork();
+    if (child == 0)
+		execvp(args[0], args);
+    waitpid(child, &rc, 0);
+#endif
 }
 
 int main(int argc, const char* argv[])
