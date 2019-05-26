@@ -4,6 +4,7 @@
    rfile -- file to read
    wfile -- file to write
    e[command] -- command to execute
+   sN -- sleep for N seconds
    f -- raise a failure
 */
 
@@ -46,10 +47,12 @@ int main(int argc, const char* argv[])
 {
     int trace = 0;
     int exitCode = 0;
+
     for (int i = 1; i < argc; i++) {
         const char* s = argv[i];
         FILE* fp;
         char* cmdline;
+        int seconds;
 
         switch (s[0]) {
             case 'r':
@@ -65,6 +68,12 @@ int main(int argc, const char* argv[])
                 fp = fopen(&s[1], "w");
                 fputs("Written by fsatest harness\n", fp);
                 fclose(fp);
+                break;
+
+            case 's':
+                seconds = atoi(&s[i]);
+                if (trace) printf("Sleeping for: %is\n", seconds);
+                sleep(seconds);
                 break;
 
             case 'f':
