@@ -39,7 +39,7 @@ void exec(char* s)
         if (args[i] == NULL)
             break;
     }
-    execv(cmd, args);
+    spawnv(P_WAIT, cmd, args);
 }
 
 int main(int argc, const char* argv[])
