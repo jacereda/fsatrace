@@ -2,4 +2,4 @@
 :set -Wall
 :set -itest
 :load test/Test.hs test/DumpArgs.hs
-:def test \x -> return ":!stack exec make htest"
+:def test \_ -> return ":!stack exec make htest"
