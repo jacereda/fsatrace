@@ -13,9 +13,14 @@ import           System.Directory
 import           System.Exit
 import           System.FilePath
 import           System.IO.Temp
+import           System.Environment (lookupEnv)
 import           Test.QuickCheck
 import           Test.QuickCheck.Monadic
 --import           Debug.Trace
+
+
+lookupCC :: IO Path
+lookupCC = Path . fromMaybe "cc" <$> lookupEnv "CC"
 
 -- Confirm that we pass the arguments through properly
 -- using the helper executable @dumpargs@.
@@ -67,8 +72,8 @@ prop_touch dst = command "t" ["touch", unpath dst] `yields` [T dst]
 prop_rm :: Path -> Prop
 prop_rm dst = command "rwmd" ["rm", unpath dst] `yields` [D dst]
 
-prop_gcc :: Path -> [Access Path] -> Prop
-prop_gcc src deps = command "r" ["gcc", "-E", unpath src] `yields` deps
+prop_gcc :: Path -> Path -> [Access Path] -> Prop
+prop_gcc cc src deps = command "r" [unpath cc, "-E", unpath src] `yields` deps
 
 prop_cl :: Path -> [Access Path] -> Prop
 prop_cl src deps = command "r" ["cl", "/nologo", "/E", unpath src] `yields` deps
@@ -99,10 +104,11 @@ allTests sp sm = withSystemTempDirectory (if sp == Spaced then "fsatrace with sp
       e = Env {shellMode = sm, tmpDir = tmp, pwdDir = pwd}
       qc s p = noisy s >> quickCheckWithResult (stdArgs {maxSuccess=1}) (runReader p e)
 
+  cc <- lookupCC
   gccTests <- do
-    deps <- systemStdout ["gcc", "-MM", unpath emitc]
+    deps <- systemStdout [unpath cc, "-MM", unpath emitc]
     ndeps <- mapM canonicalizePath (parseMakefileDeps deps)
-    return [qc "gcc" $ prop_gcc emitc (rpaths ndeps)]
+    return [qc (unpath cc) $ prop_gcc cc emitc (rpaths ndeps)]
 
   clTests <- ifM (isNothing <$> findExecutable "cl.exe") (return []) $ do
     let clcsrc = Path $ tsrc </> "win" </> "handle.c"
