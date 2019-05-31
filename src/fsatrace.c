@@ -108,12 +108,12 @@ main(int argc, char *const argv[])
 	unsigned	nargs = argc - 4;
 	const unsigned char *opts;
 	char           *bopts;
-	int verr;
+	int		verr;
 	if (argc < 5 || (strcmp(argv[3], "--") && strcmp(argv[3], "---")))
 		fatal(" usage: %s <options> <output> -- <cmdline>\n"
 		      "  where <options> is a combination of the following characters:\n"
 		      "   v: print args vector\n"
-			  "   e: print verbose errors\n"
+		      "   e: print verbose errors\n"
 		      "   r: dump read operations\n"
 		      "   w: dump write operations\n"
 		      "   m: dump file move operations\n"
@@ -163,7 +163,7 @@ main(int argc, char *const argv[])
 		if (rc) {
 			if (verr)
 				aerror(nargs, args, "command failed with code %d", rc);
-		}			
+		}
 		if (strcmp(argv[3], "---")) {
 			uniq(buf, &sz, shm.buf + 4 + 256, "", 0);
 			dump(out, buf, sz);
