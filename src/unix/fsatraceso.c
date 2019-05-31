@@ -235,18 +235,54 @@ rename(const char *p1, const char *p2)
 }
 
 int
+renamex_np(const char *p1, const char *p2, unsigned fl)
+{
+	int		r;
+	char		b1        [PATH_MAX];
+	char           *rp1 = realpath(p1, b1);
+	static int      (*orenamex_np) (const char *, const char *, unsigned)= 0;
+	D;
+	R(renamex_np);
+	r = orenamex_np(p1, p2, fl);
+	if (!r) {
+		char		b2        [PATH_MAX];
+		char           *rp2 = realpath(p2, b2);
+		emitOp(rp1 ? 'm' : 'M', rp2, rp1);
+	}
+	DD;
+	return r;
+}
+
+int
 renameat(int fd1, const char *p1, int fd2, const char *p2)
 {
 	int		r;
 	D;
 	if (fd1 != AT_FDCWD || fd2 != AT_FDCWD) {
-		static int      (*orenameat) (const char *, const char *)= 0;
+		static int      (*orenameat) (int, const char *, int, const char *)= 0;
 		R(renameat);
-		r = orenameat(p1, p2);
+		r = orenameat(fd1, p1, fd2, p2);
 		if (!r)
 			emitOp('R', p2, p1);
 	} else
 		r = rename(p1, p2);
+	DD;
+	return r;
+}
+
+int
+renameatx_np(int fd1, const char *p1, int fd2, const char *p2, unsigned fl)
+{
+	int		r;
+	D;
+	if (fd1 != AT_FDCWD || fd2 != AT_FDCWD) {
+		static int      (*orenameatx_np) (int, const char *, int, const char *, unsigned)= 0;
+		R(renameatx_np);
+		r = orenameatx_np(fd1, p1, fd2, p2, fl);
+		if (!r)
+			emitOp('R', p2, p1);
+	} else
+		r = renamex_np(p1, p2, fl);
 	DD;
 	return r;
 }
