@@ -11,6 +11,7 @@
 #include <sys/stat.h>
 #include <sys/mman.h>
 #include <limits.h>
+#include <stdbool.h>
 #include <errno.h>
 #include <assert.h>
 #include <unistd.h>
