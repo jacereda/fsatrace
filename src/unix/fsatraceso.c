@@ -34,7 +34,7 @@
 #undef fopen64
 
 static const int wmode = O_RDWR | O_WRONLY | O_APPEND | O_CREAT | O_TRUNC;
-static const int debug = 0;
+static const bool debug = false;
 
 #define D do { char b[PATH_MAX]; if (!debug) break; procPath(b); fprintf(stderr, "%s:%d %s\n", b, getpid(), __FUNCTION__); fflush(stderr); } while (0)
 #define DD do { char b[PATH_MAX]; if (!debug) break; procPath(b); fprintf(stderr, "%s:%d /%s ->%lld\n", b, getpid(), __FUNCTION__, (long long)r); fflush(stderr); } while (0)

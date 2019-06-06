@@ -9,11 +9,31 @@
 #include "fsatrace.h"
 #include "shm.h"
 #include "emit.h"
-
 static struct shm shm;
 
+static const char * mygetenv(const char * v) {
+	const char * out = getenv(v);
+	if (!out) {
+		extern char ** environ;
+		size_t l = strlen(ENVOUT);
+		char ** p = environ;
+		while (*p) {
+			char * s = *p;
+			if (0 == strncmp(s, ENVOUT, l)) {
+				if (s[l] == '=') {
+					out = s+l+1;
+					break;
+				}
+			}
+			p++;
+		}
+	}
+	return out; 
+		
+}
+
 int emitInit() {
-	const char * out = getenv(ENVOUT);
+ 	const char * out = mygetenv(ENVOUT);
 	assert(!shm.buf);
 	return out? shmInit(&shm, out, LOGSZ, 0) : 1;
 }
