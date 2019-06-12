@@ -6,6 +6,7 @@
 #include <string.h>
 #include <fcntl.h>
 #include <limits.h>
+#include <windows.h>
 #ifdef _MSC_VER
 #include <io.h>
 #define ssize_t size_t
@@ -103,6 +104,7 @@ main(int argc, char *const argv[])
 	struct shm	shm;
 	size_t		sz = 0;
 	char		envout    [PATH_MAX];
+	char        varout    [PATH_MAX];
 	static char	buf [LOGSZ];
 	char           *const *args = argv + 4;
 	unsigned	nargs = argc - 4;
@@ -121,9 +123,10 @@ main(int argc, char *const argv[])
 		      "   q: dump file stat operations\n"
 		      ,argv[0]);
 	out = argv[2];
-	if ((err = shmInit(&shm, out, LOGSZ, 1)))
+	snprintf(varout, sizeof(varout), "%s_%ld", out, GetTickCount());
+	if ((err = shmInit(&shm, varout, LOGSZ, 1)))
 		fatal("allocating shared memory (%d)", err);
-	snprintf(envout, sizeof(envout), ENVOUT "=%s", out);
+	snprintf(envout, sizeof(envout), ENVOUT "=%s", varout);
 	putenv(envout);
 
 	opts = (const unsigned char *)argv[1];
