@@ -9,8 +9,7 @@ module Utils(
     cased, valid,
     command, yields, yieldsPrepare,
     systemStdout, systemStderr,
-    no32to64,
-    fixme
+    no32to64
   ) where
 
 import           Parse
@@ -140,7 +139,7 @@ instance Show FSATest where
   show FSATest32 = "fsatest32"
 
 instance Arbitrary FSATest where
-  arbitrary = elements $ FSATest : [FSATest32 | fixme False True]
+  arbitrary = elements [FSATest, FSATest32]
   shrink x = [FSATest | x /= FSATest]
 
 data Act = ActR FilePath
@@ -154,7 +153,7 @@ instance Arbitrary Act where
       [(8, ActR <$> name)
       ,(8, ActW <$> name)
       ,(1, return ActF)
-      ,(if sz > 10 then fixme 0 1 else 0, resize (min 20 $ sz-10) $ ActE <$> arbitrary <*> arbitrary)]
+      ,(if sz > 10 then 1 else 0, resize (min 20 $ sz-10) $ ActE <$> arbitrary <*> arbitrary)]
     where name = vectorOf 2 $ choose ('a', 'z')
 
   shrink (ActE a b) = (flip ActE b <$> (shrink a)) ++ (ActE a <$> shrink b) ++ b
@@ -177,7 +176,3 @@ no32to64 :: FSATest -> Act -> Act
 no32to64 FSATest32 (ActE _ xs) = ActE FSATest32 $ map (no32to64 FSATest32) xs
 no32to64 _ (ActE p xs) = ActE p $ map (no32to64 p) xs
 no32to64 _ x = x
-
--- second value is desirable, first is necessary
-fixme :: a -> a -> a
-fixme _ a = a

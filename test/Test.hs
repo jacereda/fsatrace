@@ -127,4 +127,4 @@ allTests sp sm = withSystemTempDirectory (if sp == Spaced then "fsatrace with sp
     ++ clTests
     ++ [qc "echo" $ prop_echo emitc srcc | sm == Shelled]
     -- FIXME: Remove the restriction on sm == Unshelled
-    ++ [ noisy "random" >> quickCheckWithResult (stdArgs {maxSuccess=100}) (\x -> runReader (prop_Tester x) e) | sp == Unspaced, fixme (sm == Unshelled) True]
+    ++ [ noisy "random" >> quickCheckWithResult (stdArgs {maxSuccess=100}) (\x -> runReader (prop_Tester x) e) | sp == Unspaced]
