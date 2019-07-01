@@ -180,4 +180,4 @@ no32to64 _ x = x
 
 -- second value is desirable, first is necessary
 fixme :: a -> a -> a
-fixme a _ = a
+fixme _ a = a
