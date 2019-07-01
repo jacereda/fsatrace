@@ -23,7 +23,7 @@ void injectProcess(HANDLE proc) {
 
 	// dll is one of mypath\fsatrace.exe, mypath\fsatrace64.dll or mypath\fsatrace32.dll
 	CHK(IsWow64Process(proc, &is32));
-	if (strcmp(&dll[ndll-4], ".exe") == 0)
+	if (strcasecmp(&dll[ndll-4], ".exe") == 0)
 		ndll -= 4; // .exe
 	else
 		ndll -= 6; // 32.dll or 64.dll
