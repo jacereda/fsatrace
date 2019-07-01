@@ -19,8 +19,8 @@ compilers or, alternatively, install
 https://github.com/commercialhaskell/stack and run the following
 sequence to get the required compilers:
 
-    stack setup 8.0.2 --arch=i386
-    stack setup 8.0.2 --arch=x86_64
+    stack setup --resolver ghc-8.6.5 --arch=x86_64
+    stack setup --resolver ghc-8.6.5 --arch=i386
     stack exec -- pacman -S make
 
 After that, invoke:
@@ -35,7 +35,7 @@ That should generate `fsatrace.exe`, `fsatracehelper.exe`,
 Make sure the .dll or .so files are in the same path as the `fsatrace`
 executable and run:
 
-	fsatrace <options> <output-file> -- <command>
+    fsatrace <options> <output-file> -- <command>
 
 Options is a combination of the following characters:
 
