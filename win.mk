@@ -9,11 +9,15 @@ DEPS32=$(patsubst %.o,%.d,$(OBJS32) $(HELPER_OBJ))
 LDLIBS=-lntdll -lpsapi
 
 lib: fsatrace32.dll fsatrace64.dll fsatracehelper.exe
+all: fsatest32.exe
 
 %32.o: %.c
 	$(CC32) -c $(CPPFLAGS32) $(CFLAGS) -march=i686 $< -o $@
 
 fsatracehelper.exe: $(HELPER_OBJ)
+	$(CC32) $< -o $@
+
+fsatest32.exe: src/fsatest32.o
 	$(CC32) $< -o $@
 
 fsatrace64.dll: $(OBJS64)

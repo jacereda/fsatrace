@@ -5,6 +5,9 @@ lib: fsatrace.so
 %.os: %.c
 	$(CC) -c -fPIC $(CPPFLAGS) $(CFLAGS) $< -o $@
 
+fsatest32: fsatest
+	cp $^ $@
+
 fsatrace.so: $(patsubst %.c,%.os,$(SOSRCS))
 	$(CC) -shared $(LFLAGS) $^ -o $@ $(LDLIBS)
 
