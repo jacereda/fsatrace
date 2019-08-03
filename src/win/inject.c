@@ -58,6 +58,7 @@ void injectProcess(HANDLE proc) {
 	CHK(-1 != ResumeThread(tid));
 	CHK(WAIT_OBJECT_0 == WaitForSingleObject(tid, INFINITE));
 	CHK(CloseHandle(tid));
+	CHK(VirtualFreeEx(proc, arg, 0, MEM_RELEASE));
 	ASSERT(0 == --nesting);
 }
 
