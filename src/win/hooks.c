@@ -1,3 +1,4 @@
+#include <stdbool.h>
 #if defined _MSC_VER
 #include <windows.h>
 #endif
@@ -188,7 +189,7 @@ static NTSTATUS NTAPI hNtQueryInformationFile(HANDLE fh,
 	r = oNtQueryInformationFile(fh, sb, fi, ln, ic);
 	if (NT_SUCCESS(r)) {
 		switch (ic) {
-		case FileAllInformation: 
+		case FileAllInformation:
 		case FileNetworkOpenInformation:
 			emitOp('q', handlePath(buf, fh), 0);
 			break;
@@ -228,7 +229,7 @@ void hooksInit(void *(*resolve)(const char *)) {
 #define HOOK(n)							\
 	addr = resolve(#n);					\
 	patchInstall(addr, (void *)h##n, (void **) &o##n, #n)
-	
+
 	HOOK(NtCreateFile);
 	HOOK(NtOpenFile);
 	HOOK(NtDeleteFile);

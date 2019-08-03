@@ -1,5 +1,6 @@
 #include <windows.h>
 #include <psapi.h>
+#include <stdbool.h>
 #include "../emit.h"
 #include "patch.h"
 #include "dbg.h"

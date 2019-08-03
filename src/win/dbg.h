@@ -3,7 +3,7 @@
 #define dbg(...)
 
 #ifdef TRACE
-#define D semit(__FUNCTION__ "\n")
+#define D pr(__FUNCTION__ "\n")
 #else
 #define D
 #endif
