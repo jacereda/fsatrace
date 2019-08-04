@@ -46,6 +46,8 @@ void injectProcess(HANDLE proc) {
 		CHK(CreateProcessA(0, helper, 0, 0, 0, 0, 0, 0, &si, &pi));
 		CHK(WAIT_OBJECT_0 == WaitForSingleObject(pi.hProcess, INFINITE));
 		CHK(GetExitCodeProcess(pi.hProcess, &rc));
+		CHK(CloseHandle(pi.hProcess));
+		CHK(CloseHandle(pi.hThread));
 		addr = (FARPROC)(uintptr_t)rc;
 	}
 	else
