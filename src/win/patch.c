@@ -1,5 +1,6 @@
 #include <stdint.h>
 #include <string.h>
+#include <stdbool.h>
 #include <windows.h>
 #include <psapi.h>
 #include "dbg.h"
@@ -95,16 +96,16 @@ void patchInstall(void *orig, void *hook, void **preal, const char *nm) {
 	dbg("modules patched\n");
 }
 
-int patchInstalled(DWORD pid) {
+bool patchInstalled(DWORD pid) {
 	static uint8_t pids[0x1000] = {0};
 	unsigned index = pid >> 2;
 	unsigned byte = (index >> 3) & 0xfff;
 	unsigned mask = 1 << (index & 7);
-	int ret;
+	bool ret;
 	EnterCriticalSection(&s_cs);
-	ret = pids[byte] & mask;
+	ret = (pids[byte] & mask) != 0;
 	pids[byte] |= mask;
-	LeaveCriticalSection(&s_cs);	
+	LeaveCriticalSection(&s_cs);
 	return ret;
 }
 
