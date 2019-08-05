@@ -14,11 +14,9 @@ void injectProcess(HANDLE proc) {
 	char dll[PATH_MAX];
 	int ndll;
 	DWORD rc;
-	static unsigned nesting = 0;
+	static int injecting;
 	extern IMAGE_DOS_HEADER __ImageBase;
 	ASSERT(proc);
-	ASSERT(0 == nesting++);
-	if (nesting > 1) return;
 	ZeroMemory(dll, sizeof(dll));
 	CHK(ndll = GetModuleFileNameA((HMODULE)&__ImageBase, dll, sizeof(dll)));
 
@@ -39,12 +37,20 @@ void injectProcess(HANDLE proc) {
 		const char * helpername = "fsatracehelper.exe";
 		char helper[PATH_MAX];
 		char * p;
+
+		// On 32bit Windows when we spawn fsatracehelper it reenters
+		// and tries to run itself again, if we detect this we abort
+		// since we don't need to trace the command fsatracehelper itself
+		if (injecting) return;
+
 		ZeroMemory(&si, sizeof(si));
 		si.cb = sizeof(si);
-		strcpy(helper, dll);
+		memcpy(helper, dll, strlen(dll)+1);
 		p = strrchr(helper, '\\');
-		strcpy(p+1, helpername);
+		memcpy(p+1, helpername, strlen(helpername)+1);
+		injecting = 1;
 		CHK(CreateProcessA(0, helper, 0, 0, 0, 0, 0, 0, &si, &pi));
+		injecting = 0;
 		CHK(WAIT_OBJECT_0 == WaitForSingleObject(pi.hProcess, INFINITE));
 		CHK(GetExitCodeProcess(pi.hProcess, &rc));
 		CHK(CloseHandle(pi.hProcess));
@@ -62,7 +68,6 @@ void injectProcess(HANDLE proc) {
 	CHK(WAIT_OBJECT_0 == WaitForSingleObject(tid, INFINITE));
 	CHK(CloseHandle(tid));
 	CHK(VirtualFreeEx(proc, arg, 0, MEM_RELEASE));
-	ASSERT(0 == --nesting);
 }
 
 void injectPID(DWORD pid) {
