@@ -19,7 +19,7 @@ void injectProcess(HANDLE proc) {
 	ASSERT(proc);
 	ASSERT(0 == nesting++);
 	if (nesting > 1) return;
-	memset(dll, 0, sizeof(dll));
+	ZeroMemory(dll, sizeof(dll));
 	CHK(ndll = GetModuleFileNameA((HMODULE)&__ImageBase, dll, sizeof(dll)));
 
 	// dll is one of mypath\fsatrace.exe, mypath\fsatrace64.dll or mypath\fsatrace32.dll
@@ -39,6 +39,7 @@ void injectProcess(HANDLE proc) {
 		const char * helpername = "fsatracehelper.exe";
 		char helper[PATH_MAX];
 		char * p;
+		ZeroMemory(&si, sizeof(si));
 		si.cb = sizeof(si);
 		strcpy(helper, dll);
 		p = strrchr(helper, '\\');
