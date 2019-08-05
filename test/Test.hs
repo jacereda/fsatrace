@@ -2,22 +2,21 @@
 -- | A test of the FSATrace program
 module Test(main) where
 
-import           Utils
 import           Parse
+import           Utils
 
 import           Control.Monad.Extra
 import           Control.Monad.IO.Class
 import           Control.Monad.Trans.Reader
 import           Data.Maybe
 import           System.Directory
+import           System.Environment         (lookupEnv)
 import           System.Exit
 import           System.FilePath
 import           System.IO.Temp
-import           System.Environment (lookupEnv)
 import           Test.QuickCheck
 import           Test.QuickCheck.Monadic
 --import           Debug.Trace
-
 
 lookupCC :: IO Path
 lookupCC = Path . fromMaybe "cc" <$> lookupEnv "CC"
@@ -33,7 +32,7 @@ prop_ArgsRoundtrip args = do
     mout <- liftIO $ systemStdout c
     assert $ case mout of
               Just out -> map (safe . unarg) args == read (head $ lines out)
-              Nothing -> False
+              Nothing  -> False
 
 
 prop_Tester :: (FSATest, [Act]) -> Prop
@@ -46,10 +45,10 @@ prop_Tester (p, actLong) = do
       (command "rwx" ((pwdDir e </> ".." </> show p) : showAct e act))
       ans
   where
-    predict e (ActR x) = [R $ Path $ tmpDir e </> x]
-    predict e (ActW x) = [W $ Path $ tmpDir e </> x]
+    predict e (ActR x)   = [R $ Path $ tmpDir e </> x]
+    predict e (ActW x)   = [W $ Path $ tmpDir e </> x]
     predict e (ActE _ x) = concatMap (predict e) x
-    predict _ ActF = []
+    predict _ ActF       = []
 
     limitCmdLine :: Int -> Env -> [Act] -> [Act]
     limitCmdLine n e (x:xs) | n2 > 0 = x : limitCmdLine n2 e xs
@@ -126,5 +125,4 @@ allTests sp sm = withSystemTempDirectory (if sp == Spaced then "fsatrace with sp
     ]
     ++ clTests
     ++ [qc "echo" $ prop_echo emitc srcc | sm == Shelled]
-    -- FIXME: Remove the restriction on sm == Unshelled
     ++ [ noisy "random" >> quickCheckWithResult (stdArgs {maxSuccess=100}) (\x -> runReader (prop_Tester x) e) | sp == Unspaced]
