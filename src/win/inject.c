@@ -11,6 +11,7 @@ void injectProcess(HANDLE proc) {
 	BOOL is32;
 	FARPROC addr;
 	LPVOID arg;
+	size_t argsz;
 	char dll[PATH_MAX];
 	int ndll;
 	DWORD rc;
@@ -28,7 +29,8 @@ void injectProcess(HANDLE proc) {
 		ndll -= 6; // 32.dll or 64.dll
 	memcpy(&dll[ndll], is32 ? "32.dll" : "64.dll", 6);
 
-	CHK(0 != (arg = VirtualAllocEx(proc, 0, strlen(dll) + 1,
+	argsz = strlen(dll) + 1;
+	CHK(0 != (arg = VirtualAllocEx(proc, 0, argsz,
 				       MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE)));
 
 	if (is32 && !IS32) {
@@ -45,7 +47,7 @@ void injectProcess(HANDLE proc) {
 
 		ZeroMemory(&si, sizeof(si));
 		si.cb = sizeof(si);
-		memcpy(helper, dll, strlen(dll)+1);
+		memcpy(helper, dll, argsz);
 		p = strrchr(helper, '\\');
 		memcpy(p+1, helpername, strlen(helpername)+1);
 		injecting = 1;
@@ -61,7 +63,7 @@ void injectProcess(HANDLE proc) {
 		addr = GetProcAddress(GetModuleHandle("kernel32.dll"), "LoadLibraryA");
 
 	CHK(addr);
-	CHK(WriteProcessMemory(proc, arg, dll, strlen(dll) + 1, NULL));
+	CHK(WriteProcessMemory(proc, arg, dll, argsz, NULL));
 	CHK(0 != (tid = CreateRemoteThread(proc, 0, 0,
 					   (LPTHREAD_START_ROUTINE)addr, arg, 0, 0)));
 	CHK(-1 != ResumeThread(tid));
