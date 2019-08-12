@@ -7,11 +7,8 @@
 #include "hooks.h"
 #include "utf8.h"
 
-static void * resolve(const char * name) {
+static void * resolve(void* dll, const char * name) {
 	void * ret;
-	static HANDLE dll = 0;
-	if (!dll)
-		CHK((dll = GetModuleHandleA("ntdll.dll")));
 	CHK((ret = GetProcAddress(dll, name)));
 	return ret;
 }
@@ -21,8 +18,8 @@ INT APIENTRY DllMain(HMODULE hDLL, DWORD Reason, LPVOID Reserved) {
 	(void)Reserved;
 	switch (Reason) {
 	case DLL_PROCESS_ATTACH:
-		emitInit();
-		{
+		CHK(0==emitInit());
+		if (1){
 			// DLLs that were loaded before we got hooked, so mark them as a read dependency
 			DWORD cb = 0;
 			wchar_t winBuf[PATH_MAX];
@@ -34,18 +31,19 @@ INT APIENTRY DllMain(HMODULE hDLL, DWORD Reason, LPVOID Reserved) {
 				if (sizeof(modules) >= cb) {
 					for (int i = 0; i < cb / sizeof(HMODULE); i++) {
 						DWORD res = GetModuleFileNameExW(hProcess, modules[i], winBuf, PATH_MAX);
-						if (res != 0)
-							emitOp('r', utf8PathFromWide(utfBuf, winBuf, res), 0);
+						emitOp(res != 0, 'r', utf8PathFromWide(utfBuf, winBuf, res), 0);
 					}
 				}
 			}
 		}
 		patchInit();
-		hooksInit(resolve);
+		HANDLE dll;
+		CHK((dll = GetModuleHandleA("ntdll.dll")));
+		hooksInit(resolve, dll);
 		break;
 	case DLL_PROCESS_DETACH:
 		patchTerm();
-		emitTerm();
+		CHK(0==emitTerm());
 		break;
 	}
 	return TRUE;

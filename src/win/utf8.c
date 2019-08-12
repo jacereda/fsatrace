@@ -5,11 +5,15 @@
 #include "dbg.h"
 #include "utf8.h"
 
-char * utf8PathFromWide(char *buf, const PWSTR s, unsigned sl){
+char * utf8FromWide(char *buf, const PWSTR s, unsigned sl){
 	int l;
 	l = WideCharToMultiByte(CP_UTF8, 0, s, sl, buf, PATH_MAX, 0, 0);
 	CHK(l || !sl);
 	buf[l] = 0;
+	return buf;
+}
+char * utf8PathFromWide(char *buf, const PWSTR s, unsigned sl){
+	utf8FromWide(buf, s, sl);
 	if (!buf[0])
 		return 0;
 	if (buf[0] == '\\' && !strchr(buf, ':'))

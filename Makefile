@@ -29,7 +29,7 @@ endif
 
 CFLAGS+= -g -std=c99 -Wall -O2 -fomit-frame-pointer -fno-stack-protector -MMD
 
-SRCS=src/fsatrace.c src/$(PLAT)/proc.c src/$(PLAT)/shm.c $(OSSRCS)
+SRCS=src/fsatrace.c src/emit.c src/$(PLAT)/proc.c src/$(PLAT)/shm.c $(OSSRCS)
 
 all: fsatrace$(EXE) lib fsatest$(EXE) fsatest32$(EXE)
 
@@ -55,7 +55,7 @@ test: all
 	./fsatrace$(EXE) wrmdqt - -- rm /tmp/bar
 	./fsatrace$(EXE) wrmdqt - -- $(CC) -c -D_GNU_SOURCE -D_BSD_SOURCE=1 -std=c99 -Wall src/fsatrace.c -o /tmp/fsatrace.o
 	./fsatrace$(EXE) wrmdqt - -- sh -c "cp /bin/ls /tmp/foo && mv /tmp/foo /tmp/bar && rm /tmp/bar"
-	./fsatrace$(EXE) wrmdqt - -- sh -c "cp /bin/ls /tmp/foo && mv /tmp/foo /tmp/bar && rm /tmp/bar" # twice, when dst exists it might use another path
+	./fsatrace$(EXE) wrmdqt! - -- sh -c "cp /bin/ls /tmp/foo && mv /tmp/foo /tmp/bar && rm /tmp/bar" # twice, when dst exists it might use another path
 
 htest: all
 	cd test && stack test

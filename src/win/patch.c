@@ -82,6 +82,8 @@ void patchInstall(void *orig, void *hook, void **preal, const char *nm) {
 	DWORD n;
 	DWORD i;
 	extern IMAGE_DOS_HEADER __ImageBase;
+	ASSERT(orig);
+	ASSERT(hook);
 	CHK(EnumProcessModules(GetCurrentProcess(), mod, sizeof(mod), &n));
 	n /= sizeof(HMODULE);
 	dbg("orig %s %p\n", nm, orig);

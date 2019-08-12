@@ -1,5 +1,5 @@
 struct shm {
-	char           *buf;
+	char		*buf;
 	char		name      [PATH_MAX];
 	char		storage   [32];
 };

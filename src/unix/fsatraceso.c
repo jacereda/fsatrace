@@ -20,6 +20,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <dlfcn.h>
+#include <stdbool.h>
 
 #include "../emit.h"
 #include "../fsatrace.h"
@@ -53,16 +54,16 @@ err(const char *msg, int err)
 }
 
 static void
-emit(int c, const char *p1)
+emit(bool ok, int c, const char *p1)
 {
 	char		ap        [PATH_MAX];
 	SE;
-	emitOp(c, realpath(p1, ap), 0);
+	emitOp(ok, c, realpath(p1, ap), 0);
 	RE;
 }
 
 static void
-fdemit(int c, int fd)
+fdemit(bool opok, int c, int fd)
 {
 	char		ap        [PATH_MAX];
 	int		ok;
@@ -80,7 +81,7 @@ fdemit(int c, int fd)
 			ap[written] = 0;
 	}
 #endif
-	emitOp(c, ok ? ap : 0, 0);
+	emitOp(opok, c, ok ? ap : 0, 0);
 	RE;
 }
 
@@ -96,7 +97,7 @@ init()
 	else {
 		char		b         [PATH_MAX];
 		procPath(b);
-		emit('r', b);
+		emit(true, 'r', b);
 	}
 	DD;
 }
@@ -134,8 +135,7 @@ fopen(const char *p, const char *m)
 	DP;
 	R(fopen);
 	r = ofopen(p, m);
-	if (r)
-		emit(strchr(m, 'r') ? 'r' : 'w', p);
+	emit(r != NULL, strchr(m, 'r') ? 'r' : 'w', p);
 	DD;
 	return r;
 }
@@ -148,8 +148,7 @@ fopen64(const char *p, const char *m)
 	DP;
 	R(fopen64);
 	r = ofopen64(p, m);
-	if (r)
-		emit(strchr(m, 'r') ? 'r' : 'w', p);
+	emit(r != NULL, strchr(m, 'r') ? 'r' : 'w', p);
 	DD;
 	return r;
 }
@@ -162,8 +161,7 @@ open(const char *p, int f, mode_t m)
 	DP;
 	R(open);
 	r = oopen(p, f, m);
-	if (r >= 0)
-		emit(f & wmode ? 'w' : 'r', p);
+	emit(r >= 0, f & wmode ? 'w' : 'r', p);
 	DD;
 	return r;
 }
@@ -176,8 +174,7 @@ open64(const char *p, int f, mode_t m)
 	DP;
 	R(open64);
 	r = oopen64(p, f, m);
-	if (r >= 0)
-		emit(f & wmode ? 'w' : 'r', p);
+	emit(r >= 0, f & wmode ? 'w' : 'r', p);
 	DD;
 	return r;
 }
@@ -191,8 +188,7 @@ openat(int fd, const char *p, int f, mode_t m)
 		static int      (*oopenat) (int, const char *, int, mode_t)= 0;
 		R(openat);
 		r = oopenat(fd, p, f, m);
-		if (r >= 0)
-			emitOp(f & wmode ? 'W' : 'R', p, 0);
+		emitOp(r >= 0, f & wmode ? 'W' : 'R', p, 0);
 	} else
 		r = open(p, f, m);
 	DD;
@@ -208,8 +204,7 @@ openat64(int fd, const char *p, int f, mode_t m)
 		static int      (*oopenat64) (int, const char *, int, mode_t)= 0;
 		R(openat64);
 		r = oopenat64(fd, p, f, m);
-		if (r >= 0)
-			emitOp(f & wmode ? 'W' : 'R', p, 0);
+		emitOp(r >= 0, f & wmode ? 'W' : 'R', p, 0);
 	} else
 		r = open64(p, f, m);
 	DD;
@@ -222,15 +217,13 @@ rename(const char *p1, const char *p2)
 	int		r;
 	char		b1        [PATH_MAX];
 	char           *rp1 = realpath(p1, b1);
+	char		b2        [PATH_MAX];
+	char           *rp2 = realpath(p2, b2);
 	static int      (*orename) (const char *, const char *)= 0;
 	D;
 	R(rename);
 	r = orename(p1, p2);
-	if (!r) {
-		char		b2        [PATH_MAX];
-		char           *rp2 = realpath(p2, b2);
-		emitOp(rp1 ? 'm' : 'M', rp2, rp1);
-	}
+	emitOp(!r, rp1 ? 'm' : 'M', rp2, rp1);
 	DD;
 	return r;
 }
@@ -241,15 +234,13 @@ renamex_np(const char *p1, const char *p2, unsigned fl)
 	int		r;
 	char		b1        [PATH_MAX];
 	char           *rp1 = realpath(p1, b1);
+	char		b2        [PATH_MAX];
+	char           *rp2 = realpath(p2, b2);
 	static int      (*orenamex_np) (const char *, const char *, unsigned)= 0;
 	D;
 	R(renamex_np);
 	r = orenamex_np(p1, p2, fl);
-	if (!r) {
-		char		b2        [PATH_MAX];
-		char           *rp2 = realpath(p2, b2);
-		emitOp(rp1 ? 'm' : 'M', rp2, rp1);
-	}
+	emitOp(!r, rp1 ? 'm' : 'M', rp2, rp1);
 	DD;
 	return r;
 }
@@ -263,8 +254,7 @@ renameat(int fd1, const char *p1, int fd2, const char *p2)
 		static int      (*orenameat) (int, const char *, int, const char *)= 0;
 		R(renameat);
 		r = orenameat(fd1, p1, fd2, p2);
-		if (!r)
-			emitOp('R', p2, p1);
+		emitOp(!r, 'R', p2, p1);
 	} else
 		r = rename(p1, p2);
 	DD;
@@ -280,8 +270,7 @@ renameatx_np(int fd1, const char *p1, int fd2, const char *p2, unsigned fl)
 		static int      (*orenameatx_np) (int, const char *, int, const char *, unsigned)= 0;
 		R(renameatx_np);
 		r = orenameatx_np(fd1, p1, fd2, p2, fl);
-		if (!r)
-			emitOp('R', p2, p1);
+		emitOp(!r, 'R', p2, p1);
 	} else
 		r = renamex_np(p1, p2, fl);
 	DD;
@@ -299,8 +288,7 @@ unlink(const char *p)
 	R(unlink);
 	rp = realpath(p, b);
 	r = ounlink(p);
-	if (!r)
-		emitOp('d', rp, 0);
+	emitOp(!r, 'd', rp, 0);
 	DD;
 	return r;
 }
@@ -314,8 +302,7 @@ unlinkat(int fd, const char *p, int f)
 		static int      (*ounlinkat) (int fd, const char *p, int f);
 		R(unlinkat);
 		r = ounlinkat(fd, p, f);
-		if (!r)
-			emitOp('D', p, 0);
+		emitOp(!r, 'D', p, 0);
 		assert(0);
 	} else if (f & AT_REMOVEDIR)
 		r = rmdir(p);
@@ -333,8 +320,7 @@ futimes(int fd, const struct timeval t[2])
 	D;
 	R(futimes);
 	r = ofutimes(fd, t);
-	if (!r)
-		fdemit('t', fd);
+	fdemit(!r, 't', fd);
 	DD;
 	return r;
 }
@@ -347,8 +333,7 @@ utimes(const char *p, const struct timeval t[2])
 	DP;
 	R(utimes);
 	r = outimes(p, t);
-	if (!r)
-		emit('t', p);
+	emit(!r, 't', p);
 	DD;
 	return r;
 }
@@ -367,8 +352,8 @@ fstat(int fd, struct stat *buf)
 	resolv((void **)&ofstat, "fstat" SUF);
 	nested++;
 	r = ofstat(fd, buf);
-	if (!r && nested == 1)
-		fdemit('q', fd);
+	if (nested == 1)
+		fdemit(!r, 'q', fd);
 	nested--;
 	DD;
 	return r;
@@ -383,8 +368,8 @@ stat(const char *p, struct stat *buf)
 	resolv((void **)&ostat, "stat" SUF);
 	nested++;
 	r = ostat(p, buf);
-	if (!r && nested == 1)
-		emit('q', p);
+	if (nested == 1)
+		emit(!r, 'q', p);
 	nested--;
 	DD;
 	return r;
@@ -399,8 +384,8 @@ access(const char *p, int m)
 	R(access);
 	nested++;
 	r = oaccess(p, m);
-	if (!r && nested == 1)
-		emit('q', p);
+	if (nested == 1)
+		emit(!r'q', p);
 	nested--;
 	DD;
 	return r;
@@ -415,8 +400,8 @@ lstat(const char *restrict p, struct stat *buf)
 	resolv((void **)&olstat, "lstat" SUF);
 	nested++;
 	r = olstat(p, buf);
-	if (!r && nested == 1)
-		emit('q', p);
+	if (nested == 1)
+		emit(!r, 'q', p);
 	nested--;
 	DD;
 	return r;
@@ -431,8 +416,7 @@ fstatat(int fd, const char *p, struct stat *buf, int flag)
 		static int      (*ofstatat) (int, const char *, struct stat *, int)= 0;
 		resolv((void **)&ofstatat, "fstatat" SUF);
 		r = ofstatat(fd, p, buf, flag);
-		if (!r)
-			emit('Q', p);
+		emit(!r, 'Q', p);
 	} else if (flag & AT_SYMLINK_NOFOLLOW)
 		r = stat(p, buf);
 	else
@@ -452,8 +436,7 @@ __fxstat(int v, int fd, struct stat *restrict buf)
 	D;
 	R(__fxstat);
 	r = o__fxstat(v, fd, buf);
-	if (!r)
-		fdemit('q', fd);
+	fdemit(!r, 'q', fd);
 	DD;
 	return r;
 }
@@ -466,8 +449,7 @@ __xstat(int v, const char *restrict p, struct stat *restrict buf)
 	DP;
 	R(__xstat);
 	r = o__xstat(v, p, buf);
-	if (!r)
-		emit('q', p);
+	emit(!r, 'q', p);
 	DD;
 	return r;
 }
@@ -480,8 +462,7 @@ __xlstat(int v, const char *restrict p, struct stat *restrict buf)
 	DP;
 	R(__xlstat);
 	r = o__xlstat(v, p, buf);
-	if (!r)
-		emit('q', p);
+	emit(!r, 'q', p);
 	DD;
 	return r;
 }
@@ -495,8 +476,7 @@ __fxstatat(int v, int fd, const char *p, struct stat *buf, int flag)
 		static int      (*o__fxstatat) (int, int, const char *, struct stat *restrict, int)= 0;
 		R(__fxstatat);
 		r = o__fxstatat(v, fd, p, buf, flag);
-		if (!r)
-			emit('Q', p);
+		emit(!r, 'Q', p);
 	} else if (flag & AT_SYMLINK_NOFOLLOW)
 		r = __xstat(v, p, buf);
 	else
@@ -528,8 +508,7 @@ utimensat(int fd, const char *p, const struct timespec ts[2], int flags)
 		) {
 		R(utimensat);
 		r = outimensat(fd, p, ts, flags);
-		if (!r)
-			emit('T', p);
+		emit(!r, 'T', p);
 	} else {
 		struct timeval	tv[2];
 		ts2tv(tv + 0, ts + 0);
@@ -549,8 +528,7 @@ futimens(int fd, const struct timespec ts[2])
 	D;
 	R(futimens);
 	r = ofutimens(fd, ts);
-	if (!r)
-		fdemit('t', fd);
+	fdemit(!r, 't', fd);
 	DD;
 	return r;
 }

@@ -1,10 +1,12 @@
 #include <stdint.h>
 #include <windows.h>
 #include <limits.h>
+#include <psapi.h>
 
 #include <shellapi.h>
 #include "dbg.h"
 #include "fsatrace.h"
+#include "utf8.h"
 
 void injectProcess(HANDLE proc) {
 	HANDLE tid;
@@ -39,11 +41,11 @@ void injectProcess(HANDLE proc) {
 		const char * helpername = "fsatracehelper.exe";
 		char helper[PATH_MAX];
 		char * p;
-
 		// On 32bit Windows when we spawn fsatracehelper it reenters
 		// and tries to run itself again, if we detect this we abort
 		// since we don't need to trace the command fsatracehelper itself
-		if (injecting) return;
+		if (injecting)
+			return;
 
 		ZeroMemory(&si, sizeof(si));
 		si.cb = sizeof(si);
@@ -52,17 +54,18 @@ void injectProcess(HANDLE proc) {
 		memcpy(p+1, helpername, strlen(helpername)+1);
 		injecting = 1;
 		CHK(CreateProcessA(0, helper, 0, 0, 0, 0, 0, 0, &si, &pi));
-		injecting = 0;
+		CHK(WAIT_OBJECT_0 == WaitForSingleObject(pi.hThread, INFINITE));
 		CHK(WAIT_OBJECT_0 == WaitForSingleObject(pi.hProcess, INFINITE));
 		CHK(GetExitCodeProcess(pi.hProcess, &rc));
 		CHK(CloseHandle(pi.hProcess));
 		CHK(CloseHandle(pi.hThread));
+		injecting = 0;
 		addr = (FARPROC)(uintptr_t)rc;
 	}
 	else
 		addr = GetProcAddress(GetModuleHandle("kernel32.dll"), "LoadLibraryA");
-
 	CHK(addr);
+
 	CHK(WriteProcessMemory(proc, arg, dll, argsz, NULL));
 	CHK(0 != (tid = CreateRemoteThread(proc, 0, 0,
 					   (LPTHREAD_START_ROUTINE)addr, arg, 0, 0)));
@@ -75,6 +78,11 @@ void injectProcess(HANDLE proc) {
 void injectPID(DWORD pid) {
 	HANDLE h;
 	CHK(0 != (h = OpenProcess(PROCESS_ALL_ACCESS, TRUE, pid)));
+	if (0) {
+		char buf[8192];
+		GetProcessImageFileNameA(h, buf, sizeof(buf));
+		pr("pid %d img %s", pid, buf);
+	}
 	injectProcess(h);
 	CHK(CloseHandle(h));
 }

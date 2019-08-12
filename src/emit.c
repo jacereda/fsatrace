@@ -4,6 +4,7 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <stdbool.h>
+#include <unistd.h>
 #include <sys/types.h>
 #include <stdlib.h>
 #include <string.h>
@@ -12,6 +13,8 @@
 #include "shm.h"
 #include "emit.h"
 static struct shm shm;
+
+static const bool emitpid = false;
 
 static const char * mygetenv(const char * v) {
 	const char * out = getenv(v);
@@ -55,7 +58,7 @@ int emitTerm() {
 	return shm.buf? shmTerm(&shm, 0) : 1;
 }
 
-void emitOp(int oc, const char *op1, const char *p2)
+void emitOp(bool ok, int oc, const char *op1, const char *p2)
 {
 	char           *dst = shm.buf + 4 + 256;
 	char *opts = shm.buf+4;
@@ -67,8 +70,12 @@ void emitOp(int oc, const char *op1, const char *p2)
 	char           *p;
 	const char * p1;
 	int c;
-	if (!shm.buf || !opts[tolower(oc)])
+	char pid[32];
+	size_t pidsz;
+	if (!shm.buf || !opts[tolower(oc)] || (!ok && !opts['!']))
 		return;
+	if (emitpid)
+		pidsz = snprintf(pid, sizeof(pid), "%d", getpid());
 	p1 = op1? op1 : "<unknown>";
 	c = op1? oc : toupper(oc);
 	s1 = strlen(p1);
@@ -77,10 +84,21 @@ void emitOp(int oc, const char *op1, const char *p2)
 		s2 = strlen(p2);
 		sz += s2 + 1;
 	}
+	if (!ok)
+		sz++;
+	if (emitpid)
+		sz += pidsz + 1;
 	sofar = __sync_fetch_and_add(psofar, sz);
 	p = dst + sofar;
+	if (!ok)
+		*p++ = '!';
 	*p++ = c;
 	*p++ = '|';
+	if (emitpid) {
+		memcpy(p, pid, pidsz);
+		p += pidsz;
+		*p++ = ':';
+	}
 	memcpy(p, p1, s1);
 	p += s1;
 	if (p2) {

@@ -1,1 +1,1 @@
-void hooksInit(void *(*)(const char *));
+void hooksInit(void *(*)(void*, const char *), void*);

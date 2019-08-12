@@ -120,6 +120,7 @@ main(int argc, char *const argv[])
 		      "   m: dump file move operations\n"
 		      "   d: dump file delete operations\n"
 		      "   q: dump file stat operations\n"
+			  "   !: dump failed operations\n"
 		      ,argv[0]);
 	out = argv[2];
 	if ((err = shmInit(&shm, out, LOGSZ, 1)))
