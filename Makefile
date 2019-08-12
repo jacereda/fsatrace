@@ -58,7 +58,7 @@ test: all
 	./fsatrace$(EXE) wrmdqt - -- sh -c "cp /bin/ls /tmp/foo && mv /tmp/foo /tmp/bar && rm /tmp/bar" # twice, when dst exists it might use another path
 
 htest: all
-	cd test && stack test
+	cd test && stack install && stack test
 
 
 -include $(patsubst %.c,%.d,$(SRCS))
