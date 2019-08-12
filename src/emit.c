@@ -2,6 +2,8 @@
 #include <ctype.h>
 #include <limits.h>
 #include <stdint.h>
+#include <stdio.h>
+#include <stdbool.h>
 #include <sys/types.h>
 #include <stdlib.h>
 #include <string.h>
@@ -15,11 +17,11 @@ static const char * mygetenv(const char * v) {
 	const char * out = getenv(v);
 	if (!out) {
 		extern char ** environ;
-		size_t l = strlen(ENVOUT);
+		size_t l = strlen(v);
 		char ** p = environ;
 		while (*p) {
 			char * s = *p;
-			if (0 == strncmp(s, ENVOUT, l)) {
+			if (0 == strncmp(s, v, l)) {
 				if (s[l] == '=') {
 					out = s+l+1;
 					break;
@@ -28,12 +30,23 @@ static const char * mygetenv(const char * v) {
 			p++;
 		}
 	}
-	return out; 
-		
+	if (!out) {
+			static char buf[PATH_MAX];
+			const char * path = getenv("PATH");
+			unsigned i = 0;
+			while (path[i] != ';') {
+					buf[i] = path[i];
+					i++;
+			}
+			buf[i] = 0;
+			out = buf;
+	}
+	return out;
 }
 
 int emitInit() {
  	const char * out = mygetenv(ENVOUT);
+	assert(out);
 	assert(!shm.buf);
 	return out? shmInit(&shm, out, LOGSZ, 0) : 1;
 }

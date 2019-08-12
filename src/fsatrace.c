@@ -1,5 +1,6 @@
 #include <sys/types.h>
 #include <inttypes.h>
+#include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdarg.h>
@@ -102,7 +103,7 @@ main(int argc, char *const argv[])
 	const char     *out;
 	struct shm	shm;
 	size_t		sz = 0;
-	char		envout    [PATH_MAX];
+	char		envout    [65536];
 	static char	buf [LOGSZ];
 	char           *const *args = argv + 4;
 	unsigned	nargs = argc - 4;
@@ -125,7 +126,11 @@ main(int argc, char *const argv[])
 		fatal("allocating shared memory (%d)", err);
 	snprintf(envout, sizeof(envout), ENVOUT "=%s", out);
 	putenv(envout);
-
+	// Workaround, bash distributed with ghc 8.6.5 seems to discard most
+	// environment variables, pass FSAT_OUT as the first PATH component.
+	snprintf(envout, sizeof(envout), "PATH=%s;%s", out, getenv("PATH"));
+	putenv(envout);
+	fflush(stdout);
 	opts = (const unsigned char *)argv[1];
 	bopts = shm.buf + 4;
 	while (*opts)
