@@ -218,11 +218,12 @@ rename(const char *p1, const char *p2)
 	char		b1        [PATH_MAX];
 	char           *rp1 = realpath(p1, b1);
 	char		b2        [PATH_MAX];
-	char           *rp2 = realpath(p2, b2);
+	char           *rp2;
 	static int      (*orename) (const char *, const char *)= 0;
 	D;
 	R(rename);
 	r = orename(p1, p2);
+	rp2 = realpath(p2, b2);
 	emitOp(!r, rp1 ? 'm' : 'M', rp2, rp1);
 	DD;
 	return r;
@@ -254,7 +255,7 @@ renameat(int fd1, const char *p1, int fd2, const char *p2)
 		static int      (*orenameat) (int, const char *, int, const char *)= 0;
 		R(renameat);
 		r = orenameat(fd1, p1, fd2, p2);
-		emitOp(!r, 'R', p2, p1);
+		emitOp(!r, 'M', p2, p1);
 	} else
 		r = rename(p1, p2);
 	DD;
@@ -270,7 +271,7 @@ renameatx_np(int fd1, const char *p1, int fd2, const char *p2, unsigned fl)
 		static int      (*orenameatx_np) (int, const char *, int, const char *, unsigned)= 0;
 		R(renameatx_np);
 		r = orenameatx_np(fd1, p1, fd2, p2, fl);
-		emitOp(!r, 'R', p2, p1);
+		emitOp(!r, 'M', p2, p1);
 	} else
 		r = renamex_np(p1, p2, fl);
 	DD;
@@ -282,11 +283,10 @@ unlink(const char *p)
 {
 	int		r;
 	char		b         [PATH_MAX];
-	char           *rp;
+	char           *rp = realpath(p, b);
 	static int      (*ounlink) (const char *)= 0;
 	DP;
 	R(unlink);
-	rp = realpath(p, b);
 	r = ounlink(p);
 	emitOp(!r, 'd', rp, 0);
 	DD;
@@ -385,7 +385,7 @@ access(const char *p, int m)
 	nested++;
 	r = oaccess(p, m);
 	if (nested == 1)
-		emit(!r'q', p);
+		emit(!r, 'q', p);
 	nested--;
 	DD;
 	return r;
