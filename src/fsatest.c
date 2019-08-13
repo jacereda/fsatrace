@@ -12,6 +12,9 @@
 #include <string.h>
 #include <stdlib.h>
 #include <unistd.h>
+#if !defined _WIN32_WINNT
+#include <sys/wait.h>
+#endif
 
 
 void unescape(char* s)
