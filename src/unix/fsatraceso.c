@@ -236,11 +236,12 @@ renamex_np(const char *p1, const char *p2, unsigned fl)
 	char		b1        [PATH_MAX];
 	char           *rp1 = realpath(p1, b1);
 	char		b2        [PATH_MAX];
-	char           *rp2 = realpath(p2, b2);
+	char           *rp2;
 	static int      (*orenamex_np) (const char *, const char *, unsigned)= 0;
 	D;
 	R(renamex_np);
 	r = orenamex_np(p1, p2, fl);
+	rp2 = realpath(p2, b2);	
 	emitOp(!r, rp1 ? 'm' : 'M', rp2, rp1);
 	DD;
 	return r;
