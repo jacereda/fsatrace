@@ -264,7 +264,7 @@ renameat(int fd1, const char *p1, int fd2, const char *p2)
 		R(renameat);
 		r = orenameat(fd1, p1, fd2, p2);
 		if (!r)
-			emitOp('R', p2, p1);
+			emitOp('M', p2, p1);
 	} else
 		r = rename(p1, p2);
 	DD;
@@ -281,7 +281,7 @@ renameatx_np(int fd1, const char *p1, int fd2, const char *p2, unsigned fl)
 		R(renameatx_np);
 		r = orenameatx_np(fd1, p1, fd2, p2, fl);
 		if (!r)
-			emitOp('R', p2, p1);
+			emitOp('M', p2, p1);
 	} else
 		r = renamex_np(p1, p2, fl);
 	DD;
