@@ -53,7 +53,7 @@ argvToCommandLine(LPWSTR dst, unsigned n, LPWSTR * args) {
 					EMITN('\\', 2*ns+1);
 					EMIT('"');
 					break;
-				default: 
+				default:
 					EMITN('\\', ns);
 					EMIT(arg[i]);
 				}
@@ -86,10 +86,10 @@ procDumpArgs(unsigned xnargs, char * const xaargs[]) {
 	int argc;
 	LPWSTR * wargv = CommandLineToArgvW(cl, &argc);
 	WCHAR args[MAXCMD];
-	fprintf(stderr, "original=%ls\n", cl);	
+	fprintf(stderr, "original=%ls\n", cl);
 	for (i = 4; i < argc; i++)
 		fprintf(stderr, "argv[%d]=%ls\n", i-4, wargv[i]);
-	argvToCommandLine(args, argc-4, wargv+4);	
+	argvToCommandLine(args, argc-4, wargv+4);
 	fprintf(stderr, "composed=%ls\n", args);
 	LocalFree(wargv);
 }
@@ -116,9 +116,9 @@ procRun(unsigned xnargs, char * const xargs[], int * rc)
 		injectProcess(pi.hProcess);
 	CHK(ERR_PROC_EXEC, -1 == ResumeThread(pi.hThread));
 	CHK(ERR_PROC_WAIT, WAIT_OBJECT_0 != WaitForSingleObject(pi.hThread, INFINITE));
-	CHK(ERR_PROC_WAIT, WAIT_OBJECT_0 != WaitForSingleObject(pi.hProcess, INFINITE));	
+	CHK(ERR_PROC_WAIT, WAIT_OBJECT_0 != WaitForSingleObject(pi.hProcess, INFINITE));
 	CHK(ERR_PROC_WAIT, !GetExitCodeProcess(pi.hProcess, &drc));
-	CHK(ERR_PROC_FORK, !CloseHandle(pi.hThread));	
+	CHK(ERR_PROC_FORK, !CloseHandle(pi.hThread));
 	CHK(ERR_PROC_FORK, !CloseHandle(pi.hProcess));
 	if (err == ERR_PROC_OK)
 		*rc = drc;
