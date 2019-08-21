@@ -6,10 +6,10 @@
 #include "dbg.h"
 #include "handle.h"
 
-char * handlePath(char * dst, HANDLE h) {
+const char * handlePath(char * dst, HANDLE h) {
 	WCHAR wbuf[PATH_MAX];
 	DWORD len;
-	if (h)
+	if (h && h != INVALID_HANDLE_VALUE)
 		len = GetFinalPathNameByHandleW(h, wbuf, PATH_MAX, FILE_NAME_NORMALIZED);
 	else
 		len = 0;

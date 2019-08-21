@@ -1,12 +1,8 @@
 #include <stdbool.h>
-#if defined _MSC_VER
 #include <windows.h>
-#endif
 #include <winternl.h>
 #include <limits.h>
-#include <stdbool.h>
 #include <processthreadsapi.h>
-#undef ASSERT
 #include "dbg.h"
 #include "../emit.h"
 #include "handle.h"
@@ -54,8 +50,23 @@ enum { FileBasicInformation = 4,
 
 static volatile unsigned g_nesting = 0;
 
-#define ORIG(x) do { g_nesting++; r = x; if (g_nesting > 1) goto done; } while(0)
-#define DONE done: do { --g_nesting; return r; } while (0)
+static const bool g_debug = true;
+
+#define ORIG(x)												\
+		do {												\
+				g_nesting++;								\
+				if (g_debug) pr("%s %d", #x, g_nesting);	\
+				r = o##x;									\
+				if (g_nesting > 1)							\
+						goto done;							\
+		} while(0)
+#define DONE							 \
+		done:							 \
+		do {							 \
+				--g_nesting;			 \
+				if (g_debug) pr("done"); \
+				return r;				 \
+		} while (0)
 
 static const int fop(ACCESS_MASK am, ULONG co) {
 	int op;
@@ -65,36 +76,37 @@ static const int fop(ACCESS_MASK am, ULONG co) {
 		op = '?';
 	else if (co & FILE_DELETE_ON_CLOSE)
 		op = 'd';
-	else if (am & DELETE)
-		op = 'd';
 	else if (am & GENERIC_WRITE)
 		op = 'w';
-	else if (am & (GENERIC_READ | READ_CONTROL))
+	else if (am & GENERIC_READ)
 		op = 'r';
 	else
 		op = '?';
 	return op;
 }
 
-static char * oaPath(char * buf, POBJECT_ATTRIBUTES oa) {
+static const char * oaPath(char * buf, const POBJECT_ATTRIBUTES oa) {
 	size_t l = 0;
+	if (!oa) return NULL;
 	if (oa->RootDirectory) {
-		handlePath(buf, oa->RootDirectory);
-		l = strlen(buf);
-		buf[l] = '/';
-		buf[++l] = 0;
+		const char * p = handlePath(buf, oa->RootDirectory);
+		if (p) {
+				l = strlen(p);
+				buf[l++] = '/';
+				buf[l] = 0;
+		}
 	}
 	return utf8PathFromWide(buf+l, oa->ObjectName->Buffer, oa->ObjectName->Length/2);
 }
 
-static void femit(bool ok, HANDLE h, POBJECT_ATTRIBUTES oa, int op) {
+static void femit(bool ok, HANDLE h, const POBJECT_ATTRIBUTES oa, int op) {
 	if (op) {
 		IO_STATUS_BLOCK sb;
 		FILE_STANDARD_INFORMATION si;
 		oNtQueryInformationFile(h, &sb, &si, sizeof(si), FileStandardInformation);
 		if (!si.Directory) {
 			char buf[PATH_MAX];
-			char * p = oaPath(buf, oa);
+			const char * p = oaPath(buf, oa);
 			if (!p)
 					p = handlePath(buf, h);
 			if (!p)
@@ -116,15 +128,10 @@ static NTSTATUS NTAPI hNtCreateFile(PHANDLE ph,
                                     PVOID bu,
                                     ULONG le) {
 	NTSTATUS r;
-	D;
-	ORIG(oNtCreateFile(ph, am, oa, sb, as, fa, sa, cd, co, bu, le));
-#ifdef TRACE
-	if (true) {
-		char buf[PATH_MAX];
-		pr("creat r %d am %x co %x fa %x sa %x cd %x op %c %s", r, am, co, fa, sa, cd, fop(am, co), oaPath(buf, oa));
-	}
-#endif
-	femit(NT_SUCCESS(r), *ph, oa, fop(am, co));
+	if (ph)
+		*ph=INVALID_HANDLE_VALUE;
+	ORIG(NtCreateFile(ph, am, oa, sb, as, fa, sa, cd, co, bu, le));
+	femit(NT_SUCCESS(r), ph? *ph : INVALID_HANDLE_VALUE, oa, fop(am, co));
 	DONE;
 }
 
@@ -135,25 +142,17 @@ static NTSTATUS NTAPI hNtOpenFile(PHANDLE ph,
                                   ULONG sa,
                                   ULONG oo) {
 	NTSTATUS r;
-	D;
-	*ph = 0;
-	ORIG(oNtOpenFile(ph, am, oa, sb, sa, oo));
-#ifdef TRACE
-	if (true) {
-		char buf[PATH_MAX];
-		char hbuf[PATH_MAX];
-		pr("open r %d am %x oo %x p op %c %s %s", r, am, oo, fop(am, oo), oaPath(buf, oa), handlePath(hbuf, *ph));
-	}
-#endif
-	femit(NT_SUCCESS(r), *ph, oa, fop(am, oo));
+	if (ph)
+		*ph=INVALID_HANDLE_VALUE;
+	ORIG(NtOpenFile(ph, am, oa, sb, sa, oo));
+	femit(NT_SUCCESS(r), ph? *ph : INVALID_HANDLE_VALUE, oa, fop(am, oo));
 	DONE;
 }
 
 static NTSTATUS NTAPI hNtDeleteFile(POBJECT_ATTRIBUTES oa) {
 	NTSTATUS r;
 	char buf[PATH_MAX];
-	D;
-	ORIG(oNtDeleteFile(oa));
+	ORIG(NtDeleteFile(oa));
 	emitOp(NT_SUCCESS(r), 'd', oaPath(buf, oa), 0);
 	DONE;
 }
@@ -165,27 +164,26 @@ static NTSTATUS NTAPI hNtSetInformationFile(HANDLE fh,
                                             FILE_INFORMATION_CLASS ic) {
 	NTSTATUS r;
 	char buf[PATH_MAX];
-	char buf2[PATH_MAX];
 #ifdef _MSC_VER
 	PFILE_RENAME_INFO ri = (PFILE_RENAME_INFO)fi;
 #else
 	PFILE_RENAME_INFORMATION ri = (PFILE_RENAME_INFORMATION)fi;
 #endif
-	char * opath = handlePath(buf, fh);
+	const char * opath = handlePath(buf, fh);
 	bool ok;
-	D;
-	ORIG(oNtSetInformationFile(fh, sb, fi, ln, ic));
+	ORIG(NtSetInformationFile(fh, sb, fi, ln, ic));
 	ok = NT_SUCCESS(r);
 	switch (ic) {
 	case FileBasicInformation:
 		emitOp(ok, 't', opath, 0);
 		break;
-	case FileRenameInformation:
+	case FileRenameInformation: {
+		char buf2[PATH_MAX];
 		emitOp(ok, opath? 'm' : 'M',
 		       utf8PathFromWide(buf2, ri->FileName,
 								ri->FileNameLength / sizeof(ri->FileName[0])),
 		       opath);
-		break;
+	}   break;
 	case FileDispositionInformation:
 		emitOp(ok, 'd', opath, 0);
 		break;
@@ -193,6 +191,7 @@ static NTSTATUS NTAPI hNtSetInformationFile(HANDLE fh,
 		emitOp(ok, 'w', opath, 0);
 		break;
 	default:
+		emitOp(ok, '?', opath, 0);
 		break;
 	}
 	DONE;
@@ -205,18 +204,18 @@ static NTSTATUS NTAPI hNtQueryInformationFile(HANDLE fh,
                                               FILE_INFORMATION_CLASS ic) {
 	NTSTATUS r;
 	char buf[PATH_MAX];
-	D;
-	ORIG(oNtQueryInformationFile(fh, sb, fi, ln, ic));
-#ifdef TRACE
-	pr("queryinfofile r %d ic %x", r, ic);
-#endif
+	const char * opath;
+	bool ok;
+	ORIG(NtQueryInformationFile(fh, sb, fi, ln, ic));
+	ok = NT_SUCCESS(r);
+	opath = handlePath(buf, fh);
 	switch (ic) {
 	case FileAllInformation:
 	case FileNetworkOpenInformation:
-		emitOp(NT_SUCCESS(r), 'q', handlePath(buf, fh), 0);
+		emitOp(ok, 'q', opath, 0);
 		break;
 	default:
-		emitOp(NT_SUCCESS(r), '?', handlePath(buf, fh), 0);
+		emitOp(ok, '?', opath, 0);
 		break;
 	}
 	DONE;
@@ -226,11 +225,7 @@ static NTSTATUS NTAPI hNtQueryInformationFile(HANDLE fh,
 static NTSTATUS NTAPI hNtQueryFullAttributesFile(POBJECT_ATTRIBUTES oa, PFILE_NETWORK_OPEN_INFORMATION oi) {
 	NTSTATUS r;
 	char buf[PATH_MAX];
-	D;
-	ORIG(oNtQueryFullAttributesFile(oa, oi));
-#ifdef TRACE
-	pr("queryfull %s", oaPath(buf, oa));
-#endif
+	ORIG(NtQueryFullAttributesFile(oa, oi));
 	emitOp(NT_SUCCESS(r), 'q', oaPath(buf, oa), 0);
 	DONE;
 }
@@ -238,12 +233,12 @@ static NTSTATUS NTAPI hNtQueryFullAttributesFile(POBJECT_ATTRIBUTES oa, PFILE_NE
 static NTSTATUS NTAPI hNtResumeThread(HANDLE th, PULONG sc) {
 	NTSTATUS r;
 	DWORD pid;
-	D;
 	pid = GetProcessIdOfThread(th);
+	if (g_debug) pr("patch %d", pid);
 	if (!patchInstalled(pid))
 		injectPID(pid);
-	r = oNtResumeThread(th, sc);
-	return r;
+	ORIG(NtResumeThread(th, sc));
+	DONE;
 }
 
 
