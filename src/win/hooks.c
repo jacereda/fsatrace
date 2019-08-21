@@ -50,7 +50,7 @@ enum { FileBasicInformation = 4,
 
 static volatile unsigned g_nesting = 0;
 
-static const bool g_debug = true;
+static const bool g_debug = false;
 
 #define ORIG(x)												\
 		do {												\
