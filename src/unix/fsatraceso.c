@@ -6,6 +6,7 @@
 #define unlink Ounlink
 #define fopen Ofopen
 #define fopen64 Ofopen64
+#define access Oaccess
 
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -34,9 +35,12 @@
 #undef unlink
 #undef fopen
 #undef fopen64
+#undef access
 
 static const int wmode = O_RDWR | O_WRONLY | O_APPEND | O_CREAT | O_TRUNC;
 static const bool debug = false;
+static volatile int __thread nested = 0;
+
 
 #define D do { char b[PATH_MAX]; if (!debug) break; procPath(b); fprintf(stderr, "%s:%d %s\n", b, getpid(), __FUNCTION__); fflush(stderr); } while (0)
 #define DD do { char b[PATH_MAX]; if (!debug) break; procPath(b); fprintf(stderr, "%s:%d /%s ->%lld\n", b, getpid(), __FUNCTION__, (long long)r); fflush(stderr); } while (0)
@@ -44,6 +48,14 @@ static const bool debug = false;
 
 #define SE int _oerrno = errno
 #define RE errno = _oerrno
+
+
+const char * path(const char * p, char * buf) {
+	const char * r = realpath(p, buf);
+	if (!r)
+		r = p;
+	return r;
+}
 
 static void
 err(const char *msg, int err)
@@ -58,7 +70,7 @@ emit(bool ok, int c, const char *p1)
 {
 	char		ap        [PATH_MAX];
 	SE;
-	emitOp(ok, c, realpath(p1, ap), 0);
+	emitOp(ok, c, path(p1, ap), 0);
 	RE;
 }
 
@@ -216,13 +228,14 @@ rename(const char *p1, const char *p2)
 {
 	int		r;
 	char		b1        [PATH_MAX];
-	char           *rp1 = realpath(p1, b1);
+	const char      *rp1 = path(p1, b1);
 	char		b2        [PATH_MAX];
-	char           *rp2 = realpath(p2, b2);
+	const char      *rp2;
 	static int      (*orename) (const char *, const char *)= 0;
 	D;
 	R(rename);
 	r = orename(p1, p2);
+	rp2 = path(p2, b2);
 	emitOp(!r, rp1 ? 'm' : 'M', rp2, rp1);
 	DD;
 	return r;
@@ -233,13 +246,14 @@ renamex_np(const char *p1, const char *p2, unsigned fl)
 {
 	int		r;
 	char		b1        [PATH_MAX];
-	char           *rp1 = realpath(p1, b1);
+	const char      *rp1 = path(p1, b1);
 	char		b2        [PATH_MAX];
-	char           *rp2 = realpath(p2, b2);
+	const char      *rp2;
 	static int      (*orenamex_np) (const char *, const char *, unsigned)= 0;
 	D;
 	R(renamex_np);
 	r = orenamex_np(p1, p2, fl);
+	rp2 = path(p2, b2);	
 	emitOp(!r, rp1 ? 'm' : 'M', rp2, rp1);
 	DD;
 	return r;
@@ -254,7 +268,7 @@ renameat(int fd1, const char *p1, int fd2, const char *p2)
 		static int      (*orenameat) (int, const char *, int, const char *)= 0;
 		R(renameat);
 		r = orenameat(fd1, p1, fd2, p2);
-		emitOp(!r, 'R', p2, p1);
+		emitOp(!r, 'M', p2, p1);
 	} else
 		r = rename(p1, p2);
 	DD;
@@ -270,7 +284,7 @@ renameatx_np(int fd1, const char *p1, int fd2, const char *p2, unsigned fl)
 		static int      (*orenameatx_np) (int, const char *, int, const char *, unsigned)= 0;
 		R(renameatx_np);
 		r = orenameatx_np(fd1, p1, fd2, p2, fl);
-		emitOp(!r, 'R', p2, p1);
+		emitOp(!r, 'M', p2, p1);
 	} else
 		r = renamex_np(p1, p2, fl);
 	DD;
@@ -282,11 +296,10 @@ unlink(const char *p)
 {
 	int		r;
 	char		b         [PATH_MAX];
-	char           *rp;
+	const char      *rp = path(p, b);
 	static int      (*ounlink) (const char *)= 0;
 	DP;
 	R(unlink);
-	rp = realpath(p, b);
 	r = ounlink(p);
 	emitOp(!r, 'd', rp, 0);
 	DD;
@@ -338,10 +351,21 @@ utimes(const char *p, const struct timeval t[2])
 	return r;
 }
 
+int
+access(const char *p, int m)
+{
+	int		r;
+	static int      (*oaccess) (const char *, int)= 0;
+	DP;
+	R(access);
+	r = oaccess(p, m);
+	emit(!r, 'q', p);
+	DD;
+	return r;
+}
+
 #ifdef __APPLE__
 #define SUF "$INODE64"
-
-static volatile int __thread nested = 0;
 
 int
 fstat(int fd, struct stat *buf)
@@ -370,22 +394,6 @@ stat(const char *p, struct stat *buf)
 	r = ostat(p, buf);
 	if (nested == 1)
 		emit(!r, 'q', p);
-	nested--;
-	DD;
-	return r;
-}
-
-int
-access(const char *p, int m)
-{
-	int		r;
-	static int      (*oaccess) (const char *, int)= 0;
-	DP;
-	R(access);
-	nested++;
-	r = oaccess(p, m);
-	if (nested == 1)
-		emit(!r'q', p);
 	nested--;
 	DD;
 	return r;

@@ -20,6 +20,7 @@ procPath(char *fullpath)
 	snprintf(exepath, sizeof(exepath), "/proc/%d/exe", getpid());
 	ret = readlink(exepath, fullpath, PATH_MAX);
 	assert(ret != -1);
+	fullpath[ret] = 0;
 #else
 	proc_pidpath  (getpid(), fullpath, PATH_MAX);
 #endif
