@@ -49,13 +49,13 @@ clean: cleanlib
 	rm -f fsatrace$(EXE) $(patsubst %.c,%.o,$(SRCS)) $(patsubst %.c,%.d,$(SRCS))
 
 test: all
-	./fsatrace$(EXE) wrmdqt - -- cp /bin/ls /tmp/foo
-	./fsatrace$(EXE) wrmdqt - -- mv /tmp/foo /tmp/bar
-	./fsatrace$(EXE) wrmdqt - -- touch /tmp/bar
-	./fsatrace$(EXE) wrmdqt - -- rm /tmp/bar
-	./fsatrace$(EXE) wrmdqt - -- $(CC) -c -D_GNU_SOURCE -D_BSD_SOURCE=1 -std=c99 -Wall src/fsatrace.c -o /tmp/fsatrace.o
-	./fsatrace$(EXE) wrmdqt - -- sh -c "cp /bin/ls /tmp/foo && mv /tmp/foo /tmp/bar && rm /tmp/bar"
-	./fsatrace$(EXE) wrmdqt! - -- sh -c "cp /bin/ls /tmp/foo && mv /tmp/foo /tmp/bar && rm /tmp/bar" # twice, when dst exists it might use another path
+	./fsatrace$(EXE) ewrmdqt - -- cp /bin/ls /tmp/foo
+	./fsatrace$(EXE) ewrmdqt - -- mv /tmp/foo /tmp/bar
+	./fsatrace$(EXE) ewrmdqt - -- touch /tmp/bar
+	./fsatrace$(EXE) ewrmdqt - -- rm /tmp/bar
+	./fsatrace$(EXE) ewrmdqt - -- $(CC) -c -D_GNU_SOURCE -D_BSD_SOURCE=1 -std=c99 -Wall src/fsatrace.c -o /tmp/fsatrace.o
+	./fsatrace$(EXE) ewrmdqt - -- sh -c "cp /bin/ls /tmp/foo && mv /tmp/foo /tmp/bar && rm /tmp/bar"
+	./fsatrace$(EXE) ewrmdqt! - -- sh -c "cp /bin/ls /tmp/foo && mv /tmp/foo /tmp/bar && rm /tmp/bar" # twice, when dst exists it might use another path
 
 htest: all
 	cd test && stack install && stack test
