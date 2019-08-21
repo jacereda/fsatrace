@@ -20,18 +20,18 @@ import           Control.Monad.Trans.Reader
 import           Data.Char
 import           Data.List.Extra
 import           System.Exit
-import           System.IO
-import           System.Process
 import           System.FilePath
 import           System.Info.Extra
+import           System.IO
+import           System.Process
 import           Test.QuickCheck
 import           Test.QuickCheck.Monadic
 --import           Debug.Trace
 
 data Env = Env
     { shellMode :: ShellMode
-    , tmpDir :: FilePath
-    , pwdDir :: FilePath
+    , tmpDir    :: FilePath
+    , pwdDir    :: FilePath
     }
 
 type Prop = Reader Env Property
@@ -95,6 +95,7 @@ yieldsPrepare fatal prepare eargs res = do
       let r = fmap (cleanup . map (fmap Path) . parseFSATrace) out
       let ok = fmap cleanup r == Just (cleanup res)
       unless ok $ liftIO $ do
+        putStrLn $ "For command " ++ show cmd
         putStrLn $ "Expecting " ++ show (cleanup res)
         putStrLn $ "Got       " ++ show r
       assert ok
@@ -111,7 +112,7 @@ command flags args = do
         quoted :: String -> String
         quoted "|" = "|"
         quoted ">" = ">"
-        quoted x = "\"" ++ x ++ "\""
+        quoted x   = "\"" ++ x ++ "\""
 
 
 systemStderr :: [String] -> IO (Maybe String)
@@ -135,7 +136,7 @@ data FSATest = FSATest | FSATest32
     deriving Eq
 
 instance Show FSATest where
-  show FSATest = "fsatest"
+  show FSATest   = "fsatest"
   show FSATest32 = "fsatest32"
 
 instance Arbitrary FSATest where
@@ -174,5 +175,5 @@ showAct e = map f
 
 no32to64 :: FSATest -> Act -> Act
 no32to64 FSATest32 (ActE _ xs) = ActE FSATest32 $ map (no32to64 FSATest32) xs
-no32to64 _ (ActE p xs) = ActE p $ map (no32to64 p) xs
-no32to64 _ x = x
+no32to64 _ (ActE p xs)         = ActE p $ map (no32to64 p) xs
+no32to64 _ x                   = x
