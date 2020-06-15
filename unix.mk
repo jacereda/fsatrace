@@ -9,7 +9,7 @@ fsatest32: fsatest
 	cp $^ $@
 
 fsatrace.so: $(patsubst %.c,%.os,$(SOSRCS))
-	$(CC) -shared $(LFLAGS) $^ -o $@ $(LDLIBS)
+	$(CC) -shared $(LDFLAGS) $^ -o $@ $(LDLIBS)
 
 libinstall: fsatrace.so
 	cp fsatrace.so $(INSTALLDIR)

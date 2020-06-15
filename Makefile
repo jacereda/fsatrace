@@ -16,8 +16,10 @@ else
 
 PLAT=unix
 CPPFLAGS=-D_GNU_SOURCE -D_DEFAULT_SOURCE=1
+LDFLAGS=-g
 
 OS=$(shell uname -s)
+LS=$(shell which ls)
 
 ifeq ($(OS),Linux)
 LDLIBS=-ldl -lrt
@@ -27,7 +29,7 @@ INSTALLDIR=$(HOME)/.local/bin
 
 endif
 
-CFLAGS+= -g -std=c99 -Wall -O2 -fomit-frame-pointer -fno-stack-protector -MMD
+CFLAGS+= -g -std=c99 -Wall -O0 -fno-omit-frame-pointer -fno-stack-protector -MMD
 
 SRCS=src/fsatrace.c src/$(PLAT)/proc.c src/$(PLAT)/shm.c $(OSSRCS)
 
@@ -49,13 +51,13 @@ clean: cleanlib
 	rm -f fsatrace$(EXE) $(patsubst %.c,%.o,$(SRCS)) $(patsubst %.c,%.d,$(SRCS))
 
 test: all
-	./fsatrace$(EXE) wrmdqt - -- cp /bin/ls /tmp/foo
-	./fsatrace$(EXE) wrmdqt - -- mv /tmp/foo /tmp/bar
+	./fsatrace$(EXE) wrmdqt - -- cp $(LS) /tmp/foo
+	./fsatrace$(EXE) wrmdqt - -- mv -f /tmp/foo /tmp/bar
 	./fsatrace$(EXE) wrmdqt - -- touch /tmp/bar
-	./fsatrace$(EXE) wrmdqt - -- rm /tmp/bar
+	./fsatrace$(EXE) wrmdqt - -- rm -f /tmp/bar
 	./fsatrace$(EXE) wrmdqt - -- $(CC) -c -D_GNU_SOURCE -D_BSD_SOURCE=1 -std=c99 -Wall src/fsatrace.c -o /tmp/fsatrace.o
-	./fsatrace$(EXE) wrmdqt - -- sh -c "cp /bin/ls /tmp/foo && mv /tmp/foo /tmp/bar && rm /tmp/bar"
-	./fsatrace$(EXE) wrmdqt - -- sh -c "cp /bin/ls /tmp/foo && mv /tmp/foo /tmp/bar && rm /tmp/bar" # twice, when dst exists it might use another path
+	./fsatrace$(EXE) wrmdqt - -- sh -c "cp $(LS) /tmp/foo && mv -f /tmp/foo /tmp/bar && rm -f /tmp/bar"
+	./fsatrace$(EXE) wrmdqt - -- sh -c "cp $(LS) /tmp/foo && mv -f /tmp/foo /tmp/bar && rm -f /tmp/bar" # twice, when dst exists it might use another path
 
 htest: all
 	cd test && stack install && stack test

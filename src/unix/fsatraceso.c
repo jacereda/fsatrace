@@ -486,6 +486,21 @@ __xlstat(int v, const char *restrict p, struct stat *restrict buf)
 	return r;
 }
 
+
+int
+__lxstat(int v, const char *restrict p, struct stat *restrict buf)
+{
+	int		r;
+	static int      (*o__lxstat) (int, const char *restrict, struct stat *restrict)= 0;
+	DP;
+	R(__lxstat);
+	r = o__lxstat(v, p, buf);
+	if (!r)
+		emit('q', p);
+	DD;
+	return r;
+}
+
 int
 __fxstatat(int v, int fd, const char *p, struct stat *buf, int flag)
 {
@@ -500,7 +515,7 @@ __fxstatat(int v, int fd, const char *p, struct stat *buf, int flag)
 	} else if (flag & AT_SYMLINK_NOFOLLOW)
 		r = __xstat(v, p, buf);
 	else
-		r = __xlstat(v, p, buf);
+		r = __lxstat(v, p, buf);
 	DD;
 	return r;
 }
@@ -521,6 +536,7 @@ utimensat(int fd, const char *p, const struct timespec ts[2], int flags)
 	DP;
 	if (fd != AT_FDCWD
 	    || flags == AT_SYMLINK_NOFOLLOW
+	    || !ts
 	    || ts[0].tv_nsec == UTIME_NOW
 	    || ts[0].tv_nsec == UTIME_OMIT
 	    || ts[1].tv_nsec == UTIME_NOW
