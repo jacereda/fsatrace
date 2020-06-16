@@ -137,18 +137,27 @@ static char * realpathat(int ifd, const char * p, char * ap, size_t sz) {
 	int f;
 	int ok;
 	int fd;
+	int cur = ifd == AT_FDCWD;
 	static int      (*oopenat) (int, const char *, int, mode_t)= 0;
 	R(openat);
-	if (ifd == AT_FDCWD)
+	if (cur)
 		fd = oopenat(AT_FDCWD, ".", O_RDONLY, 0);
 	else
 		fd = ifd;
 	f = oopenat(fd, p, O_RDONLY, 0);
 	ok = fdpath(f, ap, sz);
 	close(f);
-	if (ifd == AT_FDCWD)
+	if (cur)
 		close(fd);
 	return ok? ap : NULL;
+}
+
+static void
+atemit(int c, int fd, const char * p, char * pp) {
+	char		ap        [PATH_MAX];
+	SE;
+	emitOp(c, realpathat(fd, p, ap, sizeof(ap)), pp);
+	RE;
 }
 
 FILE           *
@@ -212,14 +221,11 @@ openat(int fd, const char *p, int f, mode_t m)
 {
 	int		r;
 	DP;
-	if (fd != AT_FDCWD) {
-		static int      (*oopenat) (int, const char *, int, mode_t)= 0;
-		R(openat);
-		r = oopenat(fd, p, f, m);
-		if (r >= 0)
-			fdemit(f & wmode ? 'w' : 'r', r);
-	} else
-		r = open(p, f, m);
+	static int      (*oopenat) (int, const char *, int, mode_t)= 0;
+	R(openat);
+	r = oopenat(fd, p, f, m);
+	if (r >= 0)
+		fdemit(f & wmode ? 'w' : 'r', r);
 	DD;
 	return r;
 }
@@ -229,14 +235,11 @@ openat64(int fd, const char *p, int f, mode_t m)
 {
 	int		r;
 	DP;
-	if (fd != AT_FDCWD) {
-		static int      (*oopenat64) (int, const char *, int, mode_t)= 0;
-		R(openat64);
-		r = oopenat64(fd, p, f, m);
-		if (r >= 0)
-			fdemit(f & wmode ? 'w' : 'r', r);
-	} else
-		r = open64(p, f, m);
+	static int      (*oopenat64) (int, const char *, int, mode_t)= 0;
+	R(openat64);
+	r = oopenat64(fd, p, f, m);
+	if (r >= 0)
+		fdemit(f & wmode ? 'w' : 'r', r);
 	DD;
 	return r;
 }
@@ -280,18 +283,33 @@ renamex_np(const char *p1, const char *p2, unsigned fl)
 }
 
 int
+renameat2(int fd1, const char *p1, int fd2, const char *p2, unsigned fl)
+{
+	int		r;
+	D;
+	static int      (*orenameat2) (int, const char *, int, const char *, unsigned)= 0;
+	char		b        [PATH_MAX];
+	R(renameat2);
+	realpathat(fd1, p1, b, sizeof(b));
+	r = orenameat2(fd1, p1, fd2, p2, fl);
+	if (!r)
+		atemit('m', fd2, p2, b);
+	DD;
+	return r;
+}
+
+int
 renameat(int fd1, const char *p1, int fd2, const char *p2)
 {
 	int		r;
 	D;
-	if (fd1 != AT_FDCWD || fd2 != AT_FDCWD) {
-		static int      (*orenameat) (int, const char *, int, const char *)= 0;
-		R(renameat);
-		r = orenameat(fd1, p1, fd2, p2);
-		if (!r)
-			emitOp('M', p2, p1);
-	} else
-		r = rename(p1, p2);
+	static int      (*orenameat) (int, const char *, int, const char *)= 0;
+	char		b        [PATH_MAX];
+	R(renameat);
+	realpathat(fd1, p1, b, sizeof(b));
+	r = orenameat(fd1, p1, fd2, p2);
+	if (!r)
+		atemit('m', fd2, p2, b);
 	DD;
 	return r;
 }
@@ -300,15 +318,14 @@ int
 renameatx_np(int fd1, const char *p1, int fd2, const char *p2, unsigned fl)
 {
 	int		r;
+	char		b         [PATH_MAX];
 	D;
-	if (fd1 != AT_FDCWD || fd2 != AT_FDCWD) {
-		static int      (*orenameatx_np) (int, const char *, int, const char *, unsigned)= 0;
-		R(renameatx_np);
-		r = orenameatx_np(fd1, p1, fd2, p2, fl);
-		if (!r)
-			emitOp('M', p2, p1);
-	} else
-		r = renamex_np(p1, p2, fl);
+	static int      (*orenameatx_np) (int, const char *, int, const char *, unsigned)= 0;
+	R(renameatx_np);
+	realpathat(fd1, p1, b, sizeof(b));
+	r = orenameatx_np(fd1, p1, fd2, p2, fl);
+	if (!r)
+		atemit('m', fd2, p2, b);
 	DD;
 	return r;
 }
@@ -335,18 +352,13 @@ unlinkat(int fd, const char *p, int f)
 {
 	int		r;
 	DP;
-	if (fd != AT_FDCWD) {
-		static int      (*ounlinkat) (int fd, const char *p, int f);
-		char		b         [PATH_MAX];
-		char * rp = realpathat(fd, p, b, sizeof(b));
-		R(unlinkat);
-		r = ounlinkat(fd, p, f);
-		if (!r)
-			emitOp(rp? 'd' : 'D', rp? rp : p, 0);
-	} else if (f & AT_REMOVEDIR)
-		r = rmdir(p);
-	else
-		r = unlink(p);
+	char		b         [PATH_MAX];
+	char * rp = realpathat(fd, p, b, sizeof(b));
+	static int      (*ounlinkat) (int, const char *, int);
+	R(unlinkat);
+	r = ounlinkat(fd, p, f);
+	if (!r)
+		emitOp(rp? 'd' : 'D', rp? rp : p, 0);
 	DD;
 	return r;
 }
@@ -453,16 +465,11 @@ fstatat(int fd, const char *p, struct stat *buf, int flag)
 {
 	int		r;
 	DP;
-	if (fd != AT_FDCWD) {
-		static int      (*ofstatat) (int, const char *, struct stat *, int)= 0;
-		resolv((void **)&ofstatat, "fstatat" SUF);
-		r = ofstatat(fd, p, buf, flag);
-		if (!r)
-			emit('Q', p);
-	} else if (flag & AT_SYMLINK_NOFOLLOW)
-		r = stat(p, buf);
-	else
-		r = lstat(p, buf);
+	static int      (*ofstatat) (int, const char *, struct stat *, int)= 0;
+	R(fstatat);
+	r = ofstatat(fd, p, buf, flag);
+	if (!r)
+		atemit('q', fd, p, NULL);
 	DD;
 	return r;
 
@@ -532,26 +539,13 @@ __fxstatat(int v, int fd, const char *p, struct stat *buf, int flag)
 {
 	int		r;
 	DP;
-	if (fd != AT_FDCWD) {
-		static int      (*o__fxstatat) (int, int, const char *, struct stat *restrict, int)= 0;
-		R(__fxstatat);
-		r = o__fxstatat(v, fd, p, buf, flag);
-		if (!r)
-			emit('Q', p);
-	} else if (flag & AT_SYMLINK_NOFOLLOW)
-		r = __xstat(v, p, buf);
-	else
-		r = __lxstat(v, p, buf);
+	static int      (*o__fxstatat) (int, int, const char *, struct stat *restrict, int)= 0;
+	R(__fxstatat);
+	r = o__fxstatat(v, fd, p, buf, flag);
+	if (!r)
+		atemit('q', fd, p, NULL);
 	DD;
 	return r;
-}
-
-
-static void
-ts2tv(struct timeval *tv, const struct timespec *ts)
-{
-	tv->tv_sec = ts->tv_sec;
-	tv->tv_usec = ts->tv_nsec / 1000;
 }
 
 int
@@ -560,24 +554,10 @@ utimensat(int fd, const char *p, const struct timespec ts[2], int flags)
 	int		r;
 	static int      (*outimensat) (int, const char *, const struct timespec[2], int);
 	DP;
-	if (fd != AT_FDCWD
-	    || flags == AT_SYMLINK_NOFOLLOW
-	    || !ts
-	    || ts[0].tv_nsec == UTIME_NOW
-	    || ts[0].tv_nsec == UTIME_OMIT
-	    || ts[1].tv_nsec == UTIME_NOW
-	    || ts[1].tv_nsec == UTIME_OMIT
-		) {
-		R(utimensat);
-		r = outimensat(fd, p, ts, flags);
-		if (!r)
-			emit('T', p);
-	} else {
-		struct timeval	tv[2];
-		ts2tv(tv + 0, ts + 0);
-		ts2tv(tv + 1, ts + 1);
-		r = utimes(p, tv);
-	}
+	R(utimensat);
+	r = outimensat(fd, p, ts, flags);
+	if (!r)
+		atemit('t', fd, p, NULL);
 	DD;
 	return r;
 
