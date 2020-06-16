@@ -61,25 +61,32 @@ emit(int c, const char *p1)
 	RE;
 }
 
+static int fdpath(int fd, char * ap, size_t sz) {
+	int		ok;
+#ifdef F_GETPATH
+	ok = -1 != fcntl(fd, F_GETPATH, ap);
+#else
+	ssize_t		written;
+	char		fdp    [100];
+	snprintf(fdp, sizeof(fdp), "/proc/self/fd/%d", fd);
+	ap[0] = 0;
+	written = readlink(fdp, ap, sz);
+	ok = written >= 0 && written < sz;
+	if (ok)
+		ap[written] = 0;
+#endif
+	if (!ok)
+		ap[0] = 0;
+	return ok;
+}
+
 static void
 fdemit(int c, int fd)
 {
 	char		ap        [PATH_MAX];
-	int		ok;
+	int ok;
 	SE;
-#ifdef F_GETPATH
-	ok = -1 != fcntl(fd, F_GETPATH, ap);
-#else
-	{
-		ssize_t		written;
-		char		fdpath    [100];
-		snprintf(fdpath, sizeof(fdpath), "/proc/self/fd/%d", fd);
-		written = readlink(fdpath, ap, sizeof(ap));
-		ok = written >= 0 && written < sizeof(ap);
-		if (ok)
-			ap[written] = 0;
-	}
-#endif
+	ok = fdpath(fd, ap, sizeof(ap));
 	emitOp(c, ok ? ap : 0, 0);
 	RE;
 }
@@ -125,6 +132,24 @@ resolv(void **p, const char *n)
 }
 
 #define R(f) resolv((void**)&o##f, #f)
+
+static char * realpathat(int ifd, const char * p, char * ap, size_t sz) {
+	int f;
+	int ok;
+	int fd;
+	static int      (*oopenat) (int, const char *, int, mode_t)= 0;
+	R(openat);
+	if (ifd == AT_FDCWD)
+		fd = oopenat(AT_FDCWD, ".", O_RDONLY, 0);
+	else
+		fd = ifd;
+	f = oopenat(fd, p, O_RDONLY, 0);
+	ok = fdpath(f, ap, sz);
+	close(f);
+	if (ifd == AT_FDCWD)
+		close(fd);
+	return ok? ap : NULL;
+}
 
 FILE           *
 fopen(const char *p, const char *m)
@@ -192,7 +217,7 @@ openat(int fd, const char *p, int f, mode_t m)
 		R(openat);
 		r = oopenat(fd, p, f, m);
 		if (r >= 0)
-			emitOp(f & wmode ? 'W' : 'R', p, 0);
+			fdemit(f & wmode ? 'w' : 'r', r);
 	} else
 		r = open(p, f, m);
 	DD;
@@ -209,7 +234,7 @@ openat64(int fd, const char *p, int f, mode_t m)
 		R(openat64);
 		r = oopenat64(fd, p, f, m);
 		if (r >= 0)
-			emitOp(f & wmode ? 'W' : 'R', p, 0);
+			fdemit(f & wmode ? 'w' : 'r', r);
 	} else
 		r = open64(p, f, m);
 	DD;
@@ -312,11 +337,12 @@ unlinkat(int fd, const char *p, int f)
 	DP;
 	if (fd != AT_FDCWD) {
 		static int      (*ounlinkat) (int fd, const char *p, int f);
+		char		b         [PATH_MAX];
+		char * rp = realpathat(fd, p, b, sizeof(b));
 		R(unlinkat);
 		r = ounlinkat(fd, p, f);
 		if (!r)
-			emitOp('D', p, 0);
-		assert(0);
+			emitOp(rp? 'd' : 'D', rp? rp : p, 0);
 	} else if (f & AT_REMOVEDIR)
 		r = rmdir(p);
 	else
