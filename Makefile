@@ -53,6 +53,7 @@ clean: cleanlib
 test: all
 	./fsatrace$(EXE) wrmdqt - -- cp $(LS) /tmp/foo
 	./fsatrace$(EXE) wrmdqt - -- mv -f /tmp/foo /tmp/bar
+	./fsatrace$(EXE) wrmdqt - -- gzip -f /tmp/bar
 	./fsatrace$(EXE) wrmdqt - -- touch /tmp/bar
 	./fsatrace$(EXE) wrmdqt - -- rm -f /tmp/bar
 	./fsatrace$(EXE) wrmdqt - -- $(CC) -c -D_GNU_SOURCE -D_BSD_SOURCE=1 -std=c99 -Wall src/fsatrace.c -o /tmp/fsatrace.o
