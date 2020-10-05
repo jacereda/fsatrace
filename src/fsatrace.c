@@ -80,19 +80,27 @@ dump(const char *path, char *p, size_t sz)
 }
 
 static void
-uniq(char *d, size_t * tot, const char *s, const char *last, size_t lastsz)
+uniq(char *d, size_t * tot, const char *s)
 {
-	const char     *end = strchr(s, '\n');
-	size_t		sz = end - s;
-	if (!end) {
-		strcpy(d, s);
-		*tot += strlen(s);
-	} else if (sz != lastsz || strncmp(s, last, lastsz)) {
-		memcpy(d, s, sz + 1);
-		*tot += sz + 1;
-		uniq(d + sz + 1, tot, end + 1, s, sz);
-	} else
-		uniq(d, tot, end + 1, last, lastsz);
+	const char	*end;
+	const char	*last = "";
+	size_t		sz;
+	size_t		lastsz = 0;
+
+	while ((end = strchr(s, '\n'))) {
+		sz = end - s;
+		if (sz != lastsz || strncmp(s, last, lastsz)) {
+			memcpy(d, s, sz + 1);
+			*tot += sz + 1;
+			d += sz + 1;
+			last = s;
+			lastsz = sz;
+		}
+		s = end + 1;
+	}
+
+	strcpy(d, s);
+	*tot += strlen(s);
 }
 
 int
@@ -172,7 +180,7 @@ main(int argc, char *const argv[])
 				aerror(nargs, args, "command failed with code %d", rc);
 		}
 		if (strcmp(argv[3], "---")) {
-			uniq(buf, &sz, shm.buf + 4 + 256, "", 0);
+			uniq(buf, &sz, shm.buf + 4 + 256);
 			dump(out, buf, sz);
 		} else
 			dump(out, shm.buf + 4, *(uint32_t *) shm.buf);
