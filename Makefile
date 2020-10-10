@@ -29,7 +29,7 @@ INSTALLDIR=$(HOME)/.local/bin
 
 endif
 
-CFLAGS+= -g -std=c99 -Wall -O0 -fno-omit-frame-pointer -fno-stack-protector -MMD
+CFLAGS+= -g -std=c99 -Wall -O2 -fomit-frame-pointer -fno-stack-protector -MMD
 
 SRCS=src/fsatrace.c src/$(PLAT)/proc.c src/$(PLAT)/shm.c $(OSSRCS)
 
