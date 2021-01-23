@@ -48,20 +48,28 @@ install: fsatrace$(EXE) libinstall
 	cp $< $(INSTALLDIR)
 
 clean: cleanlib
-	rm -f fsatrace$(EXE) $(patsubst %.c,%.o,$(SRCS)) $(patsubst %.c,%.d,$(SRCS))
+	rm -f fsatrace$(EXE) fsatest$(EXE) fsatest32$(EXE) $(patsubst %.c,%.o,$(SRCS)) $(patsubst %.c,%.d,$(SRCS))
 
+TEST_CC_CMD=$(CC) -c -D_GNU_SOURCE -D_DEFAULT_SOURCE=1 -std=c99 src/fsatrace.c -o /tmp/fsatrace.o
 test: all
-	./fsatrace$(EXE) wrmdqt - -- cp $(LS) /tmp/foo
-	./fsatrace$(EXE) wrmdqt - -- mv -f /tmp/foo /tmp/bar
-	./fsatrace$(EXE) wrmdqt - -- gzip -f /tmp/bar
-	./fsatrace$(EXE) wrmdqt - -- touch /tmp/bar
-	./fsatrace$(EXE) wrmdqt - -- rm -f /tmp/bar
-	./fsatrace$(EXE) wrmdqt - -- $(CC) -c -D_GNU_SOURCE -D_BSD_SOURCE=1 -std=c99 -Wall src/fsatrace.c -o /tmp/fsatrace.o
-	./fsatrace$(EXE) wrmdqt - -- sh -c "cp $(LS) /tmp/foo && mv -f /tmp/foo /tmp/bar && rm -f /tmp/bar"
-	./fsatrace$(EXE) wrmdqt - -- sh -c "cp $(LS) /tmp/foo && mv -f /tmp/foo /tmp/bar && rm -f /tmp/bar" # twice, when dst exists it might use another path
+	./fsatrace$(EXE) ewrmdqt - -- cp $(LS) /tmp/foo
+	./fsatrace$(EXE) ewrmdqt - -- mv -f /tmp/foo /tmp/bar
+	./fsatrace$(EXE) ewrmdqt - -- gzip -f /tmp/bar
+	./fsatrace$(EXE) ewrmdqt - -- touch /tmp/bar
+	./fsatrace$(EXE) ewrmdqt - --- sh -c "for _ in range {1..10}; do touch /tmp/bar; done"
+	./fsatrace$(EXE) ewrmdqt - -- rm -f /tmp/bar
+	./fsatrace$(EXE) ewrmdqt - -- $(TEST_CC_CMD)
+	./fsatrace$(EXE) ewrmdqt - -- sh -c "cp $(LS) /tmp/foo && mv -f /tmp/foo /tmp/bar && rm -f /tmp/bar"
+	./fsatrace$(EXE) ewrmdqt - -- sh -c "cp $(LS) /tmp/foo && mv -f /tmp/foo /tmp/bar && rm -f /tmp/bar" # twice, when dst exists it might use another path
+	# Test buffer size overwrite, since default buffer size is not large enough
+	# for the amount of output from the command.
+	env FSAT_BUF_SIZE=2000000 ./fsatrace$(EXE) ewrmdqt /dev/null -- sh -c "for _ in {1..100}; do $(TEST_CC_CMD); done"
 
 htest: all
 	cd test && stack install && stack test
+
+benchmark: all
+	for _ in {1..5}; do time -f 'Elapsed wall time: %E' env FSAT_BUF_SIZE=4000000 ./fsatrace$(EXE) ewrmdqt /dev/null -- sh -c "for _ in {1..200}; do $(TEST_CC_CMD); done"; done
 
 
 -include $(patsubst %.c,%.d,$(SRCS))

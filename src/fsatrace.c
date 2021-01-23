@@ -103,13 +103,24 @@ main(int argc, char *const argv[])
 	const char     *out;
 	struct shm	shm;
 	size_t		sz = 0;
-	char		envout    [65536];
-	static char	buf [LOGSZ];
-	char           *const *args = argv + 4;
-	unsigned	nargs = argc - 4;
+	char		envout    [PATH_MAX + 8];
+	char		envbufsize[128];
 	const unsigned char *opts;
 	char           *bopts;
 	int		verr;
+	char           *const *args = argv + 4;
+	unsigned	nargs = argc - 4;
+
+	size_t          buf_size = DEFAULT_LOGSZ;
+	const char * env_buf_size = getenv(ENVBUFSIZE);
+	if (env_buf_size) {
+		const long parsed = atol(env_buf_size);
+		if (parsed <= 0)
+			fatal("invalid buffer size %d", parsed);
+		buf_size = parsed;
+	}
+	char            buf [buf_size];
+
 	if (argc < 5 || (strcmp(argv[3], "--") && strcmp(argv[3], "---")))
 		fatal(" usage: %s <options> <output> -- <cmdline>\n"
 		      "  where <options> is a combination of the following characters:\n"
@@ -122,16 +133,22 @@ main(int argc, char *const argv[])
 		      "   q: dump file stat operations\n"
 		      ,argv[0]);
 	out = argv[2];
-	if ((err = shmInit(&shm, out, LOGSZ, 1)))
+	if ((err = shmInit(&shm, out, buf_size, 1)))
 		fatal("allocating shared memory (%d)", err);
 	snprintf(envout, sizeof(envout), ENVOUT "=%s", out);
 	putenv(envout);
+	snprintf(envbufsize, sizeof(envbufsize), ENVBUFSIZE "=%ld", (long)buf_size);
+	putenv(envbufsize);
 #ifdef _WIN32
-	// Workaround, bash distributed with ghc 8.6.5 seems to discard most
-	// environment variables, pass FSAT_OUT as the first PATH component.
-	snprintf(envout, sizeof(envout), "PATH=%s;%s", out, getenv("PATH"));
+	{
+		// Workaround, bash distributed with ghc 8.6.5 seems to discard most
+		// environment variables, pass environment variables as the first few
+		// PATH components.
+		char		env    [65536];
+		snprintf(env, sizeof(env), "PATH=%s;%ld;%s", out, (long)buf_size, getenv("PATH"));
+		putenv(env);
+	}
 #endif
-	putenv(envout);
 	fflush(stdout);
 	opts = (const unsigned char *)argv[1];
 	bopts = shm.buf + 4;
@@ -180,5 +197,7 @@ main(int argc, char *const argv[])
 	}
 	if ((err = shmTerm(&shm, 1)))
 		error("freeing shared memory (%d)", err);
+	if (rc != 0 && verr)
+		error("buffer size used: %ld\n", (long)buf_size);
 	return rc;
 }
