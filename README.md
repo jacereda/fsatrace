@@ -47,6 +47,10 @@ Options is a combination of the following characters:
 * `q`: dump file stat operations
 * `t`: dump touch operations
 
+### Environment Variables
+
+* `FSAT_BUF_SIZE`: when set, overwrites size of buffer for trace output.
+
 ## macOS usage
 
 In order to use `fsatrace` on systems newer than OS X 10.10, System Integrity Protection must be disabled as detailed in https://developer.apple.com/library/content/documentation/Security/Conceptual/System_Integrity_Protection_Guide/ConfiguringSystemIntegrityProtection/ConfiguringSystemIntegrityProtection.html

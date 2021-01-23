@@ -64,7 +64,7 @@ procRun(unsigned nargs, char *const args[], int *rc)
 	extern char   **environ;
 	int		ret;
 	int		child;
-	char		so        [PATH_MAX];
+	char		so        [PATH_MAX+3];
 	char		fullpath  [PATH_MAX];
 	procPath(fullpath);
 	snprintf(so, sizeof(so), "%s.so", fullpath);

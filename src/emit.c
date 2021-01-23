@@ -30,25 +30,43 @@ static const char * mygetenv(const char * v) {
 			p++;
 		}
 	}
+#ifdef _WIN32
+	// Workaround, bash distributed with ghc 8.6.5 seems to discard most
+	// environment variables, pass environment variables as the first few
+	// PATH components.
 	if (!out) {
-			static char buf[PATH_MAX];
-			const char * path = getenv("PATH");
-			unsigned i = 0;
-			while (path[i] != ';') {
-					buf[i] = path[i];
-					i++;
-			}
-			buf[i] = 0;
+		const char * path = getenv("PATH");
+		unsigned i = 0;
+		if (strcmp(v, ENVBUFSIZE) == 0) {
+		static char buf[64];
+		// Buffer size is the second positional value.
+		while (path[i++] != ';');
+			unsigned j = 0;
+			while (path[i] != ';')
+			buf[j++] = path[i++];
+			buf[j] = 0;
 			out = buf;
+		}
+		if (strcmp(v, ENVOUT) == 0) {
+			static char buf[PATH_MAX];
+			unsigned j = 0;
+			while (path[i] != ';')
+				buf[j++] = path[i++];
+				buf[j] = 0;
+				out = buf;
+			}
 	}
+#endif
 	return out;
 }
 
 int emitInit() {
  	const char * out = mygetenv(ENVOUT);
 	assert(out);
+	const char *raw_buf_size = mygetenv(ENVBUFSIZE);
+	assert(atol(raw_buf_size) > 0);
 	assert(!shm.buf);
-	return out? shmInit(&shm, out, LOGSZ, 0) : 1;
+	return out? shmInit(&shm, out, atol(raw_buf_size), 0) : 1;
 }
 
 int emitTerm() {
