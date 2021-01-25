@@ -175,7 +175,7 @@ main(int argc, char *const argv[])
 			uniq(buf, &sz, shm.buf + 4 + 256, "", 0);
 			dump(out, buf, sz);
 		} else
-			dump(out, shm.buf + 4, *(uint32_t *) shm.buf);
+			dump(out, shm.buf + 4 + 256, *(uint32_t *) shm.buf);
 
 	}
 	if ((err = shmTerm(&shm, 1)))
