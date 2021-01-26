@@ -13,17 +13,19 @@
 #include "emit.h"
 static struct shm shm;
 
-static const char * mygetenv(const char * v) {
-	const char * out = getenv(v);
+static const char *
+mygetenv(const char *v)
+{
+	const char *out = getenv(v);
 	if (!out) {
-		extern char ** environ;
-		size_t l = strlen(v);
-		char ** p = environ;
+		extern char **environ;
+		size_t	      l = strlen(v);
+		char **	      p = environ;
 		while (*p) {
-			char * s = *p;
+			char *s = *p;
 			if (0 == strncmp(s, v, l)) {
 				if (s[l] == '=') {
-					out = s+l+1;
+					out = s + l + 1;
 					break;
 				}
 			}
@@ -35,60 +37,66 @@ static const char * mygetenv(const char * v) {
 	// environment variables, pass environment variables as the first few
 	// PATH components.
 	if (!out) {
-		const char * path = getenv("PATH");
-		unsigned i = 0;
+		const char *path = getenv("PATH");
+		unsigned    i = 0;
 		if (strcmp(v, ENVBUFSIZE) == 0) {
-		static char buf[64];
-		// Buffer size is the second positional value.
-		while (path[i++] != ';');
+			static char buf[64];
+			// Buffer size is the second positional value.
+			while (path[i++] != ';')
+				;
 			unsigned j = 0;
 			while (path[i] != ';')
-			buf[j++] = path[i++];
+				buf[j++] = path[i++];
 			buf[j] = 0;
 			out = buf;
 		}
 		if (strcmp(v, ENVOUT) == 0) {
 			static char buf[PATH_MAX];
-			unsigned j = 0;
+			unsigned    j = 0;
 			while (path[i] != ';')
 				buf[j++] = path[i++];
-				buf[j] = 0;
-				out = buf;
-			}
+			buf[j] = 0;
+			out = buf;
+		}
 	}
 #endif
 	return out;
 }
 
-int emitInit() {
- 	const char * out = mygetenv(ENVOUT);
+int
+emitInit()
+{
+	const char *out = mygetenv(ENVOUT);
 	assert(out);
 	const char *raw_buf_size = mygetenv(ENVBUFSIZE);
 	assert(atol(raw_buf_size) > 0);
 	assert(!shm.buf);
-	return out? shmInit(&shm, out, atol(raw_buf_size), 0) : 1;
+	return out ? shmInit(&shm, out, atol(raw_buf_size), 0) : 1;
 }
 
-int emitTerm() {
-	return shm.buf? shmTerm(&shm, 0) : 1;
-}
-
-void emitOp(int oc, const char *op1, const char *p2)
+int
+emitTerm()
 {
-	char           *dst = shm.buf + 4 + 256;
-	char *opts = shm.buf+4;
-	uint32_t       *psofar = (uint32_t *)shm.buf;
-	uint32_t	sofar;
-	uint32_t	sz;
-	uint32_t	s1;
-	uint32_t	s2;
-	char           *p;
-	const char * p1;
-	int c;
+	return shm.buf ? shmTerm(&shm, 0) : 1;
+}
+
+void
+emitOp(int oc, const char *op1, const char *p2)
+{
+	char *	    dst = shm.buf + 4 + 256;
+	char *	    opts = shm.buf + 4;
+	uint32_t *  psofar = (uint32_t *)shm.buf;
+	uint32_t    sofar;
+	uint32_t    sz;
+	uint32_t    s1;
+	uint32_t    s2;
+	char *	    p;
+	const char *p1;
+	int	    c;
 	if (!shm.buf || !opts[tolower(oc)])
 		return;
-	p1 = op1? op1 : "<unknown>";
-	c = op1? oc : toupper(oc);
+	p1 = op1 ? op1 : "<unknown>";
+	c = op1 ? oc : toupper(oc);
 	s1 = strlen(p1);
 	sz = s1 + 3;
 	if (p2) {

@@ -1,3 +1,3 @@
-int emitInit();
-int emitTerm();
+int  emitInit();
+int  emitTerm();
 void emitOp(int, const char *, const char *);

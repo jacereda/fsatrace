@@ -34,12 +34,38 @@
 #undef fopen
 #undef fopen64
 
-static const int wmode = O_RDWR | O_WRONLY | O_APPEND | O_CREAT | O_TRUNC;
+static const int  wmode = O_RDWR | O_WRONLY | O_APPEND | O_CREAT | O_TRUNC;
 static const bool debug = false;
 
-#define D do { char b[PATH_MAX]; if (!debug) break; procPath(b); fprintf(stderr, "%s:%d %s\n", b, getpid(), __FUNCTION__); fflush(stderr); } while (0)
-#define DD do { char b[PATH_MAX]; if (!debug) break; procPath(b); fprintf(stderr, "%s:%d /%s ->%lld\n", b, getpid(), __FUNCTION__, (long long)r); fflush(stderr); } while (0)
-#define DP do { char b[PATH_MAX]; if (!debug) break; procPath(b); fprintf(stderr, "%s:%d %s %s\n", b, getpid(), __FUNCTION__, p); fflush(stderr); } while (0)
+#define D                                                                 \
+	do {                                                              \
+		char b[PATH_MAX];                                         \
+		if (!debug)                                               \
+			break;                                            \
+		procPath(b);                                              \
+		fprintf(stderr, "%s:%d %s\n", b, getpid(), __FUNCTION__); \
+		fflush(stderr);                                           \
+	} while (0)
+#define DD                                                         \
+	do {                                                       \
+		char b[PATH_MAX];                                  \
+		if (!debug)                                        \
+			break;                                     \
+		procPath(b);                                       \
+		fprintf(stderr, "%s:%d /%s ->%lld\n", b, getpid(), \
+		    __FUNCTION__, (long long)r);                   \
+		fflush(stderr);                                    \
+	} while (0)
+#define DP                                                                  \
+	do {                                                                \
+		char b[PATH_MAX];                                           \
+		if (!debug)                                                 \
+			break;                                              \
+		procPath(b);                                                \
+		fprintf(                                                    \
+		    stderr, "%s:%d %s %s\n", b, getpid(), __FUNCTION__, p); \
+		fflush(stderr);                                             \
+	} while (0)
 
 #define SE int _oerrno = errno
 #define RE errno = _oerrno
@@ -55,19 +81,21 @@ err(const char *msg, int err)
 static void
 emit(int c, const char *p1)
 {
-	char		ap        [PATH_MAX];
+	char ap[PATH_MAX];
 	SE;
 	emitOp(c, realpath(p1, ap), 0);
 	RE;
 }
 
-static int fdpath(int fd, char * ap, size_t sz) {
-	int		ok;
+static int
+fdpath(int fd, char *ap, size_t sz)
+{
+	int ok;
 #ifdef F_GETPATH
 	ok = -1 != fcntl(fd, F_GETPATH, ap);
 #else
-	ssize_t		written;
-	char		fdp    [100];
+	ssize_t written;
+	char	fdp[100];
 	snprintf(fdp, sizeof(fdp), "/proc/self/fd/%d", fd);
 	ap[0] = 0;
 	written = readlink(fdp, ap, sz);
@@ -83,36 +111,32 @@ static int fdpath(int fd, char * ap, size_t sz) {
 static void
 fdemit(int c, int fd)
 {
-	char		ap        [PATH_MAX];
-	int ok;
+	char ap[PATH_MAX];
+	int  ok;
 	SE;
 	ok = fdpath(fd, ap, sizeof(ap));
 	emitOp(c, ok ? ap : 0, 0);
 	RE;
 }
 
-static void
-__attribute((constructor(101)))
-init()
+static void __attribute((constructor(101))) init()
 {
-	int		r;
+	int r;
 	D;
 	r = emitInit();
 	if (r)
 		err("init", r);
 	else {
-		char		b         [PATH_MAX];
+		char b[PATH_MAX];
 		procPath(b);
 		emit('r', b);
 	}
 	DD;
 }
 
-static void
-__attribute((destructor(101)))
-term()
+static void __attribute((destructor(101))) term()
 {
-	int		r;
+	int r;
 	r = emitTerm();
 	D;
 	if (r)
@@ -131,14 +155,16 @@ resolv(void **p, const char *n)
 	assert(*p);
 }
 
-#define R(f) resolv((void**)&o##f, #f)
+#define R(f) resolv((void **)&o##f, #f)
 
-static char * realpathat(int ifd, const char * p, char * ap, size_t sz) {
+static char *
+realpathat(int ifd, const char *p, char *ap, size_t sz)
+{
 	int f;
 	int ok;
 	int fd;
 	int cur = ifd == AT_FDCWD;
-	static int      (*oopenat) (int, const char *, int, mode_t)= 0;
+	static int (*oopenat)(int, const char *, int, mode_t) = 0;
 	R(openat);
 	if (cur)
 		fd = oopenat(AT_FDCWD, ".", O_RDONLY, 0);
@@ -149,22 +175,23 @@ static char * realpathat(int ifd, const char * p, char * ap, size_t sz) {
 	close(f);
 	if (cur)
 		close(fd);
-	return ok? ap : NULL;
+	return ok ? ap : NULL;
 }
 
 static void
-atemit(int c, int fd, const char * p, char * pp) {
-	char		ap        [PATH_MAX];
+atemit(int c, int fd, const char *p, char *pp)
+{
+	char ap[PATH_MAX];
 	SE;
 	emitOp(c, realpathat(fd, p, ap, sizeof(ap)), pp);
 	RE;
 }
 
-FILE           *
+FILE *
 fopen(const char *p, const char *m)
 {
-	FILE           *r;
-	static FILE    *(*ofopen) (const char *, const char *)= 0;
+	FILE *r;
+	static FILE *(*ofopen)(const char *, const char *) = 0;
 	DP;
 	R(fopen);
 	r = ofopen(p, m);
@@ -174,11 +201,11 @@ fopen(const char *p, const char *m)
 	return r;
 }
 
-FILE           *
+FILE *
 fopen64(const char *p, const char *m)
 {
-	FILE           *r;
-	static FILE    *(*ofopen64) (const char *, const char *)= 0;
+	FILE *r;
+	static FILE *(*ofopen64)(const char *, const char *) = 0;
 	DP;
 	R(fopen64);
 	r = ofopen64(p, m);
@@ -191,8 +218,8 @@ fopen64(const char *p, const char *m)
 int
 open(const char *p, int f, mode_t m)
 {
-	int		r;
-	static int      (*oopen) (const char *, int, mode_t)= 0;
+	int r;
+	static int (*oopen)(const char *, int, mode_t) = 0;
 	DP;
 	R(open);
 	r = oopen(p, f, m);
@@ -205,8 +232,8 @@ open(const char *p, int f, mode_t m)
 int
 open64(const char *p, int f, mode_t m)
 {
-	int		r;
-	static int      (*oopen64) (const char *, int, mode_t)= 0;
+	int r;
+	static int (*oopen64)(const char *, int, mode_t) = 0;
 	DP;
 	R(open64);
 	r = oopen64(p, f, m);
@@ -219,9 +246,9 @@ open64(const char *p, int f, mode_t m)
 int
 openat(int fd, const char *p, int f, mode_t m)
 {
-	int		r;
+	int r;
 	DP;
-	static int      (*oopenat) (int, const char *, int, mode_t)= 0;
+	static int (*oopenat)(int, const char *, int, mode_t) = 0;
 	R(openat);
 	r = oopenat(fd, p, f, m);
 	if (r >= 0)
@@ -233,9 +260,9 @@ openat(int fd, const char *p, int f, mode_t m)
 int
 openat64(int fd, const char *p, int f, mode_t m)
 {
-	int		r;
+	int r;
 	DP;
-	static int      (*oopenat64) (int, const char *, int, mode_t)= 0;
+	static int (*oopenat64)(int, const char *, int, mode_t) = 0;
 	R(openat64);
 	r = oopenat64(fd, p, f, m);
 	if (r >= 0)
@@ -247,16 +274,16 @@ openat64(int fd, const char *p, int f, mode_t m)
 int
 rename(const char *p1, const char *p2)
 {
-	int		r;
-	char		b1        [PATH_MAX];
-	char           *rp1 = realpath(p1, b1);
-	static int      (*orename) (const char *, const char *)= 0;
+	int   r;
+	char  b1[PATH_MAX];
+	char *rp1 = realpath(p1, b1);
+	static int (*orename)(const char *, const char *) = 0;
 	D;
 	R(rename);
 	r = orename(p1, p2);
 	if (!r) {
-		char		b2        [PATH_MAX];
-		char           *rp2 = realpath(p2, b2);
+		char  b2[PATH_MAX];
+		char *rp2 = realpath(p2, b2);
 		emitOp(rp1 ? 'm' : 'M', rp2, rp1);
 	}
 	DD;
@@ -266,16 +293,16 @@ rename(const char *p1, const char *p2)
 int
 renamex_np(const char *p1, const char *p2, unsigned fl)
 {
-	int		r;
-	char		b1        [PATH_MAX];
-	char           *rp1 = realpath(p1, b1);
-	static int      (*orenamex_np) (const char *, const char *, unsigned)= 0;
+	int   r;
+	char  b1[PATH_MAX];
+	char *rp1 = realpath(p1, b1);
+	static int (*orenamex_np)(const char *, const char *, unsigned) = 0;
 	D;
 	R(renamex_np);
 	r = orenamex_np(p1, p2, fl);
 	if (!r) {
-		char		b2        [PATH_MAX];
-		char           *rp2 = realpath(p2, b2);
+		char  b2[PATH_MAX];
+		char *rp2 = realpath(p2, b2);
 		emitOp(rp1 ? 'm' : 'M', rp2, rp1);
 	}
 	DD;
@@ -285,10 +312,11 @@ renamex_np(const char *p1, const char *p2, unsigned fl)
 int
 renameat2(int fd1, const char *p1, int fd2, const char *p2, unsigned fl)
 {
-	int		r;
+	int r;
 	D;
-	static int      (*orenameat2) (int, const char *, int, const char *, unsigned)= 0;
-	char		b        [PATH_MAX];
+	static int (*orenameat2)(
+	    int, const char *, int, const char *, unsigned) = 0;
+	char b[PATH_MAX];
 	R(renameat2);
 	realpathat(fd1, p1, b, sizeof(b));
 	r = orenameat2(fd1, p1, fd2, p2, fl);
@@ -301,10 +329,10 @@ renameat2(int fd1, const char *p1, int fd2, const char *p2, unsigned fl)
 int
 renameat(int fd1, const char *p1, int fd2, const char *p2)
 {
-	int		r;
+	int r;
 	D;
-	static int      (*orenameat) (int, const char *, int, const char *)= 0;
-	char		b        [PATH_MAX];
+	static int (*orenameat)(int, const char *, int, const char *) = 0;
+	char b[PATH_MAX];
 	R(renameat);
 	realpathat(fd1, p1, b, sizeof(b));
 	r = orenameat(fd1, p1, fd2, p2);
@@ -317,10 +345,11 @@ renameat(int fd1, const char *p1, int fd2, const char *p2)
 int
 renameatx_np(int fd1, const char *p1, int fd2, const char *p2, unsigned fl)
 {
-	int		r;
-	char		b         [PATH_MAX];
+	int  r;
+	char b[PATH_MAX];
 	D;
-	static int      (*orenameatx_np) (int, const char *, int, const char *, unsigned)= 0;
+	static int (*orenameatx_np)(
+	    int, const char *, int, const char *, unsigned) = 0;
 	R(renameatx_np);
 	realpathat(fd1, p1, b, sizeof(b));
 	r = orenameatx_np(fd1, p1, fd2, p2, fl);
@@ -333,10 +362,10 @@ renameatx_np(int fd1, const char *p1, int fd2, const char *p2, unsigned fl)
 int
 unlink(const char *p)
 {
-	int		r;
-	char		b         [PATH_MAX];
-	char           *rp;
-	static int      (*ounlink) (const char *)= 0;
+	int   r;
+	char  b[PATH_MAX];
+	char *rp;
+	static int (*ounlink)(const char *) = 0;
 	DP;
 	R(unlink);
 	rp = realpath(p, b);
@@ -350,15 +379,15 @@ unlink(const char *p)
 int
 unlinkat(int fd, const char *p, int f)
 {
-	int		r;
+	int r;
 	DP;
-	char		b         [PATH_MAX];
-	char * rp = realpathat(fd, p, b, sizeof(b));
-	static int      (*ounlinkat) (int, const char *, int);
+	char  b[PATH_MAX];
+	char *rp = realpathat(fd, p, b, sizeof(b));
+	static int (*ounlinkat)(int, const char *, int);
 	R(unlinkat);
 	r = ounlinkat(fd, p, f);
 	if (!r)
-		emitOp(rp? 'd' : 'D', rp? rp : p, 0);
+		emitOp(rp ? 'd' : 'D', rp ? rp : p, 0);
 	DD;
 	return r;
 }
@@ -366,8 +395,8 @@ unlinkat(int fd, const char *p, int f)
 int
 futimes(int fd, const struct timeval t[2])
 {
-	int		r;
-	static int      (*ofutimes) (int, const struct timeval[2]);
+	int r;
+	static int (*ofutimes)(int, const struct timeval[2]);
 	D;
 	R(futimes);
 	r = ofutimes(fd, t);
@@ -380,8 +409,8 @@ futimes(int fd, const struct timeval t[2])
 int
 utimes(const char *p, const struct timeval t[2])
 {
-	int		r;
-	static int      (*outimes) (const char *, const struct timeval[2]);
+	int r;
+	static int (*outimes)(const char *, const struct timeval[2]);
 	DP;
 	R(utimes);
 	r = outimes(p, t);
@@ -399,8 +428,8 @@ static volatile int __thread nested = 0;
 int
 fstat(int fd, struct stat *buf)
 {
-	int		r;
-	static int      (*ofstat) (int, struct stat *)= 0;
+	int r;
+	static int (*ofstat)(int, struct stat *) = 0;
 	D;
 	resolv((void **)&ofstat, "fstat" SUF);
 	nested++;
@@ -415,8 +444,8 @@ fstat(int fd, struct stat *buf)
 int
 stat(const char *p, struct stat *buf)
 {
-	int		r;
-	static int      (*ostat) (const char *restrict, struct stat *restrict)= 0;
+	int r;
+	static int (*ostat)(const char *restrict, struct stat *restrict) = 0;
 	DP;
 	resolv((void **)&ostat, "stat" SUF);
 	nested++;
@@ -431,8 +460,8 @@ stat(const char *p, struct stat *buf)
 int
 access(const char *p, int m)
 {
-	int		r;
-	static int      (*oaccess) (const char *, int)= 0;
+	int r;
+	static int (*oaccess)(const char *, int) = 0;
 	DP;
 	R(access);
 	nested++;
@@ -447,8 +476,8 @@ access(const char *p, int m)
 int
 lstat(const char *restrict p, struct stat *buf)
 {
-	int		r;
-	static int      (*olstat) (const char *restrict, struct stat *restrict)= 0;
+	int r;
+	static int (*olstat)(const char *restrict, struct stat *restrict) = 0;
 	DP;
 	resolv((void **)&olstat, "lstat" SUF);
 	nested++;
@@ -463,16 +492,15 @@ lstat(const char *restrict p, struct stat *buf)
 int
 fstatat(int fd, const char *p, struct stat *buf, int flag)
 {
-	int		r;
+	int r;
 	DP;
-	static int      (*ofstatat) (int, const char *, struct stat *, int)= 0;
+	static int (*ofstatat)(int, const char *, struct stat *, int) = 0;
 	R(fstatat);
 	r = ofstatat(fd, p, buf, flag);
 	if (!r)
 		atemit('q', fd, p, NULL);
 	DD;
 	return r;
-
 }
 #endif
 
@@ -480,8 +508,8 @@ fstatat(int fd, const char *p, struct stat *buf, int flag)
 int
 __fxstat(int v, int fd, struct stat *restrict buf)
 {
-	int		r;
-	static int      (*o__fxstat) (int, int, struct stat *restrict)= 0;
+	int r;
+	static int (*o__fxstat)(int, int, struct stat *restrict) = 0;
 	D;
 	R(__fxstat);
 	r = o__fxstat(v, fd, buf);
@@ -494,8 +522,9 @@ __fxstat(int v, int fd, struct stat *restrict buf)
 int
 __xstat(int v, const char *restrict p, struct stat *restrict buf)
 {
-	int		r;
-	static int      (*o__xstat) (int, const char *restrict, struct stat *restrict)= 0;
+	int r;
+	static int (*o__xstat)(
+	    int, const char *restrict, struct stat *restrict) = 0;
 	DP;
 	R(__xstat);
 	r = o__xstat(v, p, buf);
@@ -508,8 +537,9 @@ __xstat(int v, const char *restrict p, struct stat *restrict buf)
 int
 __xlstat(int v, const char *restrict p, struct stat *restrict buf)
 {
-	int		r;
-	static int      (*o__xlstat) (int, const char *restrict, struct stat *restrict)= 0;
+	int r;
+	static int (*o__xlstat)(
+	    int, const char *restrict, struct stat *restrict) = 0;
 	DP;
 	R(__xlstat);
 	r = o__xlstat(v, p, buf);
@@ -519,12 +549,12 @@ __xlstat(int v, const char *restrict p, struct stat *restrict buf)
 	return r;
 }
 
-
 int
 __lxstat(int v, const char *restrict p, struct stat *restrict buf)
 {
-	int		r;
-	static int      (*o__lxstat) (int, const char *restrict, struct stat *restrict)= 0;
+	int r;
+	static int (*o__lxstat)(
+	    int, const char *restrict, struct stat *restrict) = 0;
 	DP;
 	R(__lxstat);
 	r = o__lxstat(v, p, buf);
@@ -537,9 +567,10 @@ __lxstat(int v, const char *restrict p, struct stat *restrict buf)
 int
 __fxstatat(int v, int fd, const char *p, struct stat *buf, int flag)
 {
-	int		r;
+	int r;
 	DP;
-	static int      (*o__fxstatat) (int, int, const char *, struct stat *restrict, int)= 0;
+	static int (*o__fxstatat)(
+	    int, int, const char *, struct stat *restrict, int) = 0;
 	R(__fxstatat);
 	r = o__fxstatat(v, fd, p, buf, flag);
 	if (!r)
@@ -551,8 +582,9 @@ __fxstatat(int v, int fd, const char *p, struct stat *buf, int flag)
 int
 utimensat(int fd, const char *p, const struct timespec ts[2], int flags)
 {
-	int		r;
-	static int      (*outimensat) (int, const char *, const struct timespec[2], int);
+	int r;
+	static int (*outimensat)(
+	    int, const char *, const struct timespec[2], int);
 	DP;
 	R(utimensat);
 	r = outimensat(fd, p, ts, flags);
@@ -560,14 +592,13 @@ utimensat(int fd, const char *p, const struct timespec ts[2], int flags)
 		atemit('t', fd, p, NULL);
 	DD;
 	return r;
-
 }
 
 int
 futimens(int fd, const struct timespec ts[2])
 {
-	int		r;
-	static int      (*ofutimens) (int, const struct timespec[2]);
+	int r;
+	static int (*ofutimens)(int, const struct timespec[2]);
 	D;
 	R(futimens);
 	r = ofutimens(fd, ts);

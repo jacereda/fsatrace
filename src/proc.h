@@ -5,9 +5,9 @@ enum procerr {
 	ERR_PROC_SIGNALED,
 	ERR_PROC_STOPPED,
 	ERR_PROC_WAIT,
-	ERR_PROC_UNKNOWN, 
+	ERR_PROC_UNKNOWN,
 };
 
-void		procPath  (char *);
-void procDumpArgs(unsigned, char * const []);
-enum procerr	procRun(unsigned, char * const [], int *);
+void	     procPath(char *);
+void	     procDumpArgs(unsigned, char *const[]);
+enum procerr procRun(unsigned, char *const[], int *);

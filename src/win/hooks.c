@@ -29,28 +29,27 @@ HOOK(NtResumeThread);
 typedef struct _FILE_STANDARD_INFORMATION {
 	LARGE_INTEGER AllocationSize;
 	LARGE_INTEGER EndOfFile;
-	ULONG         NumberOfLinks;
-	BOOLEAN       DeletePending;
-	BOOLEAN       Directory;
+	ULONG	      NumberOfLinks;
+	BOOLEAN	      DeletePending;
+	BOOLEAN	      Directory;
 } FILE_STANDARD_INFORMATION, *PFILE_STANDARD_INFORMATION;
 
-NTSTATUS NTAPI NtQueryInformationFile(
-	_In_  HANDLE                 FileHandle,
-	_Out_ PIO_STATUS_BLOCK       IoStatusBlock,
-	_Out_ PVOID                  FileInformation,
-	_In_  ULONG                  Length,
-	_In_  FILE_INFORMATION_CLASS FileInformationClass
-	);
+NTSTATUS NTAPI NtQueryInformationFile(_In_ HANDLE FileHandle,
+    _Out_ PIO_STATUS_BLOCK IoStatusBlock, _Out_ PVOID FileInformation,
+    _In_ ULONG Length, _In_ FILE_INFORMATION_CLASS FileInformationClass);
 
-enum { FileBasicInformation = 4,
-       FileRenameInformation = 10,
-       FileDispositionInformation = 13,
-       FileAllocationInformation = 19,
+enum {
+	FileBasicInformation = 4,
+	FileRenameInformation = 10,
+	FileDispositionInformation = 13,
+	FileAllocationInformation = 19,
 };
 
 #endif
 
-static const int fop(ULONG co, ACCESS_MASK am) {
+static const int
+fop(ULONG co, ACCESS_MASK am)
+{
 	int op;
 	if (0)
 		;
@@ -67,53 +66,47 @@ static const int fop(ULONG co, ACCESS_MASK am) {
 	return op;
 }
 
-static void femit(HANDLE h, int op) {
+static void
+femit(HANDLE h, int op)
+{
 	if (op) {
-		IO_STATUS_BLOCK sb;
+		IO_STATUS_BLOCK		  sb;
 		FILE_STANDARD_INFORMATION si;
 		oNtQueryInformationFile(h, &sb, &si, sizeof(si),
-					5 // FileStandardInformation
-			);
+		    5 // FileStandardInformation
+		);
 		if (!si.Directory) {
-			char buf[PATH_MAX];
-			char * p = handlePath(buf, h);
+			char  buf[PATH_MAX];
+			char *p = handlePath(buf, h);
 			emitOp(op, p, 0);
 		}
 	}
 }
 
-static NTSTATUS NTAPI hNtCreateFile(PHANDLE ph,
-                                    ACCESS_MASK am,
-                                    POBJECT_ATTRIBUTES oa,
-                                    PIO_STATUS_BLOCK sb,
-                                    PLARGE_INTEGER as,
-                                    ULONG fa,
-                                    ULONG sa,
-                                    ULONG cd,
-                                    ULONG co,
-                                    PVOID bu,
-                                    ULONG le) {
+static NTSTATUS NTAPI
+hNtCreateFile(PHANDLE ph, ACCESS_MASK am, POBJECT_ATTRIBUTES oa,
+    PIO_STATUS_BLOCK sb, PLARGE_INTEGER as, ULONG fa, ULONG sa, ULONG cd,
+    ULONG co, PVOID bu, ULONG le)
+{
 	NTSTATUS r;
 	D;
 	r = oNtCreateFile(ph, am, oa, sb, as, fa, sa, cd, co, bu, le);
 	if (NT_SUCCESS(r)) {
 #ifdef TRACE
 		char buf[PATH_MAX];
-		pr("creat %x %x %x %x %x %s\n",
-		   am, co, fa, sa, cd,
-		   utf8PathFromWide(buf, oa->ObjectName->Buffer, oa->ObjectName->Length/2));
+		pr("creat %x %x %x %x %x %s\n", am, co, fa, sa, cd,
+		    utf8PathFromWide(buf, oa->ObjectName->Buffer,
+			oa->ObjectName->Length / 2));
 #endif
 		femit(*ph, fop(co, am));
 	}
 	return r;
 }
 
-static NTSTATUS NTAPI hNtOpenFile(PHANDLE ph,
-                                  ACCESS_MASK am,
-                                  POBJECT_ATTRIBUTES oa,
-                                  PIO_STATUS_BLOCK sb,
-                                  ULONG sa,
-                                  ULONG oo) {
+static NTSTATUS NTAPI
+hNtOpenFile(PHANDLE ph, ACCESS_MASK am, POBJECT_ATTRIBUTES oa,
+    PIO_STATUS_BLOCK sb, ULONG sa, ULONG oo)
+{
 	NTSTATUS r;
 	D;
 	r = oNtOpenFile(ph, am, oa, sb, sa, oo);
@@ -121,37 +114,42 @@ static NTSTATUS NTAPI hNtOpenFile(PHANDLE ph,
 #ifdef TRACE
 		char buf[PATH_MAX];
 		pr("open %x %x %s\n", am, oo,
-		   utf8PathFromWide(buf, oa->ObjectName->Buffer, oa->ObjectName->Length/2));
+		    utf8PathFromWide(buf, oa->ObjectName->Buffer,
+			oa->ObjectName->Length / 2));
 #endif
 		femit(*ph, fop(oo, am));
 	}
 	return r;
 }
 
-static NTSTATUS NTAPI hNtDeleteFile(POBJECT_ATTRIBUTES oa) {
+static NTSTATUS NTAPI
+hNtDeleteFile(POBJECT_ATTRIBUTES oa)
+{
 	NTSTATUS r;
-	char buf[PATH_MAX];
+	char	 buf[PATH_MAX];
 	D;
 	r = oNtDeleteFile(oa);
 	if (NT_SUCCESS(r))
-		emitOp('d', utf8PathFromWide(buf, oa->ObjectName->Buffer, oa->ObjectName->Length/2), 0);
+		emitOp('d',
+		    utf8PathFromWide(buf, oa->ObjectName->Buffer,
+			oa->ObjectName->Length / 2),
+		    0);
 	return r;
 }
 
-static NTSTATUS NTAPI hNtSetInformationFile(HANDLE fh,
-                                            PIO_STATUS_BLOCK sb,
-                                            PVOID fi,
-                                            ULONG ln,
-                                            FILE_INFORMATION_CLASS ic) {
+static NTSTATUS NTAPI
+hNtSetInformationFile(HANDLE fh, PIO_STATUS_BLOCK sb, PVOID fi, ULONG ln,
+    FILE_INFORMATION_CLASS ic)
+{
 	NTSTATUS r;
-	char buf[PATH_MAX];
-	char buf2[PATH_MAX];
+	char	 buf[PATH_MAX];
+	char	 buf2[PATH_MAX];
 #ifdef _MSC_VER
 	PFILE_RENAME_INFO ri = (PFILE_RENAME_INFO)fi;
 #else
 	PFILE_RENAME_INFORMATION ri = (PFILE_RENAME_INFORMATION)fi;
 #endif
-	char * opath = handlePath(buf, fh);
+	char *opath = handlePath(buf, fh);
 	D;
 	r = oNtSetInformationFile(fh, sb, fi, ln, ic);
 	if (NT_SUCCESS(r)) {
@@ -160,10 +158,10 @@ static NTSTATUS NTAPI hNtSetInformationFile(HANDLE fh,
 			emitOp('t', opath, 0);
 			break;
 		case FileRenameInformation:
-			emitOp(opath? 'm' : 'M',
-			       utf8PathFromWide(buf2, ri->FileName,
-						ri->FileNameLength / sizeof(ri->FileName[0])),
-			       opath);
+			emitOp(opath ? 'm' : 'M',
+			    utf8PathFromWide(buf2, ri->FileName,
+				ri->FileNameLength / sizeof(ri->FileName[0])),
+			    opath);
 			break;
 		case FileDispositionInformation:
 			emitOp('d', opath, 0);
@@ -178,13 +176,12 @@ static NTSTATUS NTAPI hNtSetInformationFile(HANDLE fh,
 	return r;
 }
 
-static NTSTATUS NTAPI hNtQueryInformationFile(HANDLE fh,
-                                              PIO_STATUS_BLOCK sb,
-                                              PVOID fi,
-                                              ULONG ln,
-                                              FILE_INFORMATION_CLASS ic) {
+static NTSTATUS NTAPI
+hNtQueryInformationFile(HANDLE fh, PIO_STATUS_BLOCK sb, PVOID fi, ULONG ln,
+    FILE_INFORMATION_CLASS ic)
+{
 	NTSTATUS r;
-	char buf[PATH_MAX];
+	char	 buf[PATH_MAX];
 	D;
 	r = oNtQueryInformationFile(fh, sb, fi, ln, ic);
 	if (NT_SUCCESS(r)) {
@@ -200,21 +197,28 @@ static NTSTATUS NTAPI hNtQueryInformationFile(HANDLE fh,
 	return r;
 }
 
-
-static NTSTATUS NTAPI hNtQueryFullAttributesFile(POBJECT_ATTRIBUTES oa, PFILE_NETWORK_OPEN_INFORMATION oi) {
+static NTSTATUS NTAPI
+hNtQueryFullAttributesFile(
+    POBJECT_ATTRIBUTES oa, PFILE_NETWORK_OPEN_INFORMATION oi)
+{
 	NTSTATUS r;
 	D;
 	r = oNtQueryFullAttributesFile(oa, oi);
 	if (NT_SUCCESS(r)) {
 		char buf[PATH_MAX];
-		emitOp('q', utf8PathFromWide(buf, oa->ObjectName->Buffer, oa->ObjectName->Length/2), 0);
-        }
+		emitOp('q',
+		    utf8PathFromWide(buf, oa->ObjectName->Buffer,
+			oa->ObjectName->Length / 2),
+		    0);
+	}
 	return r;
 }
 
-static NTSTATUS NTAPI hNtResumeThread(HANDLE th, PULONG sc) {
+static NTSTATUS NTAPI
+hNtResumeThread(HANDLE th, PULONG sc)
+{
 	NTSTATUS r;
-	DWORD pid;
+	DWORD	 pid;
 	D;
 	pid = GetProcessIdOfThread(th);
 	if (!patchInstalled(pid))
@@ -223,12 +227,13 @@ static NTSTATUS NTAPI hNtResumeThread(HANDLE th, PULONG sc) {
 	return r;
 }
 
-
-void hooksInit(void *(*resolve)(const char *)) {
-	void * addr;
-#define HOOK(n)							\
-	addr = resolve(#n);					\
-	patchInstall(addr, (void *)h##n, (void **) &o##n, #n)
+void
+hooksInit(void *(*resolve)(const char *))
+{
+	void *addr;
+#define HOOK(n)             \
+	addr = resolve(#n); \
+	patchInstall(addr, (void *)h##n, (void **)&o##n, #n)
 
 	HOOK(NtCreateFile);
 	HOOK(NtOpenFile);

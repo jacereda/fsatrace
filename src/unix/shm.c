@@ -11,15 +11,15 @@
 #include "../shm.h"
 
 struct priv {
-	int		fd;
-	size_t		sz;
+	int    fd;
+	size_t sz;
 };
 
 static unsigned long
 hash(unsigned char *str)
 {
-	unsigned long	h = 5381;
-	int		c;
+	unsigned long h = 5381;
+	int	      c;
 	while ((c = *str++))
 		h = ((h << 5) + h) + c;
 	return h;
@@ -28,20 +28,27 @@ hash(unsigned char *str)
 int
 shmInit(struct shm *shm, const char *key, size_t sz, int root)
 {
-	int		err = 0;
-	struct priv    *p = (struct priv *)shm->storage;
-	char           *shname = shm->name;
+	int	     err = 0;
+	struct priv *p = (struct priv *)shm->storage;
+	char *	     shname = shm->name;
 	assert(key);
 	assert(sizeof(shm->storage) > sizeof(*p));
-	snprintf(shname, sizeof(shm->storage), "/fsatrace%ld", hash((unsigned char *)key));
+	snprintf(shname, sizeof(shm->storage), "/fsatrace%ld",
+	    hash((unsigned char *)key));
 	for (size_t i = 0, l = strlen(shname); i < l; i++)
 		if (shname[i] == '/')
 			shname[i] = '_';
 	if (root)
-		shm_unlink(shname); // Just in case, it might have crashed on a previous execution
-	err += (-1 == (p->fd = shm_open(shname, (root * O_CREAT) | O_RDWR, 0666))) << 0;
+		shm_unlink(shname); // Just in case, it might have crashed on a
+				    // previous execution
+	err +=
+	    (-1 == (p->fd = shm_open(shname, (root * O_CREAT) | O_RDWR, 0666)))
+	    << 0;
 	err += (root && (-1 == ftruncate(p->fd, sz))) << 1;
-	err += (MAP_FAILED == (shm->buf = mmap(0, sz, PROT_READ | PROT_WRITE, MAP_SHARED, p->fd, 0))) << 2;
+	err += (MAP_FAILED ==
+		   (shm->buf = mmap(
+			0, sz, PROT_READ | PROT_WRITE, MAP_SHARED, p->fd, 0)))
+	    << 2;
 	p->sz = sz;
 	return err;
 }
@@ -49,8 +56,8 @@ shmInit(struct shm *shm, const char *key, size_t sz, int root)
 int
 shmTerm(struct shm *shm, int root)
 {
-	struct priv    *p = (struct priv *)shm->storage;
-	int		err = 0;
+	struct priv *p = (struct priv *)shm->storage;
+	int	     err = 0;
 	err += (-1 == munmap(shm->buf, p->sz)) << 0;
 	err += (-1 == close(p->fd)) << 1;
 	err += (root && (-1 == shm_unlink(shm->name))) << 2;

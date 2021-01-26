@@ -1,1 +1,1 @@
-char * handlePath(char * dst, HANDLE h);
+char *handlePath(char *dst, HANDLE h);

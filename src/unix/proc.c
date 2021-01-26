@@ -15,14 +15,14 @@ void
 procPath(char *fullpath)
 {
 #if defined __linux__
-	char		exepath   [64];
-	ssize_t		ret;
+	char	exepath[64];
+	ssize_t ret;
 	snprintf(exepath, sizeof(exepath), "/proc/%d/exe", getpid());
 	ret = readlink(exepath, fullpath, PATH_MAX);
 	assert(ret != -1);
 	fullpath[ret] = 0;
 #else
-	proc_pidpath  (getpid(), fullpath, PATH_MAX);
+	proc_pidpath(getpid(), fullpath, PATH_MAX);
 #endif
 }
 
@@ -34,8 +34,8 @@ procDumpArgs(unsigned nargs, char *const args[])
 		fprintf(stderr, "argv[%d]=%s\n", i, args[i]);
 }
 
-static enum procerr 
-waitchild(int child, int *rc) 
+static enum procerr
+waitchild(int child, int *rc)
 {
 	enum procerr ret;
 	if (-1 != waitpid(child, rc, 0)) {
@@ -57,15 +57,14 @@ waitchild(int child, int *rc)
 	return ret;
 }
 
-
 enum procerr
 procRun(unsigned nargs, char *const args[], int *rc)
 {
-	extern char   **environ;
-	int		ret;
-	int		child;
-	char		so        [PATH_MAX+3];
-	char		fullpath  [PATH_MAX];
+	extern char **environ;
+	int	      ret;
+	int	      child;
+	char	      so[PATH_MAX + 3];
+	char	      fullpath[PATH_MAX];
 	procPath(fullpath);
 	snprintf(so, sizeof(so), "%s.so", fullpath);
 #if defined __linux__
@@ -78,13 +77,13 @@ procRun(unsigned nargs, char *const args[], int *rc)
 #if 0
 	if (posix_spawnp(&child, args[0], 0, 0, args, environ))
 		ret = ERR_PROC_FORK;
-	else 
+	else
 		ret = waitchild(child, rc);
 #else
 	child = fork();
 	switch (child) {
 	case -1:
-		ret = ERR_PROC_FORK; 
+		ret = ERR_PROC_FORK;
 		break;
 	case 0:
 		execvp(args[0], args);
