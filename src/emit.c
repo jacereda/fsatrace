@@ -67,11 +67,12 @@ int
 emitInit()
 {
 	const char *out = mygetenv(ENVOUT);
-	assert(out);
 	const char *raw_buf_size = mygetenv(ENVBUFSIZE);
-	assert(atol(raw_buf_size) > 0);
+	size_t	    buf_size = atol(raw_buf_size);
+	assert(out);
+	assert(buf_size > 0);
 	assert(!shm.buf);
-	return out ? shmInit(&shm, out, atol(raw_buf_size), 0) : 1;
+	return out ? shmInit(&shm, out, buf_size, 0) : 1;
 }
 
 int
