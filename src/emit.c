@@ -41,10 +41,10 @@ mygetenv(const char *v)
 		unsigned    i = 0;
 		if (strcmp(v, ENVBUFSIZE) == 0) {
 			static char buf[64];
+			unsigned    j = 0;
 			// Buffer size is the second positional value.
 			while (path[i++] != ';')
 				;
-			unsigned j = 0;
 			while (path[i] != ';')
 				buf[j++] = path[i++];
 			buf[j] = 0;
