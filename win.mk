@@ -15,10 +15,10 @@ all: fsatest32.exe
 	$(CC32) -c $(CPPFLAGS32) $(CFLAGS) -march=i686 $< -o $@
 
 fsatracehelper.exe: $(HELPER_OBJ)
-	$(CC32) $< -o $@
+	$(CC32) $(LDFLAGS) $< -o $@
 
 fsatest32.exe: src/fsatest32.o
-	$(CC32) $< -o $@
+	$(CC32) $(LDFLAGS) $< -o $@
 
 fsatrace64.dll: $(OBJS64)
 	$(CC) -shared $(LDFLAGS64) $^ -o $@ $(LDLIBS)

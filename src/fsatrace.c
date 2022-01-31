@@ -95,6 +95,20 @@ uniq(char *d, size_t *tot, const char *s, const char *last, size_t lastsz)
 		uniq(d, tot, end + 1, last, lastsz);
 }
 
+static void
+workaround(const char *oenv, size_t buf_size)
+{
+#ifdef _WIN32
+	// Workaround, bash distributed with ghc 8.6.5 seems to discard
+	// most environment variables, pass environment variables as the
+	// first few PATH components.
+	char env[65536];
+	snprintf(env, sizeof(env), "PATH=%s;%ld;%s", oenv, (long)buf_size,
+	    getenv("PATH"));
+	putenv(env);
+#endif
+}
+
 int
 main(int argc, char *const argv[])
 {
@@ -141,17 +155,7 @@ main(int argc, char *const argv[])
 	snprintf(
 	    envbufsize, sizeof(envbufsize), ENVBUFSIZE "=%ld", (long)buf_size);
 	putenv(envbufsize);
-#ifdef _WIN32
-	{
-		// Workaround, bash distributed with ghc 8.6.5 seems to discard
-		// most environment variables, pass environment variables as the
-		// first few PATH components.
-		char env[65536];
-		snprintf(env, sizeof(env), "PATH=%s;%ld;%s", out,
-		    (long)buf_size, getenv("PATH"));
-		putenv(env);
-	}
-#endif
+	workaround(out, buf_size);
 	fflush(stdout);
 	opts = (const unsigned char *)argv[1];
 	bopts = shm.buf + 4;

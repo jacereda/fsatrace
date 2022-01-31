@@ -11,7 +11,9 @@ CPPFLAGS32=-D_WIN32_WINNT=0x600 -DIS32=1 -isystem$(ROOT32)\i686-w64-mingw32\incl
 OSSRCS=src/win/inject.c src/win/dbg.c
 LDOBJS=$(ROOT64)\x86_64-w64-mingw32\lib\CRT_noglob.o
 INSTALLDIR=$(APPDATA)\local\bin
-
+LDFLAGS=-s
+LDFLAGS32=-s
+LDFLAGS64=-s
 else
 
 PLAT=unix
@@ -19,7 +21,6 @@ CPPFLAGS=-D_GNU_SOURCE -D_DEFAULT_SOURCE=1
 LDFLAGS=-g
 
 OS=$(shell uname -s)
-LS=$(shell which ls)
 
 ifeq ($(OS),Linux)
 LDLIBS=-ldl -lrt
@@ -29,7 +30,9 @@ INSTALLDIR=$(HOME)/.local/bin
 
 endif
 
-CFLAGS+= -g -std=c99 -Wall -O2 -fomit-frame-pointer -fno-stack-protector -MMD
+LS=$(shell which ls)
+
+CFLAGS+= -std=c99 -Wall -O2 -fomit-frame-pointer -fno-stack-protector -MMD
 
 SRCS=src/fsatrace.c src/$(PLAT)/proc.c src/$(PLAT)/shm.c $(OSSRCS)
 
