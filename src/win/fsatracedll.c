@@ -2,6 +2,7 @@
 #include <psapi.h>
 #include <stdbool.h>
 #include "../emit.h"
+#include "../fsatrace.h"
 #include "patch.h"
 #include "dbg.h"
 #include "hooks.h"
@@ -54,7 +55,8 @@ DllMain(HMODULE hDLL, DWORD Reason, LPVOID Reserved)
 	switch (Reason) {
 	case DLL_PROCESS_ATTACH:
 		emitInit();
-		dlldeps();
+		if (0 == GetEnvironmentVariableA(ENVNODLLS, 0, 0))
+			dlldeps();
 		patchInit();
 		hooksInit(resolve);
 		break;
