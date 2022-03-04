@@ -38,20 +38,9 @@ mygetenv(const char *v)
 	// PATH components.
 	if (!out) {
 		const char *path = getenv("PATH");
-		unsigned    i = 0;
-		if (strcmp(v, ENVBUFSIZE) == 0) {
-			static char buf[64];
-			unsigned    j = 0;
-			// Buffer size is the second positional value.
-			while (path[i++] != ';')
-				;
-			while (path[i] != ';')
-				buf[j++] = path[i++];
-			buf[j] = 0;
-			out = buf;
-		}
 		if (strcmp(v, ENVOUT) == 0) {
 			static char buf[PATH_MAX];
+			unsigned    i = 0;
 			unsigned    j = 0;
 			while (path[i] != ';')
 				buf[j++] = path[i++];
@@ -67,12 +56,9 @@ int
 emitInit()
 {
 	const char *out = mygetenv(ENVOUT);
-	const char *raw_buf_size = mygetenv(ENVBUFSIZE);
-	size_t	    buf_size = atol(raw_buf_size);
 	assert(out);
-	assert(buf_size > 0);
 	assert(!shm.buf);
-	return out ? shmInit(&shm, out, buf_size, 0) : 1;
+	return out ? shmInit(&shm, out, LOGSZ, 0) : 1;
 }
 
 int

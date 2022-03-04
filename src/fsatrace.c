@@ -96,15 +96,14 @@ uniq(char *d, size_t *tot, const char *s, const char *last, size_t lastsz)
 }
 
 static void
-workaround(const char *oenv, size_t buf_size)
+workaround(const char *oenv)
 {
 #ifdef _WIN32
 	// Workaround, bash distributed with ghc 8.6.5 seems to discard
 	// most environment variables, pass environment variables as the
 	// first few PATH components.
 	char env[65536];
-	snprintf(env, sizeof(env), "PATH=%s;%ld;%s", oenv, (long)buf_size,
-	    getenv("PATH"));
+	snprintf(env, sizeof(env), "PATH=%s;%s", oenv, getenv("PATH"));
 	putenv(env);
 #endif
 }
@@ -118,22 +117,13 @@ main(int argc, char *const argv[])
 	struct shm	     shm;
 	size_t		     sz = 0;
 	char		     envout[PATH_MAX + 8];
-	char		     envbufsize[128];
 	const unsigned char *opts;
 	char *		     bopts;
 	int		     verr;
 	char *const *	     args = argv + 4;
 	unsigned	     nargs = argc - 4;
 
-	size_t	    buf_size = DEFAULT_LOGSZ;
-	const char *env_buf_size = getenv(ENVBUFSIZE);
-	if (env_buf_size) {
-		const long parsed = atol(env_buf_size);
-		if (parsed <= 0)
-			fatal("invalid buffer size %d", parsed);
-		buf_size = parsed;
-	}
-	char buf[buf_size];
+	static char s_buf[LOGSZ];
 
 	if (argc < 5 || (strcmp(argv[3], "--") && strcmp(argv[3], "---")))
 		fatal(
@@ -148,14 +138,11 @@ main(int argc, char *const argv[])
 		    "   q: dump file stat operations\n",
 		    argv[0]);
 	out = argv[2];
-	if ((err = shmInit(&shm, out, buf_size, 1)))
+	if ((err = shmInit(&shm, out, LOGSZ, 1)))
 		fatal("allocating shared memory (%d)", err);
 	snprintf(envout, sizeof(envout), ENVOUT "=%s", out);
 	putenv(envout);
-	snprintf(
-	    envbufsize, sizeof(envbufsize), ENVBUFSIZE "=%ld", (long)buf_size);
-	putenv(envbufsize);
-	workaround(out, buf_size);
+	workaround(out);
 	fflush(stdout);
 	opts = (const unsigned char *)argv[1];
 	bopts = shm.buf + 4;
@@ -197,14 +184,12 @@ main(int argc, char *const argv[])
 				    "command failed with code %d", rc);
 		}
 		if (strcmp(argv[3], "---")) {
-			uniq(buf, &sz, shm.buf + 4 + 256, "", 0);
-			dump(out, buf, sz);
+			uniq(s_buf, &sz, shm.buf + 4 + 256, "", 0);
+			dump(out, s_buf, sz);
 		} else
 			dump(out, shm.buf + 4 + 256, *(uint32_t *)shm.buf);
 	}
 	if ((err = shmTerm(&shm, 1)))
 		error("freeing shared memory (%d)", err);
-	if (rc != 0 && verr)
-		error("buffer size used: %ld\n", (long)buf_size);
 	return rc;
 }
