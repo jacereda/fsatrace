@@ -4,7 +4,7 @@
 
 #include <shellapi.h>
 #include "dbg.h"
-#include "fsatrace.h"
+#include "../fsatrace.h"
 
 void
 injectProcess(HANDLE proc)
@@ -40,9 +40,9 @@ injectProcess(HANDLE proc)
 	if (is32 && !IS32) {
 		STARTUPINFO	    si;
 		PROCESS_INFORMATION pi;
-		const char *	    helpername = "fsatracehelper.exe";
+		const char	   *helpername = "fsatracehelper.exe";
 		char		    helper[PATH_MAX];
-		char *		    p;
+		char		     *p;
 
 		// On 32bit Windows when we spawn fsatracehelper it reenters
 		// and tries to run itself again, if we detect this we abort
