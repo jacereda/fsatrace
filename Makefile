@@ -64,9 +64,7 @@ test: all
 	./fsatrace$(EXE) ewrmdqt - -- $(TEST_CC_CMD)
 	./fsatrace$(EXE) ewrmdqt - -- sh -c "cp $(LS) /tmp/foo && mv -f /tmp/foo /tmp/bar && rm -f /tmp/bar"
 	./fsatrace$(EXE) ewrmdqt - -- sh -c "cp $(LS) /tmp/foo && mv -f /tmp/foo /tmp/bar && rm -f /tmp/bar" # twice, when dst exists it might use another path
-	# Test buffer size overwrite, since default buffer size is not large enough
-	# for the amount of output from the command.
-	env FSAT_BUF_SIZE=2000000 ./fsatrace$(EXE) ewrmdqt /dev/null -- sh -c "for _ in {1..100}; do $(TEST_CC_CMD); done"
+	./fsatrace$(EXE) ewrmdqt /dev/null -- sh -c "for _ in {1..100}; do $(TEST_CC_CMD); done"
 
 htest: all
 	cd test && stack install && stack test
