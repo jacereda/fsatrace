@@ -7,6 +7,7 @@
 #include <string.h>
 #include <fcntl.h>
 #include <limits.h>
+#include <errno.h>
 #ifdef _MSC_VER
 #include <io.h>
 #define ssize_t size_t
@@ -24,10 +25,11 @@ static void
 errv(const char *fmt, const char *pref, va_list ap)
 {
 	char fullpath[PATH_MAX];
+	char *es = strerror(errno);
 	procPath(fullpath);
 	fprintf(stderr, "%s(%d): %s", basename(fullpath), getpid(), pref);
 	vfprintf(stderr, fmt, ap);
-	fprintf(stderr, "\n");
+	fprintf(stderr, ": %s\n", es);
 	fflush(stderr);
 }
 
