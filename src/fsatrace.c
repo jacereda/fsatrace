@@ -191,6 +191,8 @@ main(int argc, char *const argv[])
 		} else
 			dump(out, shm.buf + 4 + 256, *(uint32_t *)shm.buf);
 	}
+	if (shm.buf_overflow)
+		error("shared memory buffer out of space", -1);
 	if ((err = shmTerm(&shm, 1)))
 		error("freeing shared memory (%d)", err);
 	return rc;

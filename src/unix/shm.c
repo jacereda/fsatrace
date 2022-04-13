@@ -50,6 +50,7 @@ shmInit(struct shm *shm, const char *key, size_t sz, int root)
 			0, sz, PROT_READ | PROT_WRITE, MAP_SHARED, p->fd, 0)))
 	    << 2;
 	p->sz = sz;
+	shm->buf_size = sz;
 	return err;
 }
 

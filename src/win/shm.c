@@ -27,6 +27,7 @@ shmInit(struct shm *shm, const char *key, size_t sz, int root)
 		   (shm->buf =
 			   MapViewOfFile(p->mf, FILE_MAP_ALL_ACCESS, 0, 0, sz)))
 	    << 1;
+	shm->buf_size = sz;
 	return err;
 }
 

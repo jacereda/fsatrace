@@ -13,6 +13,9 @@
 #include "emit.h"
 static struct shm shm;
 
+static const char * BUFFER_FULL_MSG = "BUFFER OUT OF SPACE!\n";
+static const size_t BUFFER_FULL_MSG_SIZE = 22;
+
 static const char *
 mygetenv(const char *v)
 {
@@ -70,6 +73,8 @@ emitTerm()
 void
 emitOp(int oc, const char *op1, const char *p2)
 {
+	if (shm.buf_overflow) return;
+
 	char *	    dst = shm.buf + 4 + 256;
 	char *	    opts = shm.buf + 4;
 	uint32_t *  psofar = (uint32_t *)shm.buf;
@@ -92,6 +97,14 @@ emitOp(int oc, const char *op1, const char *p2)
 	}
 	sofar = __sync_fetch_and_add(psofar, sz);
 	p = dst + sofar;
+
+	if (p >= (shm.buf + shm.buf_size) - BUFFER_FULL_MSG_SIZE - sz) {
+		fprintf(stderr, BUFFER_FULL_MSG);
+		shm.buf_overflow = true;
+		memcpy(p, BUFFER_FULL_MSG, BUFFER_FULL_MSG_SIZE);
+		return;
+	}
+
 	*p++ = c;
 	*p++ = '|';
 	memcpy(p, p1, s1);
