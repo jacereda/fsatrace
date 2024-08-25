@@ -42,7 +42,7 @@ fsatrace$(EXE): $(patsubst %.c,%.o,$(SRCS))
 	$(CC) $(LDFLAGS) $(LDOBJS) $^ $(LDLIBS) -o $@
 
 fsatest$(EXE): src/fsatest.o
-	$(CC) $^ -o $@
+	$(CC) $(LDFLAGS) $^ -o $@
 
 dumpargs$(EXE): dumpargs.o
 	$(CC) $(LDFLAGS) $^ $(LDLIBS) -o $@
